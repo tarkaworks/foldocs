@@ -25,7 +25,14 @@ export interface MdxComponents<Message> {
 
 export interface MarkdownViewOptions<Message> {
   readonly components?: MdxComponents<Message>;
+  readonly copiedCode?: string;
+  readonly copyCode?: (value: string) => Message;
 }
+
+const copyIcon =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>';
+const copiedIcon =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>';
 
 const externalUrl = (url: string): boolean => /^(?:https?:)?\/\//iu.test(url);
 
@@ -125,9 +132,51 @@ export const renderMarkdown = <Message>(
         return h.div(
           [h.Class("ed-code-block")],
           [
-            ...(block.language === undefined
-              ? []
-              : [h.div([h.Class("ed-code-language")], [block.language])]),
+            h.div(
+              [h.Class("ed-code-toolbar")],
+              [
+                h.span(
+                  [h.Class("ed-code-language")],
+                  [block.language ?? "text"],
+                ),
+                ...(options.copyCode === undefined
+                  ? []
+                  : [
+                      h.button(
+                        [
+                          h.Class("ed-code-copy"),
+                          h.OnClick(options.copyCode(block.value)),
+                          h.AriaLabel(
+                            options.copiedCode === block.value
+                              ? "Code copied"
+                              : "Copy code",
+                          ),
+                        ],
+                        [
+                          h.span(
+                            [
+                              h.Class("ed-icon"),
+                              h.InnerHTML(
+                                options.copiedCode === block.value
+                                  ? copiedIcon
+                                  : copyIcon,
+                              ),
+                            ],
+                            [],
+                          ),
+                          h.span(
+                            [],
+                            [
+                              options.copiedCode === block.value
+                                ? "Copied"
+                                : "Copy",
+                            ],
+                          ),
+                        ],
+                      ),
+                    ]),
+              ],
+            ),
             block.highlightedHtml === undefined
               ? h.pre([], [h.code([], [block.value])])
               : h.div(

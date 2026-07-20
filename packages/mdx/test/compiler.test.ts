@@ -65,4 +65,21 @@ const program = Effect.succeed(1)
       compile("# Unsafe\n\n[click](javascript:alert(1))"),
     ).rejects.toThrow(/Unsafe URL scheme/iu);
   });
+
+  it("decorates highlighted code with accessible visual line numbers", async () => {
+    const page = await compile(
+      "# Code\n\n```ts\nconst one = 1\nconst two = 2\n```",
+      {
+        filePath: "code.mdx",
+      },
+    );
+    const code = page.document.blocks.find(
+      (block) => block._tag === "CodeBlock",
+    );
+    expect(code?._tag).toBe("CodeBlock");
+    if (code?._tag !== "CodeBlock") return;
+    expect(code.highlightedHtml).toContain('data-line-digits="2"');
+    expect(code.highlightedHtml).toContain('data-line="1"');
+    expect(code.highlightedHtml).toContain('data-line="2"');
+  });
 });

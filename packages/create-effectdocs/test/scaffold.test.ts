@@ -26,10 +26,24 @@ describe("create-effectdocs", () => {
       fs.stat(path.join(result.directory, ".gitignore")),
     ).resolves.toBeDefined();
     await expect(
-      fs.stat(path.join(result.directory, "content/docs/index.mdx")),
+      fs.stat(
+        path.join(result.directory, "content/docs/(get-started)/index.mdx"),
+      ),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.stat(path.join(result.directory, "content/docs/meta.json")),
     ).resolves.toBeDefined();
     await expect(
       fs.stat(path.join(result.directory, "src/entry.ts")),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.readFile(path.join(result.directory, "src/entry.ts"), "utf8"),
+    ).resolves.toContain("navigation");
+    await expect(
+      fs.stat(path.join(result.directory, "public/theme-init.js")),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.stat(path.join(result.directory, "public/favicon.svg")),
     ).resolves.toBeDefined();
   });
 });

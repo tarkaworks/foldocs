@@ -18,7 +18,13 @@ pnpm dev
 ```
 
 The generated application uses local Orama search and a complete responsive
-layout by default. There is no framework-selection prompt.
+layout by default, including keyboard search, active desktop/mobile tables of
+contents, the Foldkit website's cream/charcoal visual system, a separate generated
+landing page, collapsible navigation, code copy controls, flash-free three-way
+theming, and production metadata. Every page also has an appended `.md` URL plus
+Copy Markdown and View as Markdown actions. There is no framework-selection prompt.
+Fumadocs-style `meta.json` files and parenthesized route groups provide explicit
+sidebar labels, ordering, and default-open behavior without changing public URLs.
 
 ## Develop the monorepo
 
@@ -32,6 +38,8 @@ pnpm --filter effectdocs-docs dev
 The dogfood site in `apps/docs` consumes the same public packages as a generated
 application. Its production build verifies lazy page chunks, navigation, search,
 syntax highlighting, `llms.txt`, `llms-full.txt`, and `sitemap.xml` together.
+The build additionally verifies that processed per-page Markdown assets are emitted
+at paths such as `/docs/getting-started.md`.
 
 ## Packages
 

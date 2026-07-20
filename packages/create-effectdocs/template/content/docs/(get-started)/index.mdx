@@ -13,7 +13,8 @@ navigation entries, search results, and LLM-readable output automatically.
 
 <Callout title="Ready out of the box">
   The responsive shell, local full-text search, dark theme, syntax highlighting,
-  table of contents, sitemap, and llms.txt are already configured.
+  table of contents, per-page `.md` output, sitemap, and llms.txt are already
+  configured.
 </Callout>
 
 ## Start writing
@@ -33,8 +34,12 @@ The generated site is a Foldkit application. Its model, messages, commands, page
 loading, navigation, and search are all typed and driven by Effect.
 
 ```ts
-import { manifest, siteConfig } from "virtual:effectdocs";
+import { manifest, navigation, siteConfig } from "virtual:effectdocs";
 import { createDocsProgram } from "effectdocs";
 
-export const program = createDocsProgram({ manifest, site: siteConfig });
+export const program = createDocsProgram({
+  manifest,
+  navigation,
+  site: siteConfig,
+});
 ```

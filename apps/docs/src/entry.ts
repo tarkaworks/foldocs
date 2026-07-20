@@ -1,8 +1,13 @@
-import { manifest, siteConfig } from "virtual:effectdocs";
+import { manifest, markdown, navigation, siteConfig } from "virtual:effectdocs";
 import { createDocsProgram } from "effectdocs";
 import { Runtime } from "foldkit";
 
-const program = createDocsProgram({ manifest, site: siteConfig });
+const program = createDocsProgram({
+  manifest,
+  navigation,
+  site: siteConfig,
+  markdown,
+});
 
 const application = Runtime.makeApplication({
   Model: program.Model,

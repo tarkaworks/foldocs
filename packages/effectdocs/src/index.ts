@@ -8,6 +8,7 @@ import {
   adjacentPages,
   buildNavigation,
   findPageByUrl,
+  type NavigationNode,
   type PageManifest,
   type SiteConfig,
 } from "effectdocs-core";
@@ -15,9 +16,10 @@ import {
   CompiledPage,
   type CompiledPage as CompiledPageType,
 } from "effectdocs-mdx";
-import { docsLayout } from "effectdocs-ui";
-import { Effect, Option, Schema as S, Stream } from "effect";
-import { Command, Subscription, type Runtime } from "foldkit";
+import { docsLayout, landingLayout } from "effectdocs-ui";
+import { Effect, Option, Queue, Schema as S, Stream } from "effect";
+import { Command, Render, Subscription, type Runtime } from "foldkit";
+import * as Dom from "foldkit/dom";
 import { type Document, html } from "foldkit/html";
 import { m } from "foldkit/message";
 import { UrlRequest, load, pushUrl } from "foldkit/navigation";
@@ -25,8 +27,10 @@ import { Url, toString as urlToString } from "foldkit/url";
 
 export interface DocsProgramOptions {
   readonly manifest: PageManifest<CompiledPageType>;
+  readonly navigation?: ReadonlyArray<NavigationNode>;
   readonly site: SiteConfig;
   readonly search?: SearchClient;
+  readonly markdown?: boolean;
 }
 
 const messageFromError = (error: unknown): string =>
@@ -37,8 +41,29 @@ const messageFromError = (error: unknown): string =>
  * The returned schemas can be passed directly to `Runtime.makeApplication`.
  */
 export const createDocsProgram = (options: DocsProgramOptions) => {
+  const narrowViewportQuery = "(max-width: 48rem)";
   const manifest = options.manifest;
-  const navigation = buildNavigation(manifest);
+  const navigation = options.navigation ?? buildNavigation(manifest);
+  const defaultCollapsedSidebarGroups = (() => {
+    const groups: string[] = [];
+    const visit = (
+      nodes: ReadonlyArray<NavigationNode>,
+      parentKey = "",
+    ): void => {
+      for (const node of nodes) {
+        if (node._tag !== "Folder") continue;
+        const key = `${parentKey}/${node.segment}`;
+        if (!node.defaultOpen) groups.push(key);
+        visit(node.children, key);
+      }
+    };
+    visit(navigation);
+    return groups;
+  })();
+  const docsUrl =
+    manifest.find((page) => page.slug === "")?.url ??
+    manifest[0]?.url ??
+    "/docs";
   const searchDocuments: ReadonlyArray<SearchDocument> = manifest.map(
     (page) => ({
       id: page.id,
@@ -75,9 +100,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   const searchClient = options.search ?? defaultSearch;
 
   const PageLoading = m("PageLoading", { pathname: S.String });
+  const PageHome = m("PageHome");
   const PageReady = m("PageReady", { pathname: S.String, page: CompiledPage });
   const PageFailed = m("PageFailed", { pathname: S.String, reason: S.String });
-  const PageState = S.Union([PageLoading, PageReady, PageFailed]);
+  const PageState = S.Union([PageHome, PageLoading, PageReady, PageFailed]);
 
   const Model = S.Struct({
     pathname: S.String,
@@ -87,7 +113,17 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     searchQuery: S.String,
     searchResults: S.Array(SearchResult),
     searchError: S.String,
+    searchLoading: S.Boolean,
+    activeSearchResultIndex: S.Number,
+    activeTocId: S.String,
+    mobileTocOpen: S.Boolean,
+    narrowViewport: S.Boolean,
+    collapsedSidebarGroups: S.Array(S.String),
     theme: S.Literals(["light", "dark"]),
+    systemTheme: S.Literals(["light", "dark"]),
+    themePreference: S.Literals(["light", "system", "dark"]),
+    copiedText: S.String,
+    copyMarkdownStatus: S.Literals(["idle", "loading", "copied", "error"]),
   });
   type Model = typeof Model.Type;
 
@@ -111,15 +147,52 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   });
   const FailedSearch = m("FailedSearch", { query: S.String, reason: S.String });
   const SearchResultMessage = S.Union([SucceededSearch, FailedSearch]);
+  const PressedSearchKey = m("PressedSearchKey", { key: S.String });
+  const ChangedActiveSection = m("ChangedActiveSection", {
+    sectionId: S.String,
+  });
+  const SelectedToc = m("SelectedToc", { sectionId: S.String });
+  const ToggledMobileToc = m("ToggledMobileToc", { open: S.Boolean });
+  const SelectedSearchResult = m("SelectedSearchResult", { url: S.String });
+  const ChangedNarrowViewport = m("ChangedNarrowViewport", {
+    narrow: S.Boolean,
+  });
   const ToggledSidebar = m("ToggledSidebar");
   const ClosedSidebar = m("ClosedSidebar");
   const ToggledSearch = m("ToggledSearch");
   const ClosedSearch = m("ClosedSearch");
-  const ToggledTheme = m("ToggledTheme");
+  const ToggledSidebarGroup = m("ToggledSidebarGroup", { key: S.String });
+  const LoadedSidebarGroups = m("LoadedSidebarGroups", {
+    groups: S.Array(S.String),
+  });
+  const CompletedSaveSidebarGroups = m("CompletedSaveSidebarGroups");
+  const SelectedTheme = m("SelectedTheme", {
+    preference: S.Literals(["light", "system", "dark"]),
+  });
   const LoadedTheme = m("LoadedTheme", {
+    preference: S.Literals(["light", "system", "dark"]),
+    theme: S.Literals(["light", "dark"]),
+    systemTheme: S.Literals(["light", "dark"]),
+  });
+  const ChangedSystemTheme = m("ChangedSystemTheme", {
     theme: S.Literals(["light", "dark"]),
   });
+  const CompletedApplyTheme = m("CompletedApplyTheme");
   const CompletedSaveTheme = m("CompletedSaveTheme");
+  const ClickedCopyText = m("ClickedCopyText", { value: S.String });
+  const CompletedCopyText = m("CompletedCopyText", { value: S.String });
+  const ClickedCopyMarkdown = m("ClickedCopyMarkdown", { url: S.String });
+  const SucceededLoadMarkdown = m("SucceededLoadMarkdown", {
+    markdown: S.String,
+  });
+  const FailedLoadMarkdown = m("FailedLoadMarkdown");
+  const LoadMarkdownResult = S.Union([
+    SucceededLoadMarkdown,
+    FailedLoadMarkdown,
+  ]);
+  const CompletedFocusSearch = m("CompletedFocusSearch");
+  const CompletedFocusSidebar = m("CompletedFocusSidebar");
+  const CompletedScrollSearchResult = m("CompletedScrollSearchResult");
   const PressedGlobalKey = m("PressedGlobalKey", {
     key: S.String,
     ctrlKey: S.Boolean,
@@ -136,13 +209,32 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ChangedSearch,
     SucceededSearch,
     FailedSearch,
+    PressedSearchKey,
+    ChangedActiveSection,
+    SelectedToc,
+    ToggledMobileToc,
+    SelectedSearchResult,
+    ChangedNarrowViewport,
     ToggledSidebar,
     ClosedSidebar,
     ToggledSearch,
     ClosedSearch,
-    ToggledTheme,
+    ToggledSidebarGroup,
+    LoadedSidebarGroups,
+    CompletedSaveSidebarGroups,
+    SelectedTheme,
     LoadedTheme,
+    ChangedSystemTheme,
+    CompletedApplyTheme,
     CompletedSaveTheme,
+    ClickedCopyText,
+    CompletedCopyText,
+    ClickedCopyMarkdown,
+    SucceededLoadMarkdown,
+    FailedLoadMarkdown,
+    CompletedFocusSearch,
+    CompletedFocusSidebar,
+    CompletedScrollSearchResult,
     PressedGlobalKey,
   ]);
   type Message = typeof Message.Type;
@@ -201,39 +293,208 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ),
   );
 
+  const FocusSearch = Command.define(
+    "FocusSearch",
+    CompletedFocusSearch,
+  )(
+    Dom.focus("#ed-search-input").pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusSearch()),
+    ),
+  );
+
+  const FocusSidebar = Command.define(
+    "FocusSidebar",
+    CompletedFocusSidebar,
+  )(
+    Dom.focus("#ed-sidebar a").pipe(
+      Effect.ignore,
+      Effect.as(CompletedFocusSidebar()),
+    ),
+  );
+
+  const ScrollSearchResult = Command.define(
+    "ScrollSearchResult",
+    { index: S.Number },
+    CompletedScrollSearchResult,
+  )(({ index }) =>
+    Dom.scrollIntoView(`#ed-search-result-${index}`).pipe(
+      Effect.ignore,
+      Effect.as(CompletedScrollSearchResult()),
+    ),
+  );
+
+  const applyTheme = (theme: "light" | "dark"): void => {
+    const root = globalThis.document?.documentElement;
+    root?.classList.toggle("dark", theme === "dark");
+    if (root !== undefined) root.style.colorScheme = theme;
+  };
+
+  const preferredSystemTheme = (): "light" | "dark" =>
+    globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+
+  const resolveTheme = (
+    preference: "light" | "system" | "dark",
+    systemTheme: "light" | "dark",
+  ): "light" | "dark" => (preference === "system" ? systemTheme : preference);
+
   const ReadTheme = Command.define(
     "ReadTheme",
     LoadedTheme,
   )(
     Effect.sync(() => {
-      const stored = globalThis.localStorage?.getItem("effectdocs-theme");
-      const theme =
-        stored === "light" || stored === "dark"
+      let stored: string | null | undefined;
+      try {
+        stored = globalThis.localStorage?.getItem("effectdocs-theme");
+      } catch {
+        stored = undefined;
+      }
+      const preference =
+        stored === "light" || stored === "dark" || stored === "system"
           ? stored
-          : globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-      return LoadedTheme({ theme });
+          : "system";
+      const systemTheme = preferredSystemTheme();
+      const theme = resolveTheme(preference, systemTheme);
+      applyTheme(theme);
+      return LoadedTheme({ preference, systemTheme, theme });
     }),
   );
 
   const SaveTheme = Command.define(
     "SaveTheme",
-    { theme: S.Literals(["light", "dark"]) },
+    {
+      preference: S.Literals(["light", "system", "dark"]),
+      theme: S.Literals(["light", "dark"]),
+    },
     CompletedSaveTheme,
-  )(({ theme }) =>
+  )(({ preference, theme }) =>
     Effect.sync(() => {
-      globalThis.localStorage?.setItem("effectdocs-theme", theme);
+      applyTheme(theme);
+      try {
+        globalThis.localStorage?.setItem("effectdocs-theme", preference);
+      } catch {
+        // Storage can be unavailable in private or embedded browsing contexts.
+      }
       return CompletedSaveTheme();
     }),
+  );
+
+  const ApplyTheme = Command.define(
+    "ApplyTheme",
+    { theme: S.Literals(["light", "dark"]) },
+    CompletedApplyTheme,
+  )(({ theme }) =>
+    Effect.sync(() => {
+      applyTheme(theme);
+      return CompletedApplyTheme();
+    }),
+  );
+
+  const ReadSidebarGroups = Command.define(
+    "ReadSidebarGroups",
+    LoadedSidebarGroups,
+  )(
+    Effect.sync(() => {
+      try {
+        const value = globalThis.localStorage?.getItem(
+          "effectdocs-sidebar-groups",
+        );
+        const parsed: unknown =
+          value === null || value === undefined
+            ? defaultCollapsedSidebarGroups
+            : JSON.parse(value);
+        return LoadedSidebarGroups({
+          groups: Array.isArray(parsed)
+            ? parsed.filter(
+                (entry): entry is string => typeof entry === "string",
+              )
+            : [],
+        });
+      } catch {
+        return LoadedSidebarGroups({ groups: defaultCollapsedSidebarGroups });
+      }
+    }),
+  );
+
+  const SaveSidebarGroups = Command.define(
+    "SaveSidebarGroups",
+    { groups: S.Array(S.String) },
+    CompletedSaveSidebarGroups,
+  )(({ groups }) =>
+    Effect.sync(() => {
+      try {
+        globalThis.localStorage?.setItem(
+          "effectdocs-sidebar-groups",
+          JSON.stringify(groups),
+        );
+      } catch {
+        // Storage can be unavailable in private or embedded browsing contexts.
+      }
+      return CompletedSaveSidebarGroups();
+    }),
+  );
+
+  const CopyText = Command.define(
+    "CopyText",
+    { value: S.String },
+    CompletedCopyText,
+  )(({ value }) =>
+    Effect.tryPromise({
+      try: async () => {
+        if (globalThis.navigator?.clipboard?.writeText !== undefined) {
+          await globalThis.navigator.clipboard.writeText(value);
+          return;
+        }
+        const textarea = globalThis.document?.createElement("textarea");
+        if (textarea === undefined) return;
+        textarea.value = value;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        globalThis.document.body.append(textarea);
+        textarea.select();
+        globalThis.document.execCommand("copy");
+        textarea.remove();
+      },
+      catch: messageFromError,
+    }).pipe(
+      Effect.ignore,
+      Effect.andThen(Effect.sleep("2 seconds")),
+      Effect.as(CompletedCopyText({ value })),
+    ),
+  );
+
+  const LoadMarkdown = Command.define(
+    "LoadMarkdown",
+    { url: S.String },
+    LoadMarkdownResult,
+  )(({ url }) =>
+    Effect.tryPromise({
+      try: async () => {
+        const response = await globalThis.fetch(url, {
+          headers: { Accept: "text/markdown" },
+        });
+        if (!response.ok)
+          throw new Error(`Markdown request failed with ${response.status}.`);
+        return await response.text();
+      },
+      catch: messageFromError,
+    }).pipe(
+      Effect.map((markdown) => SucceededLoadMarkdown({ markdown })),
+      Effect.catch(() => Effect.succeed(FailedLoadMarkdown())),
+    ),
   );
 
   const pageRequest = (
     pathname: string,
   ): readonly [
-    typeof PageLoading.Type,
+    typeof PageState.Type,
     ReadonlyArray<Command.Command<Message>>,
-  ] => [PageLoading({ pathname }), [LoadPage({ pathname })]];
+  ] =>
+    pathname === "/" && findPageByUrl(manifest, pathname) === undefined
+      ? [PageHome(), []]
+      : [PageLoading({ pathname }), [LoadPage({ pathname })]];
 
   const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
     const [page, commands] = pageRequest(url.pathname);
@@ -246,9 +507,20 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         searchQuery: "",
         searchResults: [],
         searchError: "",
+        searchLoading: false,
+        activeSearchResultIndex: -1,
+        activeTocId: "",
+        mobileTocOpen: false,
+        narrowViewport:
+          globalThis.matchMedia?.(narrowViewportQuery).matches ?? false,
+        collapsedSidebarGroups: [],
         theme: "light",
+        systemTheme: "light",
+        themePreference: "system",
+        copiedText: "",
+        copyMarkdownStatus: "idle",
       },
-      [...commands, ReadTheme()],
+      [...commands, ReadTheme(), ReadSidebarGroups()],
     ];
   };
 
@@ -272,6 +544,15 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             page,
             sidebarOpen: false,
             searchOpen: false,
+            searchQuery: "",
+            searchResults: [],
+            searchError: "",
+            searchLoading: false,
+            activeSearchResultIndex: -1,
+            activeTocId: "",
+            mobileTocOpen: false,
+            copiedText: "",
+            copyMarkdownStatus: "idle",
           },
           commands,
         ];
@@ -286,6 +567,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
                   pathname: message.pathname,
                   page: message.page,
                 }),
+                activeTocId: message.page.toc[0]?.id ?? "",
+                mobileTocOpen: false,
               },
               [],
             ];
@@ -305,47 +588,267 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       case "ChangedSearch": {
         const query = message.query;
         return [
-          { ...model, searchQuery: query, searchError: "" },
+          {
+            ...model,
+            searchQuery: query,
+            searchResults: query.trim().length === 0 ? [] : model.searchResults,
+            searchError: "",
+            searchLoading: query.trim().length > 0,
+            activeSearchResultIndex: -1,
+          },
           query.trim().length === 0 ? [] : [Search({ query })],
         ];
       }
       case "SucceededSearch":
         return message.query !== model.searchQuery
           ? [model, []]
-          : [{ ...model, searchResults: message.results, searchError: "" }, []];
+          : [
+              {
+                ...model,
+                searchResults: message.results,
+                searchError: "",
+                searchLoading: false,
+                activeSearchResultIndex: message.results.length === 0 ? -1 : 0,
+              },
+              [],
+            ];
       case "FailedSearch":
         return message.query !== model.searchQuery
           ? [model, []]
-          : [{ ...model, searchResults: [], searchError: message.reason }, []];
+          : [
+              {
+                ...model,
+                searchResults: [],
+                searchError: message.reason,
+                searchLoading: false,
+                activeSearchResultIndex: -1,
+              },
+              [],
+            ];
+      case "PressedSearchKey": {
+        if (message.key === "Escape") {
+          return model.searchQuery.length > 0
+            ? [
+                {
+                  ...model,
+                  searchQuery: "",
+                  searchResults: [],
+                  searchError: "",
+                  searchLoading: false,
+                  activeSearchResultIndex: -1,
+                },
+                [],
+              ]
+            : [{ ...model, searchOpen: false }, []];
+        }
+        if (
+          (message.key === "ArrowDown" || message.key === "ArrowUp") &&
+          model.searchResults.length > 0
+        ) {
+          const last = model.searchResults.length - 1;
+          const index =
+            message.key === "ArrowDown"
+              ? model.activeSearchResultIndex >= last
+                ? 0
+                : model.activeSearchResultIndex + 1
+              : model.activeSearchResultIndex <= 0
+                ? last
+                : model.activeSearchResultIndex - 1;
+          return [
+            { ...model, activeSearchResultIndex: index },
+            [ScrollSearchResult({ index })],
+          ];
+        }
+        if (message.key === "Enter" && model.activeSearchResultIndex >= 0) {
+          const result = model.searchResults[model.activeSearchResultIndex];
+          if (result !== undefined) {
+            return [
+              {
+                ...model,
+                searchOpen: false,
+                searchQuery: "",
+                searchResults: [],
+                searchLoading: false,
+                activeSearchResultIndex: -1,
+              },
+              [NavigateInternal({ url: result.url })],
+            ];
+          }
+        }
+        return [model, []];
+      }
+      case "ChangedActiveSection":
+        return [{ ...model, activeTocId: message.sectionId }, []];
+      case "SelectedToc":
+        return [
+          {
+            ...model,
+            activeTocId: message.sectionId,
+            mobileTocOpen: false,
+          },
+          [],
+        ];
+      case "ToggledMobileToc":
+        return [{ ...model, mobileTocOpen: message.open }, []];
+      case "SelectedSearchResult":
+        return [
+          {
+            ...model,
+            searchOpen: false,
+            searchQuery: "",
+            searchResults: [],
+            searchError: "",
+            searchLoading: false,
+            activeSearchResultIndex: -1,
+          },
+          message.url === model.pathname
+            ? []
+            : [NavigateInternal({ url: message.url })],
+        ];
+      case "ChangedNarrowViewport":
+        return [
+          {
+            ...model,
+            narrowViewport: message.narrow,
+            sidebarOpen: false,
+          },
+          [],
+        ];
       case "ToggledSidebar":
-        return [{ ...model, sidebarOpen: !model.sidebarOpen }, []];
+        return model.sidebarOpen
+          ? [{ ...model, sidebarOpen: false }, []]
+          : [{ ...model, sidebarOpen: true }, [FocusSidebar()]];
       case "ClosedSidebar":
         return [{ ...model, sidebarOpen: false }, []];
       case "ToggledSearch":
-        return [{ ...model, searchOpen: !model.searchOpen }, []];
+        return model.searchOpen
+          ? [
+              {
+                ...model,
+                searchOpen: false,
+                searchQuery: "",
+                searchResults: [],
+                searchLoading: false,
+                activeSearchResultIndex: -1,
+              },
+              [],
+            ]
+          : [
+              { ...model, searchOpen: true, sidebarOpen: false },
+              [FocusSearch()],
+            ];
       case "ClosedSearch":
-        return [{ ...model, searchOpen: false }, []];
-      case "ToggledTheme": {
-        const theme = model.theme === "light" ? "dark" : "light";
-        return [{ ...model, theme }, [SaveTheme({ theme })]];
+        return [
+          {
+            ...model,
+            searchOpen: false,
+            searchQuery: "",
+            searchResults: [],
+            searchError: "",
+            searchLoading: false,
+            activeSearchResultIndex: -1,
+          },
+          [],
+        ];
+      case "ToggledSidebarGroup": {
+        const collapsedSidebarGroups = model.collapsedSidebarGroups.includes(
+          message.key,
+        )
+          ? model.collapsedSidebarGroups.filter((key) => key !== message.key)
+          : [...model.collapsedSidebarGroups, message.key];
+        return [
+          { ...model, collapsedSidebarGroups },
+          [SaveSidebarGroups({ groups: collapsedSidebarGroups })],
+        ];
+      }
+      case "LoadedSidebarGroups":
+        return [{ ...model, collapsedSidebarGroups: message.groups }, []];
+      case "SelectedTheme": {
+        const theme = resolveTheme(message.preference, model.systemTheme);
+        return [
+          { ...model, themePreference: message.preference, theme },
+          [SaveTheme({ preference: message.preference, theme })],
+        ];
       }
       case "LoadedTheme":
-        return [{ ...model, theme: message.theme }, []];
+        return [
+          {
+            ...model,
+            themePreference: message.preference,
+            systemTheme: message.systemTheme,
+            theme: message.theme,
+          },
+          [],
+        ];
+      case "ChangedSystemTheme": {
+        const theme = resolveTheme(model.themePreference, message.theme);
+        return [
+          { ...model, systemTheme: message.theme, theme },
+          theme === model.theme ? [] : [ApplyTheme({ theme })],
+        ];
+      }
+      case "ClickedCopyText":
+        return [
+          { ...model, copiedText: message.value, copyMarkdownStatus: "idle" },
+          [CopyText({ value: message.value })],
+        ];
+      case "CompletedCopyText":
+        return model.copiedText === message.value
+          ? [{ ...model, copiedText: "", copyMarkdownStatus: "idle" }, []]
+          : [model, []];
+      case "ClickedCopyMarkdown":
+        return [
+          { ...model, copyMarkdownStatus: "loading" },
+          [LoadMarkdown({ url: message.url })],
+        ];
+      case "SucceededLoadMarkdown":
+        return [
+          {
+            ...model,
+            copiedText: message.markdown,
+            copyMarkdownStatus: "copied",
+          },
+          [CopyText({ value: message.markdown })],
+        ];
+      case "FailedLoadMarkdown":
+        return [{ ...model, copyMarkdownStatus: "error" }, []];
       case "PressedGlobalKey":
         if (
           message.key.toLowerCase() === "k" &&
           (message.metaKey || message.ctrlKey)
         ) {
-          return [{ ...model, searchOpen: !model.searchOpen }, []];
+          return model.searchOpen
+            ? [{ ...model, searchOpen: false }, []]
+            : [
+                { ...model, searchOpen: true, sidebarOpen: false },
+                [FocusSearch()],
+              ];
         }
         if (message.key === "Escape" && model.searchOpen) {
-          return [{ ...model, searchOpen: false }, []];
+          return model.searchQuery.length > 0
+            ? [
+                {
+                  ...model,
+                  searchQuery: "",
+                  searchResults: [],
+                  searchError: "",
+                  searchLoading: false,
+                  activeSearchResultIndex: -1,
+                },
+                [],
+              ]
+            : [{ ...model, searchOpen: false }, []];
         }
         if (message.key === "Escape" && model.sidebarOpen) {
           return [{ ...model, sidebarOpen: false }, []];
         }
         return [model, []];
       case "CompletedSaveTheme":
+      case "CompletedApplyTheme":
+      case "CompletedSaveSidebarGroups":
+      case "CompletedFocusSearch":
+      case "CompletedFocusSidebar":
+      case "CompletedScrollSearchResult":
       case "CompletedNavigateInternal":
       case "CompletedLoadExternal":
         return [model, []];
@@ -380,9 +883,47 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     };
   };
 
+  const commonSearchOptions = (model: Model) => ({
+    searchOpen: model.searchOpen,
+    searchQuery: model.searchQuery,
+    searchResults: model.searchResults,
+    searchLoading: model.searchLoading,
+    searchError: model.searchError,
+    activeSearchResultIndex: model.activeSearchResultIndex,
+  });
+
   const view = (model: Model): Document => {
+    if (model.page._tag === "PageHome") {
+      const canonical = options.site.baseUrl?.replace(/\/+$/u, "");
+      return {
+        title: options.site.title,
+        ...(canonical === undefined ? {} : { canonical }),
+        ...(canonical === undefined ? {} : { ogUrl: canonical }),
+        body: landingLayout<Message>({
+          site: options.site,
+          docsUrl,
+          theme: model.theme,
+          themePreference: model.themePreference,
+          copiedText: model.copiedText,
+          ...commonSearchOptions(model),
+          actions: {
+            toggleSearch: ToggledSearch(),
+            closeSearch: ClosedSearch(),
+            updateSearch: (query) => ChangedSearch({ query }),
+            searchKeyDown: (key) => PressedSearchKey({ key }),
+            selectSearchResult: (url) => SelectedSearchResult({ url }),
+            selectTheme: (preference) => SelectedTheme({ preference }),
+            copyText: (value) => ClickedCopyText({ value }),
+          },
+        }),
+      };
+    }
     if (model.page._tag !== "PageReady") return pendingView(model);
     const adjacent = adjacentPages(manifest, model.pathname);
+    const markdownUrl =
+      model.pathname === "/"
+        ? "/index.md"
+        : `${model.pathname.replace(/\/+$/u, "")}.md`;
     const title = `${model.page.page.frontmatter.title} | ${options.site.title}`;
     const canonical =
       options.site.baseUrl === undefined
@@ -391,54 +932,175 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     return {
       title,
       ...(canonical === undefined ? {} : { canonical }),
+      ...(canonical === undefined ? {} : { ogUrl: canonical }),
       body: docsLayout<Message>({
         site: options.site,
         navigation,
         currentUrl: model.pathname,
+        docsUrl,
+        markdownUrl,
+        markdownEnabled: options.markdown ?? true,
+        copyMarkdownStatus: model.copyMarkdownStatus,
         page: model.page.page,
         ...(adjacent.previous === undefined
           ? {}
           : { previous: adjacent.previous }),
         ...(adjacent.next === undefined ? {} : { next: adjacent.next }),
         sidebarOpen: model.sidebarOpen,
-        searchOpen: model.searchOpen,
-        searchQuery: model.searchQuery,
-        searchResults: model.searchResults,
+        collapsedSidebarGroups: model.collapsedSidebarGroups,
+        ...commonSearchOptions(model),
+        activeTocId: model.activeTocId,
+        mobileTocOpen: model.mobileTocOpen,
+        narrowViewport: model.narrowViewport,
         theme: model.theme,
+        themePreference: model.themePreference,
         actions: {
           toggleSidebar: ToggledSidebar(),
           closeSidebar: ClosedSidebar(),
+          toggleSidebarGroup: (key) => ToggledSidebarGroup({ key }),
           toggleSearch: ToggledSearch(),
           closeSearch: ClosedSearch(),
           updateSearch: (query) => ChangedSearch({ query }),
-          toggleTheme: ToggledTheme(),
+          searchKeyDown: (key) => PressedSearchKey({ key }),
+          selectSearchResult: (url) => SelectedSearchResult({ url }),
+          setMobileTocOpen: (open) => ToggledMobileToc({ open }),
+          selectToc: (sectionId) => SelectedToc({ sectionId }),
+          selectTheme: (preference) => SelectedTheme({ preference }),
+          copyMarkdown: ClickedCopyMarkdown({ url: markdownUrl }),
+        },
+        markdown: {
+          copiedCode: model.copiedText,
+          copyCode: (value) => ClickedCopyText({ value }),
         },
       }),
     };
   };
 
-  const subscriptions = Subscription.make<Model, Message>()(() => ({
+  const subscriptions = Subscription.make<Model, Message>()((entry) => ({
     keyboard: Subscription.persistent(
-      Stream.fromEventListener<KeyboardEvent>(document, "keydown").pipe(
-        Stream.map((event) =>
-          event.key === "Escape" ||
-          (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey))
-            ? Option.some(event)
-            : Option.none(),
-        ),
-        Stream.filter(Option.isSome),
-        Stream.mapEffect(({ value: event }) =>
-          Effect.sync(() => event.preventDefault()).pipe(
-            Effect.as(
-              PressedGlobalKey({
-                key: event.key,
-                ctrlKey: event.ctrlKey,
-                metaKey: event.metaKey,
-              }),
+      Stream.callback<typeof PressedGlobalKey.Type>((queue) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const onKeyDown = (event: KeyboardEvent) => {
+              if (
+                event.key !== "Escape" &&
+                !(
+                  event.key.toLowerCase() === "k" &&
+                  (event.metaKey || event.ctrlKey)
+                )
+              )
+                return;
+              event.preventDefault();
+              Queue.offerUnsafe(
+                queue,
+                PressedGlobalKey({
+                  key: event.key,
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                }),
+              );
+            };
+            globalThis.document?.addEventListener("keydown", onKeyDown);
+            return onKeyDown;
+          }),
+          (onKeyDown) =>
+            Effect.sync(() =>
+              globalThis.document?.removeEventListener("keydown", onKeyDown),
             ),
-          ),
-        ),
+        ).pipe(Effect.flatMap(() => Effect.never)),
       ),
+    ),
+    viewport: Subscription.persistent(
+      Stream.callback<typeof ChangedNarrowViewport.Type>((queue) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const mediaQuery = window.matchMedia(narrowViewportQuery);
+            const onChange = (event: MediaQueryListEvent) => {
+              Queue.offerUnsafe(
+                queue,
+                ChangedNarrowViewport({ narrow: event.matches }),
+              );
+            };
+            mediaQuery.addEventListener("change", onChange);
+            return { mediaQuery, onChange };
+          }),
+          ({ mediaQuery, onChange }) =>
+            Effect.sync(() =>
+              mediaQuery.removeEventListener("change", onChange),
+            ),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
+    ),
+    systemTheme: Subscription.persistent(
+      Stream.callback<typeof ChangedSystemTheme.Type>((queue) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            const mediaQuery = window.matchMedia(
+              "(prefers-color-scheme: dark)",
+            );
+            const onChange = (event: MediaQueryListEvent) => {
+              Queue.offerUnsafe(
+                queue,
+                ChangedSystemTheme({ theme: event.matches ? "dark" : "light" }),
+              );
+            };
+            mediaQuery.addEventListener("change", onChange);
+            return { mediaQuery, onChange };
+          }),
+          ({ mediaQuery, onChange }) =>
+            Effect.sync(() =>
+              mediaQuery.removeEventListener("change", onChange),
+            ),
+        ).pipe(Effect.flatMap(() => Effect.never)),
+      ),
+    ),
+    activeSection: entry(
+      { pathname: S.String, sections: S.Array(S.String) },
+      {
+        modelToDependencies: (model) => ({
+          pathname: model.pathname,
+          sections:
+            model.page._tag === "PageReady"
+              ? model.page.page.toc.map(({ id }) => id)
+              : [],
+        }),
+        dependenciesToStream: ({ sections }) =>
+          Stream.callback<typeof ChangedActiveSection.Type>((queue) =>
+            Effect.gen(function* () {
+              if (sections.length === 0) return yield* Effect.never;
+              yield* Render.afterCommit;
+              yield* Effect.acquireRelease(
+                Effect.sync(() => {
+                  const visible = new Set<string>();
+                  const intersectionObserver = new IntersectionObserver(
+                    (entries) => {
+                      for (const observed of entries) {
+                        if (observed.isIntersecting)
+                          visible.add(observed.target.id);
+                        else visible.delete(observed.target.id);
+                      }
+                      const sectionId = sections.find((id) => visible.has(id));
+                      if (sectionId !== undefined) {
+                        Queue.offerUnsafe(
+                          queue,
+                          ChangedActiveSection({ sectionId }),
+                        );
+                      }
+                    },
+                    { rootMargin: "-110px 0px -75% 0px" },
+                  );
+                  for (const id of sections) {
+                    const element = document.getElementById(id);
+                    if (element !== null) intersectionObserver.observe(element);
+                  }
+                  return intersectionObserver;
+                }),
+                (observer) => Effect.sync(() => observer.disconnect()),
+              );
+              return yield* Effect.never;
+            }),
+          ),
+      },
     ),
   }));
 

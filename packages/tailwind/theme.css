@@ -1,24 +1,49 @@
 :root {
-  --ed-background: oklch(0.99 0.003 264);
-  --ed-foreground: oklch(0.2 0.025 265);
-  --ed-muted: oklch(0.96 0.006 264);
-  --ed-muted-foreground: oklch(0.5 0.025 265);
-  --ed-card: oklch(1 0 0);
-  --ed-border: oklch(0.9 0.012 264);
-  --ed-primary: oklch(0.56 0.22 264);
-  --ed-primary-foreground: oklch(0.98 0.01 264);
-  --ed-code: oklch(0.17 0.025 264);
-  --ed-radius: 0.75rem;
+  --ed-cream: #f8f7fb;
+  --ed-gray-50: #f5f4f8;
+  --ed-gray-100: #eeedf2;
+  --ed-gray-200: #e0dfe6;
+  --ed-gray-300: #cdcbd4;
+  --ed-gray-400: #9e9baa;
+  --ed-gray-500: #716e7e;
+  --ed-gray-600: #534f60;
+  --ed-gray-700: #3e3a4a;
+  --ed-gray-800: #2a2833;
+  --ed-gray-850: #232129;
+  --ed-gray-900: #1e1c21;
+  --ed-gray-950: #13121a;
+  --ed-accent-100: #e8f5d0;
+  --ed-accent-200: #c8e494;
+  --ed-accent-300: #a3d154;
+  --ed-accent-400: #82b536;
+  --ed-accent-500: #82b536;
+  --ed-accent-600: #4d7a15;
+  --ed-accent-700: #416812;
+  --ed-accent-800: #365610;
+  --ed-accent-900: #253b0a;
+
+  --ed-background: var(--ed-cream);
+  --ed-foreground: var(--ed-gray-800);
+  --ed-muted: var(--ed-gray-100);
+  --ed-muted-foreground: var(--ed-gray-500);
+  --ed-card: var(--ed-cream);
+  --ed-border: var(--ed-gray-300);
+  --ed-primary: var(--ed-accent-600);
+  --ed-primary-foreground: #fff;
+  --ed-code: var(--ed-gray-50);
+  --ed-selection: var(--ed-accent-200);
+  --ed-radius: 0.25rem;
 }
 
 .dark {
-  --ed-background: oklch(0.16 0.02 264);
-  --ed-foreground: oklch(0.96 0.008 264);
-  --ed-muted: oklch(0.22 0.024 264);
-  --ed-muted-foreground: oklch(0.7 0.02 264);
-  --ed-card: oklch(0.19 0.022 264);
-  --ed-border: oklch(0.3 0.025 264);
-  --ed-primary: oklch(0.7 0.17 264);
-  --ed-primary-foreground: oklch(0.15 0.02 264);
-  --ed-code: oklch(0.12 0.018 264);
+  --ed-background: var(--ed-gray-900);
+  --ed-foreground: var(--ed-gray-200);
+  --ed-muted: var(--ed-gray-800);
+  --ed-muted-foreground: var(--ed-gray-400);
+  --ed-card: var(--ed-gray-900);
+  --ed-border: var(--ed-gray-700);
+  --ed-primary: var(--ed-accent-400);
+  --ed-primary-foreground: var(--ed-accent-900);
+  --ed-code: var(--ed-gray-950);
+  --ed-selection: var(--ed-accent-800);
 }

@@ -289,6 +289,16 @@ const normalizeListItem = async (
   ...(typeof node.checked === "boolean" ? { checked: node.checked } : {}),
 });
 
+const withCodeLineNumbers = (highlightedHtml: string): string => {
+  let line = 0;
+  const numbered = highlightedHtml.replace(
+    /<span class="line">/gu,
+    () => `<span class="line" data-line="${String(++line)}">`,
+  );
+  const digits = Math.max(2, String(Math.max(1, line)).length);
+  return numbered.replace("<pre ", `<pre data-line-digits="${digits}" `);
+};
+
 const normalizeBlock = async (
   node: RootContent | MdastBlockContent | Record<string, unknown>,
   slugger: GithubSlugger,
@@ -320,11 +330,13 @@ const normalizeBlock = async (
       let highlightedHtml: string | undefined;
       if (options.highlight !== false) {
         try {
-          highlightedHtml = await codeToHtml(value, {
-            lang: language ?? "text",
-            themes: { light: "github-light", dark: "github-dark" },
-            defaultColor: false,
-          });
+          highlightedHtml = withCodeLineNumbers(
+            await codeToHtml(value, {
+              lang: language ?? "text",
+              themes: { light: "github-light", dark: "github-dark" },
+              defaultColor: false,
+            }),
+          );
         } catch {
           highlightedHtml = undefined;
         }
