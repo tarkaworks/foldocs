@@ -1,0 +1,41 @@
+{
+  "name": "effectdocs-ui",
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./layout": {
+      "types": "./dist/layout.d.ts",
+      "import": "./dist/layout.js"
+    },
+    "./markdown": {
+      "types": "./dist/markdown.d.ts",
+      "import": "./dist/markdown.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@effectdocs/content": "workspace:*",
+    "@effectdocs/search": "workspace:*",
+    "@foldkit/ui": "0.130.0",
+    "effect": "4.0.0-beta.97",
+    "effectdocs-core": "workspace:*",
+    "effectdocs-mdx": "workspace:*",
+    "foldkit": "0.130.0"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-beta.97",
+    "foldkit": "^0.130.0"
+  }
+}

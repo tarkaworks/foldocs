@@ -1,0 +1,211 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
+
+import {
+  compile,
+  type Block,
+  type CompiledPage,
+  type Inline,
+} from "effectdocs-mdx";
+import { Effect } from "effect";
+
+export interface CheckOptions {
+  readonly root?: string;
+  readonly contentDir?: string;
+  readonly basePath?: string;
+}
+
+export interface CheckIssue {
+  readonly level: "error" | "warning";
+  readonly file: string;
+  readonly message: string;
+}
+
+export interface CheckResult {
+  readonly pages: number;
+  readonly issues: ReadonlyArray<CheckIssue>;
+  readonly valid: boolean;
+}
+
+interface CheckedPage {
+  readonly file: string;
+  readonly url: string;
+  readonly compiled: CompiledPage;
+}
+
+const documentPattern = /\.(?:md|mdx)$/iu;
+
+const walk = async (directory: string): Promise<ReadonlyArray<string>> => {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(
+    entries.map(async (entry) => {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) return walk(target);
+      return entry.isFile() && documentPattern.test(entry.name) ? [target] : [];
+    }),
+  );
+  return nested.flat().sort((left, right) => left.localeCompare(right));
+};
+
+const normalizeBasePath = (basePath: string): string => {
+  const prefixed = basePath.startsWith("/") ? basePath : `/${basePath}`;
+  return prefixed === "/" ? "" : prefixed.replace(/\/+$/u, "");
+};
+
+const pageUrl = (
+  contentRoot: string,
+  file: string,
+  basePath: string,
+): string => {
+  const relative = path.relative(contentRoot, file).split(path.sep).join("/");
+  const segments = relative.replace(documentPattern, "").split("/");
+  if (segments.at(-1)?.toLowerCase() === "index") segments.pop();
+  const result = [basePath, segments.join("/")].filter(Boolean).join("/");
+  return (result.startsWith("/") ? result : `/${result}`).replace(
+    /\/{2,}/gu,
+    "/",
+  );
+};
+
+const linksFromInline = (inline: Inline): ReadonlyArray<string> => {
+  switch (inline._tag) {
+    case "Link":
+      return [inline.url, ...inline.content.flatMap(linksFromInline)];
+    case "Emphasis":
+    case "Strong":
+    case "Strikethrough":
+    case "InlineComponent":
+      return inline.content.flatMap(linksFromInline);
+    default:
+      return [];
+  }
+};
+
+const linksFromBlock = (block: Block): ReadonlyArray<string> => {
+  switch (block._tag) {
+    case "Heading":
+    case "Paragraph":
+      return block.content.flatMap(linksFromInline);
+    case "List":
+      return block.items.flatMap((item) => item.blocks.flatMap(linksFromBlock));
+    case "Blockquote":
+      return block.blocks.flatMap(linksFromBlock);
+    case "BlockComponent":
+      return [
+        ...(block.attributes.href === undefined ? [] : [block.attributes.href]),
+        ...block.blocks.flatMap(linksFromBlock),
+      ];
+    case "Table":
+      return [block.header, ...block.rows].flatMap((row) =>
+        row.cells.flatMap((cell) => cell.content.flatMap(linksFromInline)),
+      );
+    default:
+      return [];
+  }
+};
+
+const targetFor = (
+  href: string,
+  fromUrl: string,
+): { pathname: string; hash: string } | undefined => {
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/iu.test(href)) return undefined;
+  const target = new URL(href, `https://effectdocs.local${fromUrl}`);
+  let pathname = target.pathname.replace(documentPattern, "");
+  if (pathname.endsWith("/index")) pathname = pathname.slice(0, -6) || "/";
+  if (pathname.length > 1) pathname = pathname.replace(/\/+$/u, "");
+  return { pathname, hash: target.hash.slice(1) };
+};
+
+export const check = (
+  options: CheckOptions = {},
+): Effect.Effect<CheckResult, Error> =>
+  Effect.tryPromise({
+    try: async () => {
+      const root = path.resolve(options.root ?? process.cwd());
+      const contentRoot = path.resolve(
+        root,
+        options.contentDir ?? "content/docs",
+      );
+      const basePath = normalizeBasePath(options.basePath ?? "/docs");
+      const files = await walk(contentRoot);
+      const issues: CheckIssue[] = [];
+      const pages: CheckedPage[] = [];
+
+      for (const file of files) {
+        try {
+          const source = await fs.readFile(file, "utf8");
+          pages.push({
+            file,
+            url: pageUrl(contentRoot, file, basePath),
+            compiled: await compile(source, {
+              filePath: file,
+              highlight: false,
+            }),
+          });
+        } catch (error) {
+          issues.push({
+            level: "error",
+            file: path.relative(root, file),
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      const byUrl = new Map<string, CheckedPage>();
+      for (const page of pages) {
+        const duplicate = byUrl.get(page.url);
+        if (duplicate !== undefined) {
+          issues.push({
+            level: "error",
+            file: path.relative(root, page.file),
+            message: `Duplicate route ${page.url}; already generated by ${path.relative(root, duplicate.file)}.`,
+          });
+        } else {
+          byUrl.set(page.url, page);
+        }
+      }
+
+      for (const page of pages) {
+        const links = page.compiled.document.blocks.flatMap(linksFromBlock);
+        for (const href of links) {
+          const target = targetFor(href, page.url);
+          if (
+            target === undefined ||
+            !target.pathname.startsWith(basePath || "/")
+          )
+            continue;
+          const targetPage = byUrl.get(target.pathname);
+          if (targetPage === undefined) {
+            issues.push({
+              level: "error",
+              file: path.relative(root, page.file),
+              message: `Broken documentation link ${href}.`,
+            });
+            continue;
+          }
+          if (target.hash.length > 0) {
+            const headingIds = new Set(
+              targetPage.compiled.document.blocks.flatMap((block) =>
+                block._tag === "Heading" ? [block.id] : [],
+              ),
+            );
+            if (!headingIds.has(decodeURIComponent(target.hash))) {
+              issues.push({
+                level: "error",
+                file: path.relative(root, page.file),
+                message: `Broken heading link ${href}.`,
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        pages: pages.length,
+        issues,
+        valid: issues.every((issue) => issue.level !== "error"),
+      };
+    },
+    catch: (cause) =>
+      cause instanceof Error ? cause : new Error(String(cause)),
+  });

@@ -1,0 +1,21 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/content" },
+    { "path": "packages/core" },
+    { "path": "packages/mdx" },
+    { "path": "packages/search" },
+    { "path": "packages/search-algolia" },
+    { "path": "packages/search-flexsearch" },
+    { "path": "packages/search-mixedbread" },
+    { "path": "packages/search-orama" },
+    { "path": "packages/search-orama-cloud" },
+    { "path": "packages/search-trieve" },
+    { "path": "packages/search-typesense" },
+    { "path": "packages/ui" },
+    { "path": "packages/vite" },
+    { "path": "packages/effectdocs" },
+    { "path": "packages/cli" },
+    { "path": "packages/create-effectdocs" }
+  ]
+}

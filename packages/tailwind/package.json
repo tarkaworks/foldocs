@@ -1,0 +1,16 @@
+{
+  "name": "@effectdocs/tailwind",
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "preset.css",
+    "theme.css"
+  ],
+  "exports": {
+    "./preset.css": "./preset.css",
+    "./theme.css": "./theme.css"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    { "path": "../content" },
+    { "path": "../core" },
+    { "path": "../mdx" },
+    { "path": "../search" },
+    { "path": "../search-orama" },
+    { "path": "../ui" }
+  ],
+  "include": ["src", "test"]
+}

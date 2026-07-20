@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "types": ["node"]
+  },
+  "references": [{ "path": "../mdx" }],
+  "include": ["src", "test"]
+}

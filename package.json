@@ -1,0 +1,33 @@
+{
+  "name": "effectdocs-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@effect/platform-browser": "4.0.0-beta.97",
+    "@foldkit/markdown": "0.1.1",
+    "@foldkit/ui": "0.130.0",
+    "@foldkit/vite-plugin": "0.11.0",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "26.1.1",
+    "effect": "4.0.0-beta.97",
+    "foldkit": "0.130.0",
+    "prettier": "^3.8.4",
+    "turbo": "^2.5.8",
+    "typescript": "6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}

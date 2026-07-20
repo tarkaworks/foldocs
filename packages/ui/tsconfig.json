@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true
+  },
+  "references": [
+    { "path": "../content" },
+    { "path": "../core" },
+    { "path": "../mdx" },
+    { "path": "../search" }
+  ],
+  "include": ["src", "test"]
+}

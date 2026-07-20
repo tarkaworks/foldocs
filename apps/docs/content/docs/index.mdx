@@ -1,0 +1,42 @@
+---
+title: Effectdocs
+description: A production-oriented documentation framework built with Effect and Foldkit.
+order: 1
+---
+
+# Effectdocs
+
+<Badge>Effect native</Badge>
+
+Effectdocs turns Markdown and deterministic MDX into a complete Foldkit documentation
+application with typed content, navigation, full-text search, and AI-readable output.
+
+<Callout title="One command, one opinionated stack">
+  Run `pnpm create effectdocs my-docs`. There is no framework picker: Effect and
+  Foldkit are the architecture, not optional compatibility layers.
+</Callout>
+
+## What you get
+
+<Cards>
+  <Card title="Authoring" href="/docs/getting-started">
+    Markdown, MDX components, frontmatter, tables, task lists, and highlighted
+    code.
+  </Card>
+  <Card title="Search" href="/docs/features/search">
+    Browser-local Orama search by default with a provider-neutral Effect
+    contract.
+  </Card>
+</Cards>
+
+## Typed all the way down
+
+```ts
+import { manifest, siteConfig } from "virtual:effectdocs";
+import { createDocsProgram } from "effectdocs";
+
+const program = createDocsProgram({ manifest, site: siteConfig });
+```
+
+The virtual manifest eagerly contains serializable metadata and lazy-loads each
+compiled document only when its route is visited.

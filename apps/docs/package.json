@@ -1,0 +1,27 @@
+{
+  "name": "effectdocs-docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@effect/platform-browser": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.97",
+    "effectdocs": "workspace:*",
+    "foldkit": "0.130.0"
+  },
+  "devDependencies": {
+    "@effectdocs/tailwind": "workspace:*",
+    "@effectdocs/vite": "workspace:*",
+    "@foldkit/vite-plugin": "0.11.0",
+    "@types/node": "26.1.1",
+    "typescript": "6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}
