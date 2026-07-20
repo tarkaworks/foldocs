@@ -1,0 +1,7 @@
+{
+  "title": "Primeros pasos",
+  "description": "Instala y aprende tu stack de documentación",
+  "root": true,
+  "pages": ["index", "getting-started"],
+  "defaultOpen": true
+}

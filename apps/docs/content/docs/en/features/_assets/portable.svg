@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-labelledby="title description">
+  <title id="title">Portable Foldocs content</title>
+  <desc id="description">A document travels between Obsidian, Foldocs, and EPUB.</desc>
+  <rect width="720" height="240" rx="28" fill="#f6f1e7"/>
+  <g fill="none" stroke="#26352f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 56h104l40 40v88H120z"/>
+    <path d="M224 56v40h40M156 128h72M156 154h54"/>
+    <path d="M300 120h106m-24-24 24 24-24 24"/>
+    <rect x="444" y="56" width="156" height="128" rx="18"/>
+    <path d="M480 92h84M480 120h84M480 148h54"/>
+  </g>
+  <circle cx="353" cy="120" r="13" fill="#56b37f"/>
+</svg>

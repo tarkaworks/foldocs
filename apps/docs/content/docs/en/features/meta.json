@@ -1,0 +1,17 @@
+{
+  "title": "Features",
+  "description": "Production documentation primitives",
+  "root": true,
+  "pages": [
+    "search",
+    "custom-components",
+    "navigation-versioning",
+    "openapi",
+    "asyncapi",
+    "remote-content",
+    "layouts-customization",
+    "language-reference",
+    "portable-content"
+  ],
+  "defaultOpen": true
+}

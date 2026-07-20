@@ -1,0 +1,24 @@
+---
+title: Referencias de lenguajes y Twoslash
+description: Genera páginas API de TypeScript y Python con tipos interactivos de TypeScript.
+order: 8
+tags:
+  - TypeScript
+  - Python
+  - Twoslash
+---
+
+# Referencias de lenguajes y Twoslash
+
+`@foldocs/typescript` emite declaraciones con el compilador de TypeScript y conserva
+JSDoc sin incluir implementaciones. `@foldocs/python` lee el AST de Python en otro
+proceso sin importar ni ejecutar el módulo. Los dos generan raíces MDX administradas
+que participan en navegación, búsqueda, i18n, Markdown, LLM y salida estática.
+
+```sh
+foldocs-typescript src/index.ts content/docs/en/typescript /en/docs/typescript
+foldocs-python src/package.py content/docs/en/python /en/docs/python
+```
+
+Los bloques TypeScript con la marca `twoslash` reciben información de tipos y
+diagnósticos durante la compilación; los demás conservan el resaltado normal de Shiki.

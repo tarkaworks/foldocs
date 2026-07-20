@@ -52,6 +52,82 @@ export interface SearchProvider {
   ) => SearchClient;
 }
 
+export interface SearchIndexer {
+  readonly provider: string;
+  /** Replace the complete provider-side corpus with this snapshot. */
+  readonly replace: (
+    documents: ReadonlyArray<SearchDocument>,
+  ) => Effect.Effect<void, SearchError>;
+}
+
+export interface SearchSyncReport {
+  readonly provider: string;
+  readonly documents: number;
+  readonly locales: ReadonlyArray<string>;
+}
+
+export const createSearchIndexer = (
+  provider: string,
+  replace: (documents: ReadonlyArray<SearchDocument>) => Promise<void>,
+): SearchIndexer => ({
+  provider,
+  replace: (documents) =>
+    Effect.tryPromise({
+      try: () => replace(documents),
+      catch: (cause) => new SearchError(provider, cause),
+    }),
+});
+
+const prepareSearchDocuments = (
+  documents: ReadonlyArray<SearchDocument>,
+): ReadonlyArray<SearchDocument> => {
+  const ids = new Set<string>();
+  const urls = new Set<string>();
+  const ordered = [...documents].sort((left, right) =>
+    left.id.localeCompare(right.id),
+  );
+
+  for (const document of ordered) {
+    if (ids.has(document.id)) {
+      throw new Error(`Duplicate search document id: ${document.id}`);
+    }
+    const localizedUrl = `${document.locale ?? ""}:${document.url}`;
+    if (urls.has(localizedUrl)) {
+      throw new Error(`Duplicate search document URL: ${document.url}`);
+    }
+    ids.add(document.id);
+    urls.add(localizedUrl);
+  }
+
+  return ordered;
+};
+
+/** Validate and atomically hand a complete corpus to a hosted index writer. */
+export const syncSearchDocuments = (
+  indexer: SearchIndexer,
+  documents: ReadonlyArray<SearchDocument>,
+): Effect.Effect<SearchSyncReport, SearchError> =>
+  Effect.try({
+    try: () => prepareSearchDocuments(documents),
+    catch: (cause) => new SearchError(indexer.provider, cause),
+  }).pipe(
+    Effect.flatMap((prepared) =>
+      indexer.replace(prepared).pipe(
+        Effect.map(() => ({
+          provider: indexer.provider,
+          documents: prepared.length,
+          locales: [
+            ...new Set(
+              prepared.flatMap((document) =>
+                document.locale === undefined ? [] : [document.locale],
+              ),
+            ),
+          ].sort(),
+        })),
+      ),
+    ),
+  );
+
 export const excerpt = (
   content: string,
   query: string,

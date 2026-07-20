@@ -1,5 +1,5 @@
 {
-  "name": "@effectdocs/search",
+  "name": "@foldocs/search",
   "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./sync": {
+      "types": "./dist/sync.d.ts",
+      "import": "./dist/sync.js"
     }
   },
   "scripts": {

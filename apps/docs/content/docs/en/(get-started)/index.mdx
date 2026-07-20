@@ -1,0 +1,59 @@
+---
+title: Foldocs
+description: A production-oriented documentation framework for Foldkit, powered by Effect.
+order: 1
+---
+
+# Foldocs
+
+<Badge>Foldkit native</Badge>
+
+Foldocs turns Markdown and deterministic MDX into a complete Foldkit documentation
+application with typed content, navigation, full-text search, and AI-readable output.
+
+Every document is also available as processed Markdown by appending `.md` to its
+URL, with copy and view actions generated automatically.
+
+<Callout title="One command, one opinionated stack">
+  Run `pnpm create foldocs my-docs`. There is no framework picker: Foldkit is
+  the application framework and Effect powers the runtime.
+</Callout>
+
+## What you get
+
+<Cards>
+  <Card title="Authoring" href="/en/docs/getting-started">
+    Markdown, MDX components, frontmatter, tables, task lists, and highlighted
+    code.
+  </Card>
+  <Card title="Search" href="/en/docs/features/search">
+    Browser-local Orama search by default with a provider-neutral Effect
+    contract.
+  </Card>
+</Cards>
+
+## Typed all the way down
+
+```ts
+import {
+  basePath,
+  i18n,
+  manifest,
+  navigations,
+  searchIndexUrls,
+  siteConfig,
+} from "virtual:foldocs";
+import { createDocsProgram } from "foldocs";
+
+const program = createDocsProgram({
+  basePath,
+  i18n,
+  manifest,
+  navigations,
+  searchIndexUrls,
+  site: siteConfig,
+});
+```
+
+The virtual manifest eagerly contains serializable metadata and lazy-loads each
+compiled document only when its route is visited.

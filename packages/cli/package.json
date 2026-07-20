@@ -1,12 +1,12 @@
 {
-  "name": "@effectdocs/cli",
+  "name": "@foldocs/cli",
   "version": "0.0.0",
   "type": "module",
   "files": [
     "dist"
   ],
   "bin": {
-    "effectdocs": "./dist/bin.js"
+    "foldocs": "./dist/bin.js"
   },
   "exports": {
     ".": {
@@ -21,6 +21,6 @@
   },
   "dependencies": {
     "effect": "4.0.0-beta.97",
-    "effectdocs-mdx": "workspace:*"
+    "foldocs-mdx": "workspace:*"
   }
 }

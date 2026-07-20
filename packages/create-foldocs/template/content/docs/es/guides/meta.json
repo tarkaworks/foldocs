@@ -1,0 +1,7 @@
+{
+  "title": "Guías",
+  "description": "Configura y amplía el proyecto",
+  "root": true,
+  "pages": ["configuration"],
+  "defaultOpen": true
+}

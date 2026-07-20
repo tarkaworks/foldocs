@@ -1,7 +1,13 @@
-import type { PageMetadata } from "@effectdocs/content";
+import type { PageMetadata } from "@foldocs/content";
 import { describe, expect, it } from "vitest";
 
-import { adjacentPages, buildNavigation, findPageByUrl } from "../src/index.js";
+import {
+  adjacentPages,
+  buildNavigation,
+  findPageByUrl,
+  navigationForUrl,
+  navigationTabsForUrl,
+} from "../src/index.js";
 
 const page = (
   slug: string,
@@ -82,5 +88,54 @@ describe("navigation", () => {
       previous: { frontmatter: { title: "Home" } },
       next: { frontmatter: { title: "Configuration" } },
     });
+  });
+
+  it("scopes navigation and pagination to active root folders", () => {
+    const versioned = [
+      { ...page("v1", "Version 1"), id: "v1/index.mdx" },
+      page("v1/configuration", "V1 configuration"),
+      { ...page("v2", "Version 2"), id: "v2/index.mdx" },
+      page("v2/configuration", "V2 configuration"),
+    ];
+    const tree = buildNavigation(versioned, {
+      v1: {
+        title: "v1",
+        description: "Legacy",
+        root: true,
+        pages: ["index", "configuration"],
+      },
+      v2: {
+        title: "v2",
+        description: "Latest",
+        root: true,
+        pages: ["index", "configuration"],
+      },
+    });
+    const scoped = navigationForUrl(tree, "/docs/v2");
+
+    expect(scoped.map((node) => node.label)).toEqual([
+      "Version 2",
+      "V2 configuration",
+    ]);
+    expect(navigationTabsForUrl(tree, "/docs/v2")).toEqual([
+      {
+        title: "v1",
+        description: "Legacy",
+        url: "/docs/v1",
+        current: false,
+      },
+      {
+        title: "v2",
+        description: "Latest",
+        url: "/docs/v2",
+        current: true,
+      },
+    ]);
+    expect(adjacentPages(versioned, "/docs/v2", scoped)).toMatchObject({
+      next: { frontmatter: { title: "V2 configuration" } },
+    });
+    expect(adjacentPages(versioned, "/docs/v2", scoped).previous).toBe(
+      undefined,
+    );
   });
 });

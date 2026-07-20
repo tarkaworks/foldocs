@@ -190,7 +190,7 @@ const renderBlocks = (
     .filter((value) => value.length > 0)
     .join("\n\n");
 
-/** Serializes Effectdocs' deterministic MDX AST into portable Markdown. */
+/** Serializes Foldocs' deterministic MDX AST into portable Markdown. */
 export const documentToMarkdown = (
   document: Document,
   options: MarkdownSerializeOptions = {},

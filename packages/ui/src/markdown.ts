@@ -5,28 +5,32 @@ import type {
   Inline,
   InlineComponent,
   TableRow,
-} from "effectdocs-mdx";
+} from "foldocs-mdx";
 import { type Html, html } from "foldkit/html";
 
-export type InlineComponentView<Message> = (
+export type InlineComponentView = (
   component: InlineComponent,
   content: ReadonlyArray<Html | string>,
 ) => Html;
 
-export type BlockComponentView<Message> = (
+export type BlockComponentView = (
   component: BlockComponent,
   content: ReadonlyArray<Html>,
 ) => Html;
 
-export interface MdxComponents<Message> {
-  readonly inline?: Readonly<Record<string, InlineComponentView<Message>>>;
-  readonly block?: Readonly<Record<string, BlockComponentView<Message>>>;
+export interface MdxComponents {
+  readonly inline?: Readonly<Record<string, InlineComponentView>>;
+  readonly block?: Readonly<Record<string, BlockComponentView>>;
 }
 
 export interface MarkdownViewOptions<Message> {
-  readonly components?: MdxComponents<Message>;
+  readonly components?: MdxComponents;
   readonly copiedCode?: string;
   readonly copyCode?: (value: string) => Message;
+  readonly copyLabel?: string;
+  readonly copiedLabel?: string;
+  readonly copyAriaLabel?: string;
+  readonly copiedAriaLabel?: string;
 }
 
 const copyIcon =
@@ -47,7 +51,7 @@ export const renderMarkdown = <Message>(
       case "Text":
         return inline.value;
       case "InlineCode":
-        return h.code([h.Class("ed-inline-code")], [inline.value]);
+        return h.code([h.Class("fd-inline-code")], [inline.value]);
       case "HardBreak":
         return h.br([]);
       case "Emphasis":
@@ -60,7 +64,7 @@ export const renderMarkdown = <Message>(
         return h.a(
           [
             h.Href(inline.url),
-            h.Class("ed-prose-link"),
+            h.Class("fd-prose-link"),
             ...(inline.title === undefined ? [] : [h.Title(inline.title)]),
             ...(externalUrl(inline.url)
               ? [h.Target("_blank"), h.Rel("noreferrer noopener")]
@@ -72,7 +76,7 @@ export const renderMarkdown = <Message>(
         return h.img([
           h.Src(inline.url),
           h.Alt(inline.alt),
-          h.Class("ed-prose-image"),
+          h.Class("fd-prose-image"),
           ...(inline.title === undefined ? [] : [h.Title(inline.title)]),
         ]);
       case "InlineComponent": {
@@ -80,11 +84,11 @@ export const renderMarkdown = <Message>(
         const component = options.components?.inline?.[inline.name];
         if (component !== undefined) return component(inline, content);
         if (inline.name === "Badge") {
-          return h.span([h.Class("ed-badge")], content);
+          return h.span([h.Class("fd-badge")], content);
         }
         return h.span(
           [
-            h.Class("ed-inline-component"),
+            h.Class("fd-inline-component"),
             h.DataAttribute("component", inline.name),
           ],
           content,
@@ -108,7 +112,7 @@ export const renderMarkdown = <Message>(
       case "Heading": {
         const attributes = [
           h.Id(block.id),
-          h.Class(`ed-heading ed-h${block.level}`),
+          h.Class(`fd-heading fd-h${block.level}`),
         ];
         const content = block.content.map(renderInline);
         switch (block.level) {
@@ -127,16 +131,16 @@ export const renderMarkdown = <Message>(
         }
       }
       case "Paragraph":
-        return h.p([h.Class("ed-paragraph")], block.content.map(renderInline));
+        return h.p([h.Class("fd-paragraph")], block.content.map(renderInline));
       case "CodeBlock":
         return h.div(
-          [h.Class("ed-code-block")],
+          [h.Class("fd-code-block")],
           [
             h.div(
-              [h.Class("ed-code-toolbar")],
+              [h.Class("fd-code-toolbar")],
               [
                 h.span(
-                  [h.Class("ed-code-language")],
+                  [h.Class("fd-code-language")],
                   [block.language ?? "text"],
                 ),
                 ...(options.copyCode === undefined
@@ -144,18 +148,18 @@ export const renderMarkdown = <Message>(
                   : [
                       h.button(
                         [
-                          h.Class("ed-code-copy"),
+                          h.Class("fd-code-copy"),
                           h.OnClick(options.copyCode(block.value)),
                           h.AriaLabel(
                             options.copiedCode === block.value
-                              ? "Code copied"
-                              : "Copy code",
+                              ? (options.copiedAriaLabel ?? "Code copied")
+                              : (options.copyAriaLabel ?? "Copy code"),
                           ),
                         ],
                         [
                           h.span(
                             [
-                              h.Class("ed-icon"),
+                              h.Class("fd-icon"),
                               h.InnerHTML(
                                 options.copiedCode === block.value
                                   ? copiedIcon
@@ -168,8 +172,8 @@ export const renderMarkdown = <Message>(
                             [],
                             [
                               options.copiedCode === block.value
-                                ? "Copied"
-                                : "Copy",
+                                ? (options.copiedLabel ?? "Copied")
+                                : (options.copyLabel ?? "Copy"),
                             ],
                           ),
                         ],
@@ -180,7 +184,7 @@ export const renderMarkdown = <Message>(
             block.highlightedHtml === undefined
               ? h.pre([], [h.code([], [block.value])])
               : h.div(
-                  [h.Class("ed-shiki"), h.InnerHTML(block.highlightedHtml)],
+                  [h.Class("fd-shiki"), h.InnerHTML(block.highlightedHtml)],
                   [],
                 ),
           ],
@@ -188,13 +192,13 @@ export const renderMarkdown = <Message>(
       case "List": {
         const items = block.items.map((item) =>
           h.li(
-            [h.Class(item.checked === undefined ? "" : "ed-task-item")],
+            [h.Class(item.checked === undefined ? "" : "fd-task-item")],
             [
               ...(item.checked === undefined
                 ? []
                 : [
                     h.span(
-                      [h.Class("ed-task-marker")],
+                      [h.Class("fd-task-marker")],
                       [item.checked ? "✓" : ""],
                     ),
                   ]),
@@ -205,26 +209,26 @@ export const renderMarkdown = <Message>(
         return block.ordered
           ? h.ol(
               [
-                h.Class("ed-list ed-list-ordered"),
+                h.Class("fd-list fd-list-ordered"),
                 ...(block.start ? [h.Start(block.start)] : []),
               ],
               items,
             )
-          : h.ul([h.Class("ed-list")], items);
+          : h.ul([h.Class("fd-list")], items);
       }
       case "Blockquote":
         return h.blockquote(
-          [h.Class("ed-blockquote")],
+          [h.Class("fd-blockquote")],
           block.blocks.map(renderBlock),
         );
       case "ThematicBreak":
-        return h.hr([h.Class("ed-rule")]);
+        return h.hr([h.Class("fd-rule")]);
       case "Table":
         return h.div(
-          [h.Class("ed-table-wrap")],
+          [h.Class("fd-table-wrap")],
           [
             h.table(
-              [h.Class("ed-table")],
+              [h.Class("fd-table")],
               [
                 h.thead([], [renderTableRow(block.header, true)]),
                 h.tbody(
@@ -243,7 +247,7 @@ export const renderMarkdown = <Message>(
           return h.aside(
             [
               h.Class(
-                `ed-callout ed-callout-${block.attributes.type ?? "info"}`,
+                `fd-callout fd-callout-${block.attributes.type ?? "info"}`,
               ),
               h.DataAttribute("component", block.name),
             ],
@@ -252,7 +256,7 @@ export const renderMarkdown = <Message>(
                 ? []
                 : [
                     h.strong(
-                      [h.Class("ed-callout-title")],
+                      [h.Class("fd-callout-title")],
                       [block.attributes.title],
                     ),
                   ]),
@@ -261,29 +265,29 @@ export const renderMarkdown = <Message>(
           );
         }
         if (block.name === "Cards") {
-          return h.div([h.Class("ed-cards")], content);
+          return h.div([h.Class("fd-cards")], content);
         }
         if (block.name === "Card") {
           const href = block.attributes.href;
           const inner = h.div(
-            [h.Class("ed-card-inner")],
+            [h.Class("fd-card-inner")],
             [
               ...(block.attributes.title === undefined
                 ? []
-                : [h.h3([h.Class("ed-card-title")], [block.attributes.title])]),
+                : [h.h3([h.Class("fd-card-title")], [block.attributes.title])]),
               ...content,
             ],
           );
           return href === undefined
-            ? h.div([h.Class("ed-card")], [inner])
-            : h.a([h.Class("ed-card"), h.Href(href)], [inner]);
+            ? h.div([h.Class("fd-card")], [inner])
+            : h.a([h.Class("fd-card"), h.Href(href)], [inner]);
         }
         if (block.name === "Steps") {
-          return h.div([h.Class("ed-steps")], content);
+          return h.div([h.Class("fd-steps")], content);
         }
         return h.div(
           [
-            h.Class("ed-block-component"),
+            h.Class("fd-block-component"),
             h.DataAttribute("component", block.name),
           ],
           content,
@@ -292,5 +296,5 @@ export const renderMarkdown = <Message>(
     }
   };
 
-  return h.div([h.Class("ed-prose")], document.blocks.map(renderBlock));
+  return h.div([h.Class("fd-prose")], document.blocks.map(renderBlock));
 };

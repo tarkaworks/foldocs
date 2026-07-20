@@ -1,0 +1,7 @@
+{
+  "title": "Foldocs Events",
+  "description": "Example event reference rendered by @foldocs/asyncapi.",
+  "root": true,
+  "defaultOpen": true,
+  "pages": ["index", "documentpublished", "searchindexready"]
+}

@@ -19,6 +19,9 @@ importers:
       "@foldkit/vite-plugin":
         specifier: 0.11.0
         version: 0.11.0(effect@4.0.0-beta.97)(foldkit@0.130.0(@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97))(effect@4.0.0-beta.97))(vite@8.1.5(@types/node@26.1.1)(yaml@2.9.0))
+      "@playwright/test":
+        specifier: ^1.61.1
+        version: 1.61.1
       "@types/mdast":
         specifier: ^4.0.4
         version: 4.0.4
@@ -55,22 +58,49 @@ importers:
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
-      effectdocs:
-        specifier: workspace:*
-        version: link:../../packages/effectdocs
       foldkit:
         specifier: 0.130.0
         version: 0.130.0(@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97))(effect@4.0.0-beta.97)
+      foldocs:
+        specifier: workspace:*
+        version: link:../../packages/foldocs
     devDependencies:
-      "@effectdocs/tailwind":
-        specifier: workspace:*
-        version: link:../../packages/tailwind
-      "@effectdocs/vite":
-        specifier: workspace:*
-        version: link:../../packages/vite
       "@foldkit/vite-plugin":
         specifier: 0.11.0
         version: 0.11.0(effect@4.0.0-beta.97)(foldkit@0.130.0(@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97))(effect@4.0.0-beta.97))(vite@8.1.5(@types/node@26.1.1)(yaml@2.9.0))
+      "@foldocs/asyncapi":
+        specifier: workspace:*
+        version: link:../../packages/asyncapi
+      "@foldocs/cli":
+        specifier: workspace:*
+        version: link:../../packages/cli
+      "@foldocs/epub":
+        specifier: workspace:*
+        version: link:../../packages/epub
+      "@foldocs/language":
+        specifier: workspace:*
+        version: link:../../packages/language
+      "@foldocs/obsidian":
+        specifier: workspace:*
+        version: link:../../packages/obsidian
+      "@foldocs/openapi":
+        specifier: workspace:*
+        version: link:../../packages/openapi
+      "@foldocs/python":
+        specifier: workspace:*
+        version: link:../../packages/python
+      "@foldocs/tailwind":
+        specifier: workspace:*
+        version: link:../../packages/tailwind
+      "@foldocs/twoslash":
+        specifier: workspace:*
+        version: link:../../packages/twoslash
+      "@foldocs/typescript":
+        specifier: workspace:*
+        version: link:../../packages/typescript
+      "@foldocs/vite":
+        specifier: workspace:*
+        version: link:../../packages/vite
       "@types/node":
         specifier: 26.1.1
         version: 26.1.1
@@ -84,12 +114,28 @@ importers:
         specifier: ^4.1.9
         version: 4.1.10(@types/node@26.1.1)(vite@8.1.5(@types/node@26.1.1)(yaml@2.9.0))
 
+  packages/asyncapi:
+    dependencies:
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
+    devDependencies:
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
+  packages/basehub:
+    dependencies:
+      "@foldocs/content":
+        specifier: workspace:*
+        version: link:../content
+
   packages/cli:
     dependencies:
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
-      effectdocs-mdx:
+      foldocs-mdx:
         specifier: workspace:*
         version: link:../mdx
 
@@ -101,49 +147,64 @@ importers:
 
   packages/core:
     dependencies:
-      "@effectdocs/content":
+      "@foldocs/content":
         specifier: workspace:*
         version: link:../content
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
 
-  packages/create-effectdocs:
+  packages/create-foldocs:
     dependencies:
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
 
-  packages/effectdocs:
+  packages/epub:
     dependencies:
-      "@effectdocs/content":
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.3
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
+  packages/foldocs:
+    dependencies:
+      "@foldocs/content":
         specifier: workspace:*
         version: link:../content
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
-      "@effectdocs/search-orama":
+      "@foldocs/search-orama":
         specifier: workspace:*
         version: link:../search-orama
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
-      effectdocs-core:
-        specifier: workspace:*
-        version: link:../core
-      effectdocs-mdx:
-        specifier: workspace:*
-        version: link:../mdx
-      effectdocs-ui:
-        specifier: workspace:*
-        version: link:../ui
       foldkit:
         specifier: 0.130.0
         version: 0.130.0(@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97))(effect@4.0.0-beta.97)
+      foldocs-core:
+        specifier: workspace:*
+        version: link:../core
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+      foldocs-ui:
+        specifier: workspace:*
+        version: link:../ui
+
+  packages/language:
+    dependencies:
+      foldocs-core:
+        specifier: workspace:*
+        version: link:../core
 
   packages/mdx:
     dependencies:
-      "@effectdocs/content":
+      "@foldocs/content":
         specifier: workspace:*
         version: link:../content
       "@types/mdast":
@@ -186,6 +247,43 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
 
+  packages/mdx-remote:
+    dependencies:
+      "@foldocs/content":
+        specifier: workspace:*
+        version: link:../content
+      effect:
+        specifier: 4.0.0-beta.97
+        version: 4.0.0-beta.97
+
+  packages/obsidian:
+    devDependencies:
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
+  packages/openapi:
+    dependencies:
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
+    devDependencies:
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
+  packages/python:
+    devDependencies:
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
+  packages/sanity:
+    dependencies:
+      "@foldocs/content":
+        specifier: workspace:*
+        version: link:../content
+
   packages/search:
     dependencies:
       effect:
@@ -194,7 +292,7 @@ importers:
 
   packages/search-algolia:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       effect:
@@ -203,7 +301,7 @@ importers:
 
   packages/search-flexsearch:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       effect:
@@ -215,7 +313,7 @@ importers:
 
   packages/search-mixedbread:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       effect:
@@ -224,7 +322,7 @@ importers:
 
   packages/search-orama:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       "@orama/orama":
@@ -236,7 +334,7 @@ importers:
 
   packages/search-orama-cloud:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       effect:
@@ -245,7 +343,7 @@ importers:
 
   packages/search-trieve:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       effect:
@@ -254,7 +352,7 @@ importers:
 
   packages/search-typesense:
     dependencies:
-      "@effectdocs/search":
+      "@foldocs/search":
         specifier: workspace:*
         version: link:../search
       effect:
@@ -263,41 +361,73 @@ importers:
 
   packages/tailwind: {}
 
+  packages/twoslash:
+    dependencies:
+      "@shikijs/twoslash":
+        specifier: ^4.3.1
+        version: 4.3.1(typescript@6.0.3)
+      shiki:
+        specifier: ^4.3.1
+        version: 4.3.1
+      twoslash:
+        specifier: ^0.3.9
+        version: 0.3.9(typescript@6.0.3)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+    devDependencies:
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
+  packages/typescript:
+    dependencies:
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+    devDependencies:
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
+
   packages/ui:
     dependencies:
-      "@effectdocs/content":
-        specifier: workspace:*
-        version: link:../content
-      "@effectdocs/search":
-        specifier: workspace:*
-        version: link:../search
       "@foldkit/ui":
         specifier: 0.130.0
         version: 0.130.0(effect@4.0.0-beta.97)(foldkit@0.130.0(@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97))(effect@4.0.0-beta.97))
+      "@foldocs/content":
+        specifier: workspace:*
+        version: link:../content
+      "@foldocs/search":
+        specifier: workspace:*
+        version: link:../search
       effect:
         specifier: 4.0.0-beta.97
         version: 4.0.0-beta.97
-      effectdocs-core:
-        specifier: workspace:*
-        version: link:../core
-      effectdocs-mdx:
-        specifier: workspace:*
-        version: link:../mdx
       foldkit:
         specifier: 0.130.0
         version: 0.130.0(@effect/platform-browser@4.0.0-beta.97(effect@4.0.0-beta.97))(effect@4.0.0-beta.97)
+      foldocs-core:
+        specifier: workspace:*
+        version: link:../core
+      foldocs-mdx:
+        specifier: workspace:*
+        version: link:../mdx
 
   packages/vite:
     dependencies:
-      "@effectdocs/content":
+      "@foldocs/content":
         specifier: workspace:*
         version: link:../content
-      effectdocs-core:
+      foldocs-core:
         specifier: workspace:*
         version: link:../core
-      effectdocs-mdx:
+      foldocs-mdx:
         specifier: workspace:*
         version: link:../mdx
+      foldocs-ui:
+        specifier: workspace:*
+        version: link:../ui
       vite:
         specifier: ^8.0.16
         version: 8.1.5(@types/node@26.1.1)(yaml@2.9.0)
@@ -454,6 +584,14 @@ packages:
       {
         integrity: sha512-r9gHphtCs+1M7J0pw6Sn/hh/Wpa/iQrOOkrNAlVLF/gHq+/CJmHIWKKUUhdWjcD6CIa8idarspCsASiXCXvFUw==,
       }
+
+  "@playwright/test@1.61.1":
+    resolution:
+      {
+        integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==,
+      }
+    engines: { node: ">=18" }
+    hasBin: true
 
   "@rolldown/binding-android-arm64@1.1.5":
     resolution:
@@ -643,6 +781,15 @@ packages:
       }
     engines: { node: ">=20" }
 
+  "@shikijs/twoslash@4.3.1":
+    resolution:
+      {
+        integrity: sha512-xK8inH/gK++1V4rTxrwCwjvaNwkkJ7oDjOIpdqONVxIpAFnVC3gzqjH5KiXGTelUcxpUJ3PtOKWct1YQ0kAloA==,
+      }
+    engines: { node: ">=20" }
+    peerDependencies:
+      typescript: ">=5.5.0"
+
   "@shikijs/types@4.3.1":
     resolution:
       {
@@ -781,6 +928,14 @@ packages:
       {
         integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==,
       }
+
+  "@typescript/vfs@1.6.4":
+    resolution:
+      {
+        integrity: sha512-PJFXFS4ZJKiJ9Qiuix6Dz/OwEIqHD7Dme1UwZhTK11vR+5dqW2ACbdndWQexBzCx+CPuMe5WBYQWCsFyGlQLlQ==,
+      }
+    peerDependencies:
+      typescript: "*"
 
   "@ungap/structured-clone@1.3.3":
     resolution:
@@ -1029,6 +1184,12 @@ packages:
       picomatch:
         optional: true
 
+  fflate@0.8.3:
+    resolution:
+      {
+        integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==,
+      }
+
   find-my-way-ts@0.1.6:
     resolution:
       {
@@ -1057,6 +1218,14 @@ packages:
         integrity: sha512-wzsgA6WOq+09wrU1tsJ09udeR/YZRaeArL9e1wPbFg3GG2yDnC2ldKpxs4xunpFF9DgqCqOIra3bc1HWrJ37Ww==,
       }
     engines: { node: ">=0.4.x" }
+
+  fsevents@2.3.2:
+    resolution:
+      {
+        integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==,
+      }
+    engines: { node: ^8.16.0 || ^10.6.0 || >=11.0.0 }
+    os: [darwin]
 
   fsevents@2.3.3:
     resolution:
@@ -1676,6 +1845,22 @@ packages:
       }
     engines: { node: ">=12" }
 
+  playwright-core@1.61.1:
+    resolution:
+      {
+        integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==,
+      }
+    engines: { node: ">=18" }
+    hasBin: true
+
+  playwright@1.61.1:
+    resolution:
+      {
+        integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==,
+      }
+    engines: { node: ">=18" }
+    hasBin: true
+
   postcss@8.5.20:
     resolution:
       {
@@ -1867,6 +2052,20 @@ packages:
         integrity: sha512-07Y/C7OUp23l4P92PJoYtFNbHjLhftrZH5Ce7dbczS4kX2Re+wtbXvZLoxn/pUtzgsQaRCBaRuZPJp4zmAn0WQ==,
       }
     hasBin: true
+
+  twoslash-protocol@0.3.9:
+    resolution:
+      {
+        integrity: sha512-9/iwp+CXOnjFMPQuPL5PkuRbZnDoNpBvtJCLs9t8kDYkL3YHujbvnHfZA1i5fApDftVEdBw+T/4F+dH5kIzpYQ==,
+      }
+
+  twoslash@0.3.9:
+    resolution:
+      {
+        integrity: sha512-rDclk+OtzuTX+tnea7DYLCkqGQ3eP0IyfD+kzUJ7t46X/NzlaxwrhecmEBNuSCuEn3V+n1PhcjUUQQ7gUJzX5Q==,
+      }
+    peerDependencies:
+      typescript: ^5.5.0 || ^6.0.0
 
   typescript@6.0.3:
     resolution:
@@ -2164,6 +2363,10 @@ snapshots:
 
   "@oxc-project/types@0.139.0": {}
 
+  "@playwright/test@1.61.1":
+    dependencies:
+      playwright: 1.61.1
+
   "@rolldown/binding-android-arm64@1.1.5":
     optional: true
 
@@ -2248,6 +2451,15 @@ snapshots:
     dependencies:
       "@shikijs/types": 4.3.1
 
+  "@shikijs/twoslash@4.3.1(typescript@6.0.3)":
+    dependencies:
+      "@shikijs/core": 4.3.1
+      "@shikijs/types": 4.3.1
+      twoslash: 0.3.9(typescript@6.0.3)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - supports-color
+
   "@shikijs/types@4.3.1":
     dependencies:
       "@shikijs/vscode-textmate": 10.0.2
@@ -2314,6 +2526,13 @@ snapshots:
   "@types/unist@2.0.11": {}
 
   "@types/unist@3.0.3": {}
+
+  "@typescript/vfs@1.6.4(typescript@6.0.3)":
+    dependencies:
+      debug: 4.4.3
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - supports-color
 
   "@ungap/structured-clone@1.3.3": {}
 
@@ -2444,6 +2663,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fflate@0.8.3: {}
+
   find-my-way-ts@0.1.6: {}
 
   flexsearch@0.8.212: {}
@@ -2454,6 +2675,9 @@ snapshots:
       effect: 4.0.0-beta.97
 
   format@0.2.2: {}
+
+  fsevents@2.3.2:
+    optional: true
 
   fsevents@2.3.3:
     optional: true
@@ -3076,6 +3300,14 @@ snapshots:
 
   picomatch@4.0.5: {}
 
+  playwright-core@1.61.1: {}
+
+  playwright@1.61.1:
+    dependencies:
+      playwright-core: 1.61.1
+    optionalDependencies:
+      fsevents: 2.3.2
+
   postcss@8.5.20:
     dependencies:
       nanoid: 3.3.16
@@ -3224,6 +3456,16 @@ snapshots:
       "@turbo/linux-arm64": 2.10.5
       "@turbo/windows-64": 2.10.5
       "@turbo/windows-arm64": 2.10.5
+
+  twoslash-protocol@0.3.9: {}
+
+  twoslash@0.3.9(typescript@6.0.3):
+    dependencies:
+      "@typescript/vfs": 1.6.4(typescript@6.0.3)
+      twoslash-protocol: 0.3.9
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - supports-color
 
   typescript@6.0.3: {}
 

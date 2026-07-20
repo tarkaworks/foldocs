@@ -1,4 +1,13 @@
-import { SearchError, excerpt, type SearchClient } from "@effectdocs/search";
+import {
+  SearchError,
+  createSearchIndexer,
+  excerpt,
+  syncSearchDocuments,
+  type SearchClient,
+  type SearchDocument,
+  type SearchIndexer,
+  type SearchSyncReport,
+} from "@foldocs/search";
 import { Effect } from "effect";
 
 export interface MixedbreadSearchItem {
@@ -25,6 +34,21 @@ export interface MixedbreadOptions {
   readonly client: MixedbreadClient;
   readonly storeIdentifier: string;
 }
+
+export interface MixedbreadIngestionOptions {
+  /** Replace the store using the Mixedbread SDK, CLI, or a private CI endpoint. */
+  readonly replace: (documents: ReadonlyArray<SearchDocument>) => Promise<void>;
+}
+
+export const createMixedbreadSearchIndexer = (
+  options: MixedbreadIngestionOptions,
+): SearchIndexer => createSearchIndexer("mixedbread", options.replace);
+
+export const syncMixedbreadSearch = (
+  options: MixedbreadIngestionOptions,
+  documents: ReadonlyArray<SearchDocument>,
+): Effect.Effect<SearchSyncReport, SearchError> =>
+  syncSearchDocuments(createMixedbreadSearchIndexer(options), documents);
 
 export const createMixedbreadSearchClient = (
   options: MixedbreadOptions,

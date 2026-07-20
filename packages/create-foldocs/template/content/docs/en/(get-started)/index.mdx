@@ -1,0 +1,55 @@
+---
+title: Foldocs
+description: Production documentation for Foldkit, powered by Effect.
+order: 1
+---
+
+# Foldocs
+
+<Badge>Foldkit native</Badge>
+
+Write Markdown or deterministic MDX here. Files in `content/docs/<locale>` become
+routes, navigation entries, search results, and LLM-readable output automatically.
+
+<Callout title="Ready out of the box">
+  The responsive shell, local full-text search, dark theme, syntax highlighting,
+  table of contents, per-page `.md` output, sitemap, and llms.txt are already
+  configured.
+</Callout>
+
+## Start writing
+
+<Cards>
+  <Card title="Getting started" href="/en/docs/getting-started">
+    Learn the file conventions and development workflow.
+  </Card>
+  <Card title="Configuration" href="/en/docs/guides/configuration">
+    Configure branding, paths, search, and build output.
+  </Card>
+</Cards>
+
+## Effect-powered runtime
+
+The generated site is a Foldkit application. Its model, messages, commands, page
+loading, navigation, and search are all typed and driven by Effect.
+
+```ts
+import {
+  basePath,
+  i18n,
+  manifest,
+  navigations,
+  searchIndexUrls,
+  siteConfig,
+} from "virtual:foldocs";
+import { createDocsProgram } from "foldocs";
+
+export const program = createDocsProgram({
+  manifest,
+  basePath,
+  i18n,
+  navigations,
+  searchIndexUrls,
+  site: siteConfig,
+});
+```

@@ -1,0 +1,23 @@
+---
+title: AsyncAPI
+description: Genera referencias buscables de eventos y mensajes desde documentos AsyncAPI 2 o 3.
+order: 7
+tags:
+  - AsyncAPI
+  - eventos
+---
+
+# AsyncAPI
+
+`@foldocs/asyncapi` convierte operaciones de canales AsyncAPI 2 y operaciones
+AsyncAPI 3 en MDX normal de Foldocs. Es un paquete de compilación separado, por
+lo que el parser YAML no entra en el runtime del navegador.
+
+```sh
+foldocs-asyncapi asyncapi.yaml content/docs/es/events /es/docs/events
+```
+
+La raíz generada contiene una página por operación publish, subscribe, send o
+receive, con descripciones, esquemas de cabeceras y payloads, ejemplos, bindings,
+etiquetas y navegación. La regeneración elimina únicamente archivos obsoletos
+registrados en su manifiesto administrado.

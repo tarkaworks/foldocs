@@ -1,5 +1,5 @@
 {
-  "name": "effectdocs-ui",
+  "name": "foldocs-ui",
   "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
@@ -26,12 +26,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@effectdocs/content": "workspace:*",
-    "@effectdocs/search": "workspace:*",
+    "@foldocs/content": "workspace:*",
+    "@foldocs/search": "workspace:*",
     "@foldkit/ui": "0.130.0",
     "effect": "4.0.0-beta.97",
-    "effectdocs-core": "workspace:*",
-    "effectdocs-mdx": "workspace:*",
+    "foldocs-core": "workspace:*",
+    "foldocs-mdx": "workspace:*",
     "foldkit": "0.130.0"
   },
   "peerDependencies": {

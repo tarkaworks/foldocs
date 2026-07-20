@@ -1,5 +1,5 @@
 {
-  "name": "effectdocs-monorepo",
+  "name": "foldocs-monorepo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "turbo run test",
+    "test:e2e": "pnpm --filter foldocs-docs build && playwright test",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
@@ -20,6 +21,7 @@
     "@foldkit/markdown": "0.1.1",
     "@foldkit/ui": "0.130.0",
     "@foldkit/vite-plugin": "0.11.0",
+    "@playwright/test": "^1.61.1",
     "@types/mdast": "^4.0.4",
     "@types/node": "26.1.1",
     "effect": "4.0.0-beta.97",

@@ -1,4 +1,176 @@
 import { Schema as S } from "effect";
+import type { ContentAdapter } from "@foldocs/content";
+
+export const UiTranslations = S.Struct({
+  home: S.optionalKey(S.String),
+  selectLanguage: S.optionalKey(S.String),
+  colorTheme: S.optionalKey(S.String),
+  lightTheme: S.optionalKey(S.String),
+  systemTheme: S.optionalKey(S.String),
+  darkTheme: S.optionalKey(S.String),
+  search: S.optionalKey(S.String),
+  searchDocumentation: S.optionalKey(S.String),
+  closeSearch: S.optionalKey(S.String),
+  searchResults: S.optionalKey(S.String),
+  searchPrompt: S.optionalKey(S.String),
+  searching: S.optionalKey(S.String),
+  searchUnavailable: S.optionalKey(S.String),
+  noSearchResults: S.optionalKey(S.String),
+  searchResultsAvailable: S.optionalKey(S.String),
+  openNavigation: S.optionalKey(S.String),
+  closeNavigation: S.optionalKey(S.String),
+  documentationNavigation: S.optionalKey(S.String),
+  documentation: S.optionalKey(S.String),
+  selectDocumentation: S.optionalKey(S.String),
+  skipToContent: S.optionalKey(S.String),
+  onThisPage: S.optionalKey(S.String),
+  tableOfContents: S.optionalKey(S.String),
+  copyPageMarkdown: S.optionalKey(S.String),
+  loading: S.optionalKey(S.String),
+  copiedMarkdown: S.optionalKey(S.String),
+  tryCopyAgain: S.optionalKey(S.String),
+  copyMarkdown: S.optionalKey(S.String),
+  viewAsMarkdown: S.optionalKey(S.String),
+  pagination: S.optionalKey(S.String),
+  builtWith: S.optionalKey(S.String),
+  documentNotFound: S.optionalKey(S.String),
+  loadingDocumentation: S.optionalKey(S.String),
+  goToDocumentationHome: S.optionalKey(S.String),
+  copyCode: S.optionalKey(S.String),
+  codeCopied: S.optionalKey(S.String),
+  copy: S.optionalKey(S.String),
+  copied: S.optionalKey(S.String),
+  mainNavigation: S.optionalKey(S.String),
+  diveIn: S.optionalKey(S.String),
+  readTheDocs: S.optionalKey(S.String),
+  viewOnGitHub: S.optionalKey(S.String),
+  copyCreateCommand: S.optionalKey(S.String),
+  exploreDocumentation: S.optionalKey(S.String),
+});
+export type UiTranslations = typeof UiTranslations.Type;
+
+export interface ResolvedUiTranslations {
+  readonly home: string;
+  readonly selectLanguage: string;
+  readonly colorTheme: string;
+  readonly lightTheme: string;
+  readonly systemTheme: string;
+  readonly darkTheme: string;
+  readonly search: string;
+  readonly searchDocumentation: string;
+  readonly closeSearch: string;
+  readonly searchResults: string;
+  readonly searchPrompt: string;
+  readonly searching: string;
+  readonly searchUnavailable: string;
+  readonly noSearchResults: string;
+  readonly searchResultsAvailable: string;
+  readonly openNavigation: string;
+  readonly closeNavigation: string;
+  readonly documentationNavigation: string;
+  readonly documentation: string;
+  readonly selectDocumentation: string;
+  readonly skipToContent: string;
+  readonly onThisPage: string;
+  readonly tableOfContents: string;
+  readonly copyPageMarkdown: string;
+  readonly loading: string;
+  readonly copiedMarkdown: string;
+  readonly tryCopyAgain: string;
+  readonly copyMarkdown: string;
+  readonly viewAsMarkdown: string;
+  readonly pagination: string;
+  readonly builtWith: string;
+  readonly documentNotFound: string;
+  readonly loadingDocumentation: string;
+  readonly goToDocumentationHome: string;
+  readonly copyCode: string;
+  readonly codeCopied: string;
+  readonly copy: string;
+  readonly copied: string;
+  readonly mainNavigation: string;
+  readonly diveIn: string;
+  readonly readTheDocs: string;
+  readonly viewOnGitHub: string;
+  readonly copyCreateCommand: string;
+  readonly exploreDocumentation: string;
+}
+
+export const defaultUiTranslations: ResolvedUiTranslations = {
+  home: "home",
+  selectLanguage: "Select language",
+  colorTheme: "Color theme",
+  lightTheme: "Light",
+  systemTheme: "System",
+  darkTheme: "Dark",
+  search: "Search",
+  searchDocumentation: "Search documentation",
+  closeSearch: "Close search",
+  searchResults: "Search results",
+  searchPrompt: "Start typing to search every document.",
+  searching: "Searching…",
+  searchUnavailable: "Search is temporarily unavailable.",
+  noSearchResults: "No results for “{query}”.",
+  searchResultsAvailable: "{count} results available.",
+  openNavigation: "Open navigation",
+  closeNavigation: "Close navigation",
+  documentationNavigation: "Documentation navigation",
+  documentation: "Documentation",
+  selectDocumentation: "Select documentation",
+  skipToContent: "Skip to content",
+  onThisPage: "On this page",
+  tableOfContents: "Table of contents",
+  copyPageMarkdown: "Copy page as Markdown",
+  loading: "Loading…",
+  copiedMarkdown: "Copied Markdown",
+  tryCopyAgain: "Try Copy Again",
+  copyMarkdown: "Copy Markdown",
+  viewAsMarkdown: "View as Markdown",
+  pagination: "Pagination",
+  builtWith: "Built with Foldocs and Foldkit.",
+  documentNotFound: "Document not found",
+  loadingDocumentation: "Loading documentation…",
+  goToDocumentationHome: "Go to documentation home",
+  copyCode: "Copy code",
+  codeCopied: "Code copied",
+  copy: "Copy",
+  copied: "Copied",
+  mainNavigation: "Main",
+  diveIn: "Dive In",
+  readTheDocs: "Read the docs",
+  viewOnGitHub: "View on GitHub",
+  copyCreateCommand: "Copy create command",
+  exploreDocumentation: "Explore the documentation",
+};
+
+export const LocaleConfig = S.Struct({
+  locale: S.String,
+  name: S.String,
+  dir: S.optionalKey(S.Literals(["ltr", "rtl"])),
+  ui: S.optionalKey(UiTranslations),
+});
+export type LocaleConfig = typeof LocaleConfig.Type;
+
+export const I18nConfig = S.Struct({
+  defaultLocale: S.String,
+  fallbackLocale: S.optionalKey(S.String),
+  locales: S.Array(LocaleConfig),
+});
+export type I18nConfig = typeof I18nConfig.Type;
+
+export interface ResolvedLocaleConfig {
+  readonly locale: string;
+  readonly name: string;
+  readonly dir: "ltr" | "rtl";
+  readonly ui: ResolvedUiTranslations;
+}
+
+export interface ResolvedI18nConfig {
+  readonly enabled: boolean;
+  readonly defaultLocale: string;
+  readonly fallbackLocale: string;
+  readonly locales: ReadonlyArray<ResolvedLocaleConfig>;
+}
 
 export const SiteConfig = S.Struct({
   title: S.String,
@@ -18,26 +190,85 @@ export const SiteConfig = S.Struct({
 });
 export type SiteConfig = typeof SiteConfig.Type;
 
-export interface EffectdocsConfig {
+export const LayoutPreset = S.Literals(["docs", "notebook", "flux", "glass"]);
+export type LayoutPreset = typeof LayoutPreset.Type;
+
+export const LandingSection = S.Literals([
+  "hero",
+  "overview",
+  "stack",
+  "features",
+  "ai",
+  "proof",
+  "cta",
+]);
+export type LandingSection = typeof LandingSection.Type;
+
+export const LandingConfig = S.Struct({
+  sections: S.optionalKey(S.Array(LandingSection)),
+  headline: S.optionalKey(S.String),
+  description: S.optionalKey(S.String),
+  command: S.optionalKey(S.String),
+});
+export type LandingConfig = typeof LandingConfig.Type;
+
+export const defaultLandingSections: ReadonlyArray<LandingSection> = [
+  "hero",
+  "overview",
+  "stack",
+  "features",
+  "ai",
+  "proof",
+  "cta",
+];
+
+export interface ResolvedLandingConfig {
+  readonly sections: ReadonlyArray<LandingSection>;
+  readonly headline?: string;
+  readonly description?: string;
+  readonly command: string;
+}
+
+export interface FoldocsConfig {
   readonly site: SiteConfig;
+  readonly i18n?: I18nConfig;
   readonly content?: {
     readonly dir?: string;
+    readonly sources?: ReadonlyArray<ContentAdapter>;
   };
   readonly basePath?: string;
+  readonly layout?: {
+    readonly preset?: LayoutPreset;
+  };
+  readonly landing?: LandingConfig;
   readonly llms?: boolean;
   readonly markdown?: boolean;
   readonly sitemap?: boolean;
+  readonly prerender?: boolean;
+  readonly search?: {
+    readonly staticIndex?: boolean;
+  };
 }
 
-export interface ResolvedEffectdocsConfig {
+export interface ResolvedFoldocsConfig {
   readonly site: SiteConfig;
+  readonly i18n: ResolvedI18nConfig;
   readonly content: {
     readonly dir: string;
+    readonly sources: ReadonlyArray<ContentAdapter>;
   };
   readonly basePath: string;
+  readonly layout: {
+    readonly preset: LayoutPreset;
+  };
+  readonly landing: ResolvedLandingConfig;
   readonly llms: boolean;
   readonly markdown: boolean;
   readonly sitemap: boolean;
+  readonly prerender: boolean;
+  readonly search: {
+    readonly staticIndex: boolean;
+  };
 }
 
 const normalizeBasePath = (value: string): string => {
@@ -46,19 +277,165 @@ const normalizeBasePath = (value: string): string => {
   return withLeadingSlash.replace(/\/+$/, "");
 };
 
-export const defineConfig = <const Config extends EffectdocsConfig>(
+const resolveI18n = (
+  value: I18nConfig | undefined,
+  legacyLocale: string | undefined,
+): ResolvedI18nConfig => {
+  if (value === undefined) {
+    const locale = legacyLocale ?? "en";
+    return {
+      enabled: false,
+      defaultLocale: locale,
+      fallbackLocale: locale,
+      locales: [
+        {
+          locale,
+          name: locale,
+          dir: "ltr",
+          ui: defaultUiTranslations,
+        },
+      ],
+    };
+  }
+  const decoded = S.decodeUnknownSync(I18nConfig)(value);
+  if (decoded.locales.length === 0)
+    throw new TypeError("Foldocs i18n.locales must not be empty.");
+  const localePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/iu;
+  const localeNames = new Set<string>();
+  for (const locale of decoded.locales) {
+    if (!localePattern.test(locale.locale))
+      throw new TypeError(
+        `Foldocs locale ${JSON.stringify(locale.locale)} is not a valid URL-safe locale.`,
+      );
+    if (localeNames.has(locale.locale))
+      throw new TypeError(`Foldocs locale ${locale.locale} is duplicated.`);
+    localeNames.add(locale.locale);
+  }
+  if (!localeNames.has(decoded.defaultLocale))
+    throw new TypeError(
+      `Foldocs default locale ${decoded.defaultLocale} is not listed in i18n.locales.`,
+    );
+  const fallbackLocale = decoded.fallbackLocale ?? decoded.defaultLocale;
+  if (!localeNames.has(fallbackLocale))
+    throw new TypeError(
+      `Foldocs fallback locale ${fallbackLocale} is not listed in i18n.locales.`,
+    );
+  return {
+    enabled: true,
+    defaultLocale: decoded.defaultLocale,
+    fallbackLocale,
+    locales: decoded.locales.map((locale) => ({
+      locale: locale.locale,
+      name: locale.name,
+      dir: locale.dir ?? "ltr",
+      ui: { ...defaultUiTranslations, ...locale.ui },
+    })),
+  };
+};
+
+export const localeDefinition = (
+  i18n: ResolvedI18nConfig,
+  locale: string,
+): ResolvedLocaleConfig =>
+  i18n.locales.find((entry) => entry.locale === locale) ??
+  i18n.locales.find((entry) => entry.locale === i18n.fallbackLocale) ??
+  i18n.locales[0]!;
+
+export const interpolateTranslation = (
+  value: string,
+  variables: Readonly<Record<string, string | number>>,
+): string =>
+  Object.entries(variables).reduce(
+    (result, [key, replacement]) =>
+      result.replaceAll(`{${key}}`, String(replacement)),
+    value,
+  );
+
+export const localeFromPathname = (
+  i18n: ResolvedI18nConfig,
+  pathname: string,
+): string => {
+  if (!i18n.enabled) return i18n.defaultLocale;
+  const segment = pathname.split("/").filter(Boolean)[0];
+  return i18n.locales.some((entry) => entry.locale === segment)
+    ? segment!
+    : i18n.defaultLocale;
+};
+
+export const stripLocalePrefix = (
+  i18n: ResolvedI18nConfig,
+  pathname: string,
+): string => {
+  if (!i18n.enabled) return pathname;
+  const locale = pathname.split("/").filter(Boolean)[0];
+  if (!i18n.locales.some((entry) => entry.locale === locale)) return pathname;
+  const stripped = pathname.slice(locale!.length + 1);
+  return stripped.length === 0
+    ? "/"
+    : stripped.startsWith("/")
+      ? stripped
+      : `/${stripped}`;
+};
+
+export const localizedPathname = (
+  i18n: ResolvedI18nConfig,
+  locale: string,
+  pathname: string,
+): string => {
+  const base = stripLocalePrefix(i18n, pathname);
+  if (!i18n.enabled) return base;
+  return base === "/" ? `/${locale}` : `/${locale}${base}`;
+};
+
+export const localeHomePath = (
+  i18n: ResolvedI18nConfig,
+  locale: string,
+): string => (i18n.enabled ? `/${locale}` : "/");
+
+export const defineConfig = <const Config extends FoldocsConfig>(
   config: Config,
 ): Config => config;
 
-export const resolveConfig = (
-  config: EffectdocsConfig,
-): ResolvedEffectdocsConfig => ({
-  site: S.decodeUnknownSync(SiteConfig)(config.site),
-  content: {
-    dir: config.content?.dir ?? "content/docs",
-  },
-  basePath: normalizeBasePath(config.basePath ?? "/docs"),
-  llms: config.llms ?? true,
-  markdown: config.markdown ?? true,
-  sitemap: config.sitemap ?? true,
-});
+export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
+  const site = S.decodeUnknownSync(SiteConfig)(config.site);
+  const i18n = resolveI18n(config.i18n, site.locale);
+  const landing = S.decodeUnknownSync(LandingConfig)(config.landing ?? {});
+  const landingSections = landing.sections ?? defaultLandingSections;
+  if (landingSections.length === 0 || !landingSections.includes("hero"))
+    throw new TypeError(
+      "Foldocs landing.sections must include hero so the page has a primary heading.",
+    );
+  if (new Set(landingSections).size !== landingSections.length)
+    throw new TypeError(
+      "Foldocs landing.sections must not contain duplicates.",
+    );
+  return {
+    site: { ...site, locale: i18n.defaultLocale },
+    i18n,
+    content: {
+      dir: config.content?.dir ?? "content/docs",
+      sources: config.content?.sources ?? [],
+    },
+    basePath: normalizeBasePath(config.basePath ?? "/docs"),
+    layout: {
+      preset: S.decodeUnknownSync(LayoutPreset)(
+        config.layout?.preset ?? "docs",
+      ),
+    },
+    landing: {
+      sections: landingSections,
+      ...(landing.headline === undefined ? {} : { headline: landing.headline }),
+      ...(landing.description === undefined
+        ? {}
+        : { description: landing.description }),
+      command: landing.command ?? "pnpm create foldocs@latest",
+    },
+    llms: config.llms ?? true,
+    markdown: config.markdown ?? true,
+    sitemap: config.sitemap ?? true,
+    prerender: config.prerender ?? true,
+    search: {
+      staticIndex: config.search?.staticIndex ?? true,
+    },
+  };
+};

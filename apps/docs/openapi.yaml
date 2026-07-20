@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Foldocs API
+  version: 1.0.0
+  description: Example endpoints rendered by the separate @foldocs/openapi package.
+servers:
+  - url: https://api.foldocs.dev
+paths:
+  /documents/{slug}:
+    get:
+      operationId: getDocument
+      summary: Get a document
+      description: Returns compiled metadata for a documentation page.
+      tags: [Documents]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: The route-relative document slug.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Compiled document metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+  /search:
+    post:
+      operationId: searchDocuments
+      summary: Search documents
+      description: Searches the active locale's documentation index.
+      tags: [Search]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: Full-text search query.
+                locale:
+                  type: string
+                  description: Requested content locale.
+      responses:
+        "200":
+          description: Matching documents.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+components:
+  schemas:
+    Document:
+      type: object
+      required: [slug, title, url]
+      properties:
+        slug:
+          type: string
+          description: Route-relative slug.
+        title:
+          type: string
+          description: Page title.
+        url:
+          type: string
+          format: uri
+          description: Localized public URL.

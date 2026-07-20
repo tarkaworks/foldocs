@@ -1,5 +1,5 @@
 {
-  "name": "@effectdocs/vite",
+  "name": "@foldocs/vite",
   "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
@@ -22,9 +22,10 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@effectdocs/content": "workspace:*",
-    "effectdocs-core": "workspace:*",
-    "effectdocs-mdx": "workspace:*",
+    "@foldocs/content": "workspace:*",
+    "foldocs-core": "workspace:*",
+    "foldocs-mdx": "workspace:*",
+    "foldocs-ui": "workspace:*",
     "vite": "^8.0.16"
   },
   "peerDependencies": {

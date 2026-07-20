@@ -1,0 +1,29 @@
+asyncapi: 2.6.0
+info:
+  title: Example Events
+  version: 1.0.0
+  description: Replace this example with your AsyncAPI document.
+channels:
+  documents/published:
+    publish:
+      operationId: documentPublished
+      summary: Document published
+      description: Emitted after a document is published.
+      tags:
+        - name: Documents
+      message:
+        $ref: "#/components/messages/DocumentPublished"
+components:
+  messages:
+    DocumentPublished:
+      name: DocumentPublished
+      description: Metadata for a published page.
+      payload:
+        type: object
+        required: [slug, url]
+        properties:
+          slug:
+            type: string
+          url:
+            type: string
+            format: uri

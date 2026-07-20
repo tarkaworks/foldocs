@@ -1,0 +1,64 @@
+---
+title: Layouts and customization
+description: Choose a production layout preset, then own project-level theme and component source.
+order: 7
+tags:
+  - layouts
+  - customization
+---
+
+# Layouts and customization
+
+Foldocs ships four responsive layout compositions over the same semantic shell:
+
+| Preset     | Composition                                                      |
+| ---------- | ---------------------------------------------------------------- |
+| `docs`     | Foldkit's direct fixed-header, sidebar, article, and TOC layout  |
+| `notebook` | A contained navigation notebook beside an editorial canvas       |
+| `flux`     | Compact navigation with the article and TOC on elevated surfaces |
+| `glass`    | Translucent floating navigation and ambient color treatment      |
+
+Select one in `foldocs.config.ts`. Search, i18n, root tabs, mobile navigation,
+keyboard behavior, prerendering, and document markup stay identical between presets.
+
+```ts
+export default defineConfig({
+  layout: { preset: "glass" },
+  // ...
+});
+```
+
+## Own the customization source
+
+Run the component-level customization command to copy stable project files instead
+of editing package internals:
+
+```sh
+foldocs customize all
+```
+
+The command creates `src/foldocs/theme.css`, `layout.css`, and an optional typed
+`mdx-components.ts`. CSS entry points are wired into `src/styles.css`
+automatically, existing files are protected unless `--force` is supplied, and a
+custom `--output` directory is supported.
+
+```sh
+foldocs customize theme
+foldocs customize layout
+foldocs customize mdx-components
+```
+
+## Landing-page composition
+
+Select the built-in sections and override the hero copy without replacing the
+runtime layout. The hero is required so every homepage keeps one primary heading;
+every other section is optional.
+
+```ts
+landing: {
+  sections: ["hero", "features", "ai", "cta"],
+  headline: "Documentation that belongs to your product.",
+  description: "Write Markdown. Ship a complete Foldkit site.",
+  command: "pnpm create foldocs@latest my-docs",
+}
+```

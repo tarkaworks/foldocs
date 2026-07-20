@@ -5,7 +5,7 @@ import {
   type SearchDocument,
   type SearchProvider,
   type SearchResult,
-} from "@effectdocs/search";
+} from "@foldocs/search";
 import { Effect } from "effect";
 import FlexSearch, { type Document, type DocumentData } from "flexsearch";
 

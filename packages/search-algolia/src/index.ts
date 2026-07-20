@@ -1,4 +1,13 @@
-import { SearchError, excerpt, type SearchClient } from "@effectdocs/search";
+import {
+  SearchError,
+  createSearchIndexer,
+  excerpt,
+  syncSearchDocuments,
+  type SearchClient,
+  type SearchDocument,
+  type SearchIndexer,
+  type SearchSyncReport,
+} from "@foldocs/search";
 import { Effect } from "effect";
 
 export interface AlgoliaHit {
@@ -24,6 +33,63 @@ export interface AlgoliaOptions {
   readonly indexName: string;
   readonly filter?: string;
 }
+
+export interface AlgoliaAdminClient {
+  readonly setSettings: (request: {
+    readonly indexName: string;
+    readonly indexSettings: Readonly<Record<string, unknown>>;
+  }) => Promise<unknown>;
+  readonly replaceAllObjects: (request: {
+    readonly indexName: string;
+    readonly objects: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  }) => Promise<unknown>;
+}
+
+export interface AlgoliaIndexerOptions {
+  readonly client: AlgoliaAdminClient;
+  readonly indexName: string;
+  /** Configure searchable and faceted attributes before replacement. @default true */
+  readonly configure?: boolean;
+  readonly settings?: Readonly<Record<string, unknown>>;
+}
+
+export const createAlgoliaSearchIndexer = (
+  options: AlgoliaIndexerOptions,
+): SearchIndexer =>
+  createSearchIndexer("algolia", async (documents) => {
+    if (options.configure !== false) {
+      await options.client.setSettings({
+        indexName: options.indexName,
+        indexSettings: {
+          searchableAttributes: ["title", "description", "content", "tags"],
+          attributesToRetrieve: [
+            "objectID",
+            "url",
+            "title",
+            "description",
+            "content",
+            "locale",
+            "tags",
+          ],
+          attributesForFaceting: ["filterOnly(locale)", "filterOnly(tags)"],
+          ...options.settings,
+        },
+      });
+    }
+    await options.client.replaceAllObjects({
+      indexName: options.indexName,
+      objects: documents.map(({ id, ...document }) => ({
+        objectID: id,
+        ...document,
+      })),
+    });
+  });
+
+export const syncAlgoliaSearch = (
+  options: AlgoliaIndexerOptions,
+  documents: ReadonlyArray<SearchDocument>,
+): Effect.Effect<SearchSyncReport, SearchError> =>
+  syncSearchDocuments(createAlgoliaSearchIndexer(options), documents);
 
 const filterValue = (value: string): string =>
   `"${value.replaceAll('"', '\\"')}"`;

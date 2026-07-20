@@ -13,7 +13,7 @@ import {
   type SearchOptions,
   type SearchProvider,
   type SearchResult,
-} from "@effectdocs/search";
+} from "@foldocs/search";
 import { Effect } from "effect";
 
 const schema = {

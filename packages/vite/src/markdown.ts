@@ -1,10 +1,10 @@
-import type { PageMetadata } from "@effectdocs/content";
-import type { SiteConfig } from "effectdocs-core";
+import type { PageMetadata } from "@foldocs/content";
+import type { ResolvedLandingConfig, SiteConfig } from "foldocs-core";
 import {
   documentToMarkdown,
   type CompiledPage,
   type Document,
-} from "effectdocs-mdx";
+} from "foldocs-mdx";
 
 export interface MarkdownPage {
   readonly metadata: PageMetadata;
@@ -80,10 +80,11 @@ export const makePageMarkdown = (
     .join("\n\n")}\n`;
 };
 
-/** Markdown representation of Effectdocs' built-in `/` landing page. */
+/** Markdown representation of Foldocs' built-in `/` landing page. */
 export const makeLandingMarkdown = (
   site: SiteConfig,
   docsUrl: string,
+  landing?: ResolvedLandingConfig,
 ): string => {
   const href =
     site.baseUrl === undefined
@@ -93,19 +94,23 @@ export const makeLandingMarkdown = (
           `${site.baseUrl.replace(/\/+$/u, "")}/`,
         ).toString();
   const description =
+    landing?.description ??
     site.tagline ??
     site.description ??
-    "Beautiful, searchable, LLM-ready documentation powered by Effect and Foldkit.";
+    "Beautiful, searchable, LLM-ready documentation for Foldkit, powered by Effect.";
+  const headline =
+    landing?.headline ?? "The documentation framework for Foldkit.";
+  const command = landing?.command ?? "pnpm create foldocs@latest";
   return `# ${site.title}
 
 > ${description}
 
-The documentation framework for Effect.
+${headline}
 
 ## Get started
 
 \`\`\`sh
-pnpm create effectdocs@latest
+${command}
 \`\`\`
 
 [Read the documentation](${href})
@@ -113,7 +118,8 @@ pnpm create effectdocs@latest
 ## What you get
 
 - Markdown and deterministic MDX content
-- Effect-native routing, search, state, and failures
+- A Foldkit-native application shell, routing, and documentation layout
+- An Effect-powered runtime for state, search, and failures
 - Local search and hosted-provider adapters
 - Per-page Markdown, \`llms.txt\`, \`llms-full.txt\`, and sitemap output
 `;

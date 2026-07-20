@@ -1,5 +1,5 @@
 {
-  "name": "@effectdocs/tailwind",
+  "name": "@foldocs/tailwind",
   "version": "0.0.0",
   "type": "module",
   "sideEffects": [

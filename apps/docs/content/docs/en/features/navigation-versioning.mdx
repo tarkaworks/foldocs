@@ -1,0 +1,39 @@
+---
+title: Navigation and versioning
+description: Build isolated documentation sections and partial version trees with root folders.
+order: 5
+tags:
+  - navigation
+  - versioning
+---
+
+# Navigation and versioning
+
+Foldocs supports Fumadocs-style root folders. A root becomes a layout tab, and
+only the active root's pages appear in the sidebar and pager.
+
+Add `root: true` to a folder's `meta.json`:
+
+```json
+{
+  "title": "v2",
+  "description": "Latest release",
+  "root": true,
+  "pages": ["index", "installation", "..."]
+}
+```
+
+Create another root such as `content/docs/en/v1` to expose a version switcher.
+Because normal folder names remain in the URL, the two trees resolve to paths
+such as `/en/docs/v1` and `/en/docs/v2`.
+
+## Product sections without URL segments
+
+Route groups also support roots. A directory such as `(framework)` can define
+`root: true` while its pages retain routes like `/en/docs/getting-started`.
+This is useful for switching between guides, API references, and component docs
+without adding the group name to each URL.
+
+Root metadata is localized with the rest of the content tree. The tab title,
+description, active tree, search results, and adjacent-page links all follow the
+current locale.

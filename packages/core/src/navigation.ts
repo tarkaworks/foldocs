@@ -1,4 +1,4 @@
-import type { PageMetadata } from "@effectdocs/content";
+import type { PageMetadata } from "@foldocs/content";
 
 export interface NavigationPage {
   readonly _tag: "Page";
@@ -12,6 +12,10 @@ export interface NavigationFolder {
   readonly label: string;
   readonly segment: string;
   readonly defaultOpen: boolean;
+  /** Root folders act as mutually exclusive documentation sections/tabs. */
+  readonly root: boolean;
+  readonly description?: string;
+  readonly icon?: string;
   readonly children: ReadonlyArray<NavigationNode>;
 }
 
@@ -28,8 +32,11 @@ interface MutableFolder {
 /** Fumadocs-compatible navigation metadata loaded from a directory's meta.json. */
 export interface NavigationMeta {
   readonly title?: string;
+  readonly description?: string;
+  readonly icon?: string;
   readonly pages?: ReadonlyArray<string>;
   readonly defaultOpen?: boolean;
+  readonly root?: boolean;
 }
 
 export type NavigationMetaMap = Readonly<Record<string, NavigationMeta>>;
@@ -96,6 +103,11 @@ const freezeFolder = (
     label: meta?.title ?? folder.label,
     segment: folder.segment,
     defaultOpen: meta?.defaultOpen ?? true,
+    root: meta?.root ?? false,
+    ...(meta?.description === undefined
+      ? {}
+      : { description: meta.description }),
+    ...(meta?.icon === undefined ? {} : { icon: meta.icon }),
     children,
   };
 };
@@ -103,7 +115,7 @@ const freezeFolder = (
 const navigationPath = (
   page: PageMetadata,
 ): { readonly folders: ReadonlyArray<string>; readonly page: string } => {
-  const segments = page.id
+  const segments = (page.navigationPath ?? page.translationKey ?? page.id)
     .replace(/\.(?:md|mdx)$/iu, "")
     .split("/")
     .filter(Boolean);
@@ -155,3 +167,78 @@ export const flattenNavigation = (
   nodes.flatMap((node) =>
     node._tag === "Page" ? [node] : flattenNavigation(node.children),
   );
+
+export interface NavigationTab {
+  readonly title: string;
+  readonly description?: string;
+  readonly icon?: string;
+  readonly url: string;
+  readonly current: boolean;
+}
+
+const containsUrl = (node: NavigationNode, currentUrl: string): boolean =>
+  node._tag === "Page"
+    ? node.url === currentUrl
+    : node.children.some((child) => containsUrl(child, currentUrl));
+
+const collectRootFolders = (
+  nodes: ReadonlyArray<NavigationNode>,
+): ReadonlyArray<NavigationFolder> =>
+  nodes.flatMap((node) => {
+    if (node._tag === "Page") return [];
+    return node.root ? [node] : collectRootFolders(node.children);
+  });
+
+const activeRootFolder = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+): NavigationFolder | undefined => {
+  for (const node of nodes) {
+    if (node._tag === "Page") continue;
+    const nested = activeRootFolder(node.children, currentUrl);
+    if (nested !== undefined) return nested;
+    if (node.root && containsUrl(node, currentUrl)) return node;
+  }
+  return undefined;
+};
+
+const withoutRootFolders = (
+  nodes: ReadonlyArray<NavigationNode>,
+): ReadonlyArray<NavigationNode> =>
+  nodes.flatMap((node): ReadonlyArray<NavigationNode> => {
+    if (node._tag === "Page") return [node];
+    if (node.root) return [];
+    const children = withoutRootFolders(node.children);
+    return children.length === 0 ? [] : [{ ...node, children }];
+  });
+
+/** Returns the sidebar tree visible for a URL, respecting Fumadocs-style roots. */
+export const navigationForUrl = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+): ReadonlyArray<NavigationNode> =>
+  activeRootFolder(nodes, currentUrl)?.children ?? withoutRootFolders(nodes);
+
+/** Returns layout tabs when the URL is inside a root folder. */
+export const navigationTabsForUrl = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+): ReadonlyArray<NavigationTab> => {
+  const current = activeRootFolder(nodes, currentUrl);
+  if (current === undefined) return [];
+  return collectRootFolders(nodes).flatMap((folder) => {
+    const url = flattenNavigation(folder.children)[0]?.url;
+    if (url === undefined) return [];
+    return [
+      {
+        title: folder.label,
+        ...(folder.description === undefined
+          ? {}
+          : { description: folder.description }),
+        ...(folder.icon === undefined ? {} : { icon: folder.icon }),
+        url,
+        current: folder === current,
+      },
+    ];
+  });
+};

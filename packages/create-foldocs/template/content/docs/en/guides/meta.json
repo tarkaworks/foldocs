@@ -1,0 +1,7 @@
+{
+  "title": "Guides",
+  "description": "Configure and extend the project",
+  "root": true,
+  "pages": ["configuration"],
+  "defaultOpen": true
+}

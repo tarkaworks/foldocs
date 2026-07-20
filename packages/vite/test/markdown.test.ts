@@ -1,4 +1,4 @@
-import { compile } from "effectdocs-mdx";
+import { compile } from "foldocs-mdx";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -45,7 +45,7 @@ Read [configuration](/docs/configuration).
 
     expect(
       makePageMarkdown(
-        { title: "Effectdocs", baseUrl: "https://effectdocs.dev" },
+        { title: "Foldocs", baseUrl: "https://foldocs.dev" },
         {
           metadata: {
             id: "getting-started.mdx",
@@ -63,7 +63,7 @@ Read [configuration](/docs/configuration).
 
 Build your first site.
 
-Read [configuration](https://effectdocs.dev/docs/configuration).
+Read [configuration](https://foldocs.dev/docs/configuration).
 `);
   });
 
@@ -71,12 +71,12 @@ Read [configuration](https://effectdocs.dev/docs/configuration).
     expect(
       makeLandingMarkdown(
         {
-          title: "Effectdocs",
+          title: "Foldocs",
           tagline: "Docs powered by Effect.",
-          baseUrl: "https://effectdocs.dev",
+          baseUrl: "https://foldocs.dev",
         },
         "/docs",
       ),
-    ).toContain("[Read the documentation](https://effectdocs.dev/docs)");
+    ).toContain("[Read the documentation](https://foldocs.dev/docs)");
   });
 });

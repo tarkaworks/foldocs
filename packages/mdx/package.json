@@ -1,5 +1,5 @@
 {
-  "name": "effectdocs-mdx",
+  "name": "foldocs-mdx",
   "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
@@ -26,7 +26,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@effectdocs/content": "workspace:*",
+    "@foldocs/content": "workspace:*",
     "@types/mdast": "^4.0.4",
     "effect": "4.0.0-beta.97",
     "github-slugger": "^2.0.0",

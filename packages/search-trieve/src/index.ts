@@ -1,9 +1,14 @@
 import {
   SearchError,
+  createSearchIndexer,
   excerpt,
+  syncSearchDocuments,
   type SearchClient,
+  type SearchDocument,
+  type SearchIndexer,
   type SearchOptions,
-} from "@effectdocs/search";
+  type SearchSyncReport,
+} from "@foldocs/search";
 import { Effect } from "effect";
 
 export interface TrieveHit {
@@ -21,6 +26,24 @@ export interface TrieveOptions {
     options: SearchOptions,
   ) => Promise<ReadonlyArray<TrieveHit>>;
 }
+
+export interface TrieveIngestionOptions {
+  /**
+   * Replace the dataset using a server-side Trieve SDK or ingestion endpoint.
+   * Admin credentials must never be bundled into the documentation client.
+   */
+  readonly replace: (documents: ReadonlyArray<SearchDocument>) => Promise<void>;
+}
+
+export const createTrieveSearchIndexer = (
+  options: TrieveIngestionOptions,
+): SearchIndexer => createSearchIndexer("trieve", options.replace);
+
+export const syncTrieveSearch = (
+  options: TrieveIngestionOptions,
+  documents: ReadonlyArray<SearchDocument>,
+): Effect.Effect<SearchSyncReport, SearchError> =>
+  syncSearchDocuments(createTrieveSearchIndexer(options), documents);
 
 export const createTrieveSearchClient = (
   options: TrieveOptions,

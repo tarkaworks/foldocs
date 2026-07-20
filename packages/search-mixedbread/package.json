@@ -1,5 +1,5 @@
 {
-  "name": "@effectdocs/search-mixedbread",
+  "name": "@foldocs/search-mixedbread",
   "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
@@ -18,7 +18,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@effectdocs/search": "workspace:*",
+    "@foldocs/search": "workspace:*",
     "effect": "4.0.0-beta.97"
   },
   "peerDependencies": {

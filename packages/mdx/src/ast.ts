@@ -1,3 +1,4 @@
+import { PageFrontmatter, TocItem } from "@foldocs/content";
 import { Schema as S } from "effect";
 
 export type Text = Readonly<{ _tag: "Text"; value: string }>;
@@ -229,5 +230,15 @@ export const BlockComponent = S.Struct({
 
 export const Document = S.Struct({ blocks: S.Array(Block) });
 export type Document = typeof Document.Type;
+
+/** Runtime-safe compiled document schema with no parser or highlighter imports. */
+export const CompiledPage = S.Struct({
+  frontmatter: PageFrontmatter,
+  document: Document,
+  toc: S.Array(TocItem),
+  source: S.String,
+  plainText: S.String,
+});
+export type CompiledPage = typeof CompiledPage.Type;
 
 export const decodeDocument = S.decodeUnknownSync(Document);

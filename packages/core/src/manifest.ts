@@ -1,4 +1,6 @@
-import type { PageMetadata } from "@effectdocs/content";
+import type { PageMetadata } from "@foldocs/content";
+
+import { flattenNavigation, type NavigationNode } from "./navigation.js";
 
 export interface PageModule<Page> {
   readonly default: Page;
@@ -33,23 +35,32 @@ export const findPageBySlug = <Page>(
 export const adjacentPages = <Page>(
   manifest: PageManifest<Page>,
   pathname: string,
+  navigation?: ReadonlyArray<NavigationNode>,
 ): Readonly<{
   previous?: PageManifestEntry<Page>;
   next?: PageManifestEntry<Page>;
 }> => {
   const current = findPageByUrl(manifest, pathname);
   if (current === undefined) return {};
-  const visible = manifest
-    .filter(
-      (page) =>
-        page.frontmatter.hidden !== true && page.frontmatter.draft !== true,
-    )
-    .toSorted(
-      (left, right) =>
-        (left.frontmatter.order ?? Number.MAX_SAFE_INTEGER) -
-          (right.frontmatter.order ?? Number.MAX_SAFE_INTEGER) ||
-        left.slug.localeCompare(right.slug),
-    );
+  const visible =
+    navigation === undefined
+      ? manifest
+          .filter(
+            (page) =>
+              page.frontmatter.hidden !== true &&
+              page.frontmatter.draft !== true &&
+              (current.locale === undefined || page.locale === current.locale),
+          )
+          .toSorted(
+            (left, right) =>
+              (left.frontmatter.order ?? Number.MAX_SAFE_INTEGER) -
+                (right.frontmatter.order ?? Number.MAX_SAFE_INTEGER) ||
+              left.slug.localeCompare(right.slug),
+          )
+      : flattenNavigation(navigation).flatMap((item) => {
+          const page = manifest.find((entry) => entry.id === item.page.id);
+          return page === undefined ? [] : [page];
+        });
   const index = visible.findIndex((page) => page.id === current.id);
   if (index === -1) return {};
   return {

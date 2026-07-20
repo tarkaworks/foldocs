@@ -1,9 +1,17 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/asyncapi" },
+    { "path": "packages/basehub" },
     { "path": "packages/content" },
     { "path": "packages/core" },
+    { "path": "packages/epub" },
+    { "path": "packages/language" },
     { "path": "packages/mdx" },
+    { "path": "packages/mdx-remote" },
+    { "path": "packages/openapi" },
+    { "path": "packages/obsidian" },
+    { "path": "packages/python" },
     { "path": "packages/search" },
     { "path": "packages/search-algolia" },
     { "path": "packages/search-flexsearch" },
@@ -12,10 +20,13 @@
     { "path": "packages/search-orama-cloud" },
     { "path": "packages/search-trieve" },
     { "path": "packages/search-typesense" },
+    { "path": "packages/sanity" },
+    { "path": "packages/typescript" },
+    { "path": "packages/twoslash" },
     { "path": "packages/ui" },
     { "path": "packages/vite" },
-    { "path": "packages/effectdocs" },
+    { "path": "packages/foldocs" },
     { "path": "packages/cli" },
-    { "path": "packages/create-effectdocs" }
+    { "path": "packages/create-foldocs" }
   ]
 }

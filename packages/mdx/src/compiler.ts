@@ -1,10 +1,8 @@
 import {
-  PageFrontmatter,
-  TocItem,
   decodePageFrontmatter,
   type PageFrontmatter as PageFrontmatterType,
   type TocItem as TocItemType,
-} from "@effectdocs/content";
+} from "@foldocs/content";
 import GithubSlugger from "github-slugger";
 import type {
   BlockContent as MdastBlockContent,
@@ -28,12 +26,13 @@ import { parse as parseYaml } from "yaml";
 import type {
   Block,
   BlockComponent,
+  CompiledPage as CompiledPageType,
   Inline,
   InlineComponent,
   Table,
   TableRow,
 } from "./ast.js";
-import { Document } from "./ast.js";
+import { CompiledPage, Document } from "./ast.js";
 import { Schema as S } from "effect";
 
 const processor = unified()
@@ -44,19 +43,22 @@ const processor = unified()
   .use(remarkMdx)
   .freeze();
 
-export const CompiledPage = S.Struct({
-  frontmatter: PageFrontmatter,
-  document: Document,
-  toc: S.Array(TocItem),
-  source: S.String,
-  plainText: S.String,
-});
-export type CompiledPage = typeof CompiledPage.Type;
-
 export interface CompileOptions {
   readonly filePath?: string;
   readonly highlight?: boolean;
+  readonly highlightCode?: CodeHighlighter;
 }
+
+export interface CodeHighlightInput {
+  readonly value: string;
+  readonly language: string;
+  readonly meta?: string;
+  readonly filePath?: string;
+}
+
+export type CodeHighlighter = (
+  input: CodeHighlightInput,
+) => Promise<string | undefined>;
 
 type NodeWithPosition = Readonly<{
   type: string;
@@ -330,12 +332,21 @@ const normalizeBlock = async (
       let highlightedHtml: string | undefined;
       if (options.highlight !== false) {
         try {
+          const custom = await options.highlightCode?.({
+            value,
+            language: language ?? "text",
+            ...(typeof node.meta === "string" ? { meta: node.meta } : {}),
+            ...(options.filePath === undefined
+              ? {}
+              : { filePath: options.filePath }),
+          });
           highlightedHtml = withCodeLineNumbers(
-            await codeToHtml(value, {
-              lang: language ?? "text",
-              themes: { light: "github-light", dark: "github-dark" },
-              defaultColor: false,
-            }),
+            custom ??
+              (await codeToHtml(value, {
+                lang: language ?? "text",
+                themes: { light: "github-light", dark: "github-dark" },
+                defaultColor: false,
+              })),
           );
         } catch {
           highlightedHtml = undefined;
@@ -414,7 +425,7 @@ const normalizeBlock = async (
       return unsupported(
         node as NodeWithPosition,
         filePath,
-        "Effectdocs MDX is deterministic: register a Foldkit component instead of executing module code.",
+        "Foldocs MDX is deterministic: register a Foldkit component instead of executing module code.",
       );
     case "html":
       return unsupported(
@@ -489,7 +500,7 @@ const resolveFrontmatter = (
 export const compile = async (
   source: string,
   options: CompileOptions = {},
-): Promise<CompiledPage> => {
+): Promise<CompiledPageType> => {
   const root = processor.parse(source) as Root;
   const slugger = new GithubSlugger();
   const contentNodes = root.children.filter((node) => node.type !== "yaml");

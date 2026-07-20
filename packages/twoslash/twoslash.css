@@ -1,0 +1,57 @@
+.fd-code .twoslash-hover {
+  position: relative;
+  border-bottom: 1px dotted currentColor;
+  cursor: help;
+}
+
+.fd-code .twoslash-popup-container {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 0.45rem);
+  left: 0;
+  width: max-content;
+  max-width: min(28rem, 80vw);
+  display: none;
+  flex-direction: column;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.45rem;
+  color: var(--fd-foreground);
+  background: var(--fd-background);
+  box-shadow: 0 0.8rem 2rem color-mix(in srgb, #000 18%, transparent);
+  font:
+    0.75rem/1.45 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+}
+
+.fd-code .twoslash-hover:hover .twoslash-popup-container,
+.fd-code .twoslash-hover:focus .twoslash-popup-container,
+.fd-code .twoslash-hover:focus-within .twoslash-popup-container {
+  display: flex;
+}
+
+.fd-code .twoslash-popup-code {
+  overflow-wrap: anywhere;
+}
+
+.fd-code .twoslash-popup-docs {
+  padding-top: 0.45rem;
+  margin-top: 0.45rem;
+  border-top: 1px solid var(--fd-border);
+  font-family:
+    "Avenir Next", Avenir, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+.fd-code .twoslash-error {
+  padding-bottom: 1px;
+  text-decoration: underline wavy #d45656;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twoslash * {
+    transition: none !important;
+  }
+}

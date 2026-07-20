@@ -1,4 +1,13 @@
-import { SearchError, excerpt, type SearchClient } from "@effectdocs/search";
+import {
+  SearchError,
+  createSearchIndexer,
+  excerpt,
+  syncSearchDocuments,
+  type SearchClient,
+  type SearchDocument,
+  type SearchIndexer,
+  type SearchSyncReport,
+} from "@foldocs/search";
 import { Effect } from "effect";
 
 export interface OramaCloudHit {
@@ -23,6 +32,51 @@ export interface OramaCloudOptions {
   readonly client: OramaCloudClient;
   readonly params?: Readonly<Record<string, unknown>>;
 }
+
+export interface OramaCloudAdminClient {
+  readonly index: {
+    readonly set: (name: string) => {
+      readonly transaction: {
+        readonly open: () => Promise<unknown>;
+        readonly insertDocuments: (
+          documents: ReadonlyArray<Readonly<Record<string, unknown>>>,
+        ) => Promise<unknown>;
+        readonly commit: () => Promise<unknown>;
+        readonly abort?: () => Promise<unknown>;
+      };
+    };
+  };
+}
+
+export interface OramaCloudIndexerOptions {
+  readonly client: OramaCloudAdminClient;
+  readonly indexName: string;
+  /** Commit and deploy the transaction after insertion. @default true */
+  readonly autoDeploy?: boolean;
+}
+
+export const createOramaCloudSearchIndexer = (
+  options: OramaCloudIndexerOptions,
+): SearchIndexer =>
+  createSearchIndexer("orama-cloud", async (documents) => {
+    const transaction = options.client.index.set(options.indexName).transaction;
+    await transaction.open();
+    try {
+      await transaction.insertDocuments(
+        documents.map((document) => ({ ...document })),
+      );
+      if (options.autoDeploy !== false) await transaction.commit();
+    } catch (cause) {
+      await transaction.abort?.().catch(() => undefined);
+      throw cause;
+    }
+  });
+
+export const syncOramaCloudSearch = (
+  options: OramaCloudIndexerOptions,
+  documents: ReadonlyArray<SearchDocument>,
+): Effect.Effect<SearchSyncReport, SearchError> =>
+  syncSearchDocuments(createOramaCloudSearchIndexer(options), documents);
 
 export const createOramaCloudSearchClient = (
   options: OramaCloudOptions,

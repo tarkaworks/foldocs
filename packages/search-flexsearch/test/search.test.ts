@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createFlexSearchClient } from "../src/index.js";
 
 describe("FlexSearch adapter", () => {
-  it("indexes the common Effectdocs document contract", async () => {
+  it("indexes the common Foldocs document contract", async () => {
     const client = createFlexSearchClient([
       {
         id: "layer",

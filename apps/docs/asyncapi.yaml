@@ -1,0 +1,56 @@
+asyncapi: 2.6.0
+info:
+  title: Foldocs Events
+  version: 1.0.0
+  description: Example event reference rendered by @foldocs/asyncapi.
+channels:
+  docs/{locale}/published:
+    publish:
+      operationId: documentPublished
+      summary: Document published
+      description: Emitted after a localized document is published.
+      tags:
+        - name: Documents
+      message:
+        $ref: "#/components/messages/DocumentPublished"
+  docs/{locale}/index-ready:
+    subscribe:
+      operationId: searchIndexReady
+      summary: Search index ready
+      description: Consumed when a locale search index is ready to serve.
+      tags:
+        - name: Search
+      message:
+        $ref: "#/components/messages/SearchIndexReady"
+components:
+  messages:
+    DocumentPublished:
+      name: DocumentPublished
+      description: Metadata for the published page.
+      payload:
+        type: object
+        required: [locale, slug, url]
+        properties:
+          locale:
+            type: string
+            description: Published locale.
+          slug:
+            type: string
+            description: Route-relative document slug.
+          url:
+            type: string
+            format: uri
+            description: Localized public URL.
+    SearchIndexReady:
+      name: SearchIndexReady
+      description: Metadata for the searchable corpus.
+      payload:
+        type: object
+        required: [locale, documents]
+        properties:
+          locale:
+            type: string
+            description: Indexed locale.
+          documents:
+            type: integer
+            description: Number of indexed pages.

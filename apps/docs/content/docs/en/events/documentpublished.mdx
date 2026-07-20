@@ -1,0 +1,34 @@
+---
+title: "Document published"
+description: "Emitted after a localized document is published."
+label: "PUBLISH docs/{locale}/published"
+order: 2
+tags:
+  - "Documents"
+---
+
+# Document published
+
+`PUBLISH docs/{locale}/published`
+
+Emitted after a localized document is published.
+
+## Message: DocumentPublished
+
+Metadata for the published page.
+
+### Payload
+
+| Field    | Type          | Required | Description                   |
+| -------- | ------------- | -------- | ----------------------------- |
+| `locale` | `string`      | Yes      | Published locale.             |
+| `slug`   | `string`      | Yes      | Route-relative document slug. |
+| `url`    | `string<uri>` | Yes      | Localized public URL.         |
+
+```json
+{
+  "locale": "string",
+  "slug": "string",
+  "url": "string"
+}
+```

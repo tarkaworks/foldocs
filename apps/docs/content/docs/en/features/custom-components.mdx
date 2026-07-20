@@ -1,0 +1,40 @@
+---
+title: Custom MDX components
+description: Render project-owned Foldkit views from deterministic MDX.
+order: 4
+tags:
+  - mdx
+  - components
+---
+
+# Custom MDX components
+
+Foldocs compiles component names, literal attributes, and children into its typed
+document AST. Your application decides how those nodes render by passing an
+`MdxComponents` registry to `createDocsProgram`.
+
+Press <Kbd label="Command K">⌘K</Kbd> to open search.
+
+<Aside type="tip">
+  This callout is rendered by the project-owned `Aside` function in
+  `src/mdx-components.ts`, not by the built-in renderer.
+</Aside>
+
+```ts
+import type { MdxComponents } from "foldocs";
+import { html } from "foldkit/html";
+
+const h = html();
+
+export const components: MdxComponents = {
+  inline: {
+    Kbd: (_, content) => h.kbd([], content),
+  },
+  block: {
+    Aside: (_, content) => h.aside([], content),
+  },
+};
+```
+
+The registry is presentational by design. Stateful behavior remains in the
+Foldkit program, preserving typed models, messages, and deterministic content.

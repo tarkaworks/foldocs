@@ -1,0 +1,7 @@
+{
+  "title": "Get started",
+  "description": "Install and learn Foldocs",
+  "root": true,
+  "pages": ["index", "getting-started"],
+  "defaultOpen": true
+}
