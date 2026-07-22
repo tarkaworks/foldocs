@@ -48,9 +48,11 @@ to disable the per-page assets and page actions.
 
 Production builds prerender every landing and documentation route to a directory
 `index.html` by default. The generated HTML contains the complete Foldkit layout
-and page content, so it remains readable without JavaScript while the client
-runtime progressively takes over. Set `prerender: false` only for deployments that
-require a single SPA entry point.
+and page content, so it remains readable without JavaScript. Before Foldkit takes
+over, the generated entry point preloads only the current page chunk and initializes
+the runtime from that page. Refreshing therefore keeps the finished document on
+screen instead of flashing a loading view. Set `prerender: false` only for
+deployments that require a single SPA entry point.
 
 Local search documents are emitted to a per-locale `search-index.json` and fetched
 only when someone searches, keeping the complete documentation corpus out of the

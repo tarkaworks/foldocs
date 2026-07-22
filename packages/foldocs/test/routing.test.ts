@@ -4,14 +4,32 @@ import { Option } from "effect";
 import { fromString } from "foldkit/url";
 import { describe, expect, it } from "vitest";
 
-import { createDocsProgram } from "../src/index.js";
+import { createDocsProgram, preloadDocsPage } from "../src/index.js";
 
 const url = (value: string) => Option.getOrThrow(fromString(value));
+
+const compiled: CompiledPage = {
+  frontmatter: { title: "Introduction" },
+  document: {
+    blocks: [
+      {
+        _tag: "Heading",
+        id: "introduction",
+        level: 1,
+        content: [{ _tag: "Text", value: "Introduction" }],
+      },
+    ],
+  },
+  toc: [{ id: "introduction", title: "Introduction", depth: 1 }],
+  source: "# Introduction",
+  plainText: "Introduction",
+};
 
 const manifestEntry = (
   pathname: string,
   slug: string,
   locale?: string,
+  page?: CompiledPage,
 ): PageManifest<CompiledPage>[number] => ({
   id: slug || "index",
   slug,
@@ -24,9 +42,24 @@ const manifestEntry = (
   toc: [],
   plainText: "Introduction",
   load: async () => {
+    if (page !== undefined) return { default: page };
     throw new Error("The routing test must not load content.");
   },
 });
+
+const i18n = {
+  enabled: true,
+  defaultLocale: "en",
+  fallbackLocale: "en",
+  locales: [
+    {
+      locale: "en",
+      name: "English",
+      dir: "ltr" as const,
+      ui: defaultUiTranslations,
+    },
+  ],
+};
 
 describe("generated homepage routing", () => {
   it("renders the built-in homepage when docs use /docs", () => {
@@ -52,19 +85,6 @@ describe("generated homepage routing", () => {
   });
 
   it("redirects unprefixed routes and renders locale home routes", () => {
-    const i18n = {
-      enabled: true,
-      defaultLocale: "en",
-      fallbackLocale: "en",
-      locales: [
-        {
-          locale: "en",
-          name: "English",
-          dir: "ltr" as const,
-          ui: defaultUiTranslations,
-        },
-      ],
-    };
     const program = createDocsProgram({
       manifest: [manifestEntry("/en/docs", "", "en")],
       site: { title: "Example docs" },
@@ -73,10 +93,32 @@ describe("generated homepage routing", () => {
     });
 
     const [redirecting] = program.init(url("https://example.com/docs"));
+    const [rootAlias] = program.init(url("https://example.com/"));
     const [home] = program.init(url("https://example.com/en"));
 
     expect(redirecting.page._tag).toBe("PageLoading");
+    expect(redirecting.pathname).toBe("/en/docs");
     expect(redirecting.locale).toBe("en");
+    expect(rootAlias.page._tag).toBe("PageHome");
+    expect(rootAlias.pathname).toBe("/en");
     expect(home.page._tag).toBe("PageHome");
+  });
+
+  it("starts from the current route chunk during the static handoff", async () => {
+    const manifest = [manifestEntry("/en/docs", "", "en", compiled)];
+    const preloadedPage = await preloadDocsPage(manifest, i18n, "/docs");
+    expect(preloadedPage?.pathname).toBe("/en/docs");
+
+    const program = createDocsProgram({
+      manifest,
+      site: { title: "Example docs" },
+      basePath: "/docs",
+      i18n,
+      ...(preloadedPage === undefined ? {} : { preloadedPage }),
+    });
+    const [model] = program.init(url("https://example.com/docs"));
+
+    expect(model.pathname).toBe("/en/docs");
+    expect(model.page._tag).toBe("PageReady");
   });
 });

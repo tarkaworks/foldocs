@@ -26,8 +26,10 @@ Cada idioma recibe rutas Markdown, `/<locale>/llms.txt` y
 
 Las compilaciones de producción prerenderizan cada ruta con todo el contenido y
 metadatos específicos de la página. Puedes definir `description`, `keywords` y
-`socialImage` en el frontmatter. Usa `prerender: false` únicamente si el despliegue
-necesita una sola entrada SPA.
+`socialImage` en el frontmatter. Antes de que Foldkit tome el control, la entrada
+generada precarga solamente el módulo de la página actual e inicializa el runtime
+con esa página, por lo que una recarga no muestra brevemente la vista de carga. Usa
+`prerender: false` únicamente si el despliegue necesita una sola entrada SPA.
 
 La búsqueda local usa un `search-index.json` por idioma que se descarga solo al
 buscar. Define `search.staticIndex: false` para incluir el contenido en el

@@ -54,7 +54,53 @@ export interface DocsProgramOptions {
   readonly components?: MdxComponents;
   /** Per-locale JSON indexes emitted by the Foldocs Vite plugin. */
   readonly searchIndexUrls?: Readonly<Record<string, string>>;
+  /**
+   * Page module loaded before the Foldkit runtime starts. Production entry
+   * points use this to adopt prerendered HTML without briefly rendering the
+   * asynchronous loading state first.
+   */
+  readonly preloadedPage?: PreloadedDocsPage;
 }
+
+export interface PreloadedDocsPage {
+  readonly pathname: string;
+  readonly page: CompiledPageType;
+}
+
+const hasLocalePrefix = (i18n: ResolvedI18nConfig, pathname: string): boolean =>
+  !i18n.enabled ||
+  i18n.locales.some(
+    (entry) =>
+      pathname === `/${entry.locale}` ||
+      pathname.startsWith(`/${entry.locale}/`),
+  );
+
+const initialPathname = (i18n: ResolvedI18nConfig, pathname: string): string =>
+  hasLocalePrefix(i18n, pathname)
+    ? pathname
+    : localizedPathname(i18n, i18n.defaultLocale, pathname);
+
+/**
+ * Loads only the current route chunk before Foldkit takes ownership of the
+ * prerendered root. The static document remains visible while the chunk is in
+ * flight, and `init` can then produce the same page VNode on its first render.
+ */
+export const preloadDocsPage = async (
+  manifest: PageManifest<CompiledPageType>,
+  i18n: ResolvedI18nConfig,
+  pathname: string,
+): Promise<PreloadedDocsPage | undefined> => {
+  const resolvedPathname = initialPathname(i18n, pathname);
+  const entry = findPageByUrl(manifest, resolvedPathname);
+  if (entry === undefined) return undefined;
+  try {
+    const { default: page } = await entry.load();
+    return { pathname: resolvedPathname, page };
+  } catch {
+    // The normal LoadPage command retains the existing error UI and retry path.
+    return undefined;
+  }
+};
 
 const messageFromError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -738,45 +784,70 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ),
   );
 
+  const preloadedPageFor = (
+    pathname: string,
+  ): typeof PageReady.Type | undefined => {
+    if (options.preloadedPage === undefined) return undefined;
+    const requestedEntry = findPageByUrl(manifest, pathname);
+    const preloadedEntry = findPageByUrl(
+      manifest,
+      options.preloadedPage.pathname,
+    );
+    if (
+      requestedEntry === undefined ||
+      preloadedEntry?.url !== requestedEntry.url
+    )
+      return undefined;
+    return PageReady({ pathname, page: options.preloadedPage.page });
+  };
+
   const pageRequest = (
     pathname: string,
   ): readonly [
     typeof PageState.Type,
     ReadonlyArray<Command.Command<Message>>,
     string,
+    string,
   ] => {
     const locale = localeFromPathname(i18n, pathname);
-    const hasLocalePrefix =
-      !i18n.enabled ||
-      i18n.locales.some(
-        (entry) =>
-          pathname === `/${entry.locale}` ||
-          pathname.startsWith(`/${entry.locale}/`),
-      );
-    if (!hasLocalePrefix) {
+    if (!hasLocalePrefix(i18n, pathname)) {
+      const target = initialPathname(i18n, pathname);
+      const preloaded = preloadedPageFor(target);
+      const home =
+        stripLocalePrefix(i18n, target) === "/" &&
+        findPageByUrl(manifest, target) === undefined;
       return [
-        PageLoading({ pathname }),
+        preloaded ?? (home ? PageHome() : PageLoading({ pathname: target })),
         [
           NavigateInternal({
-            url: localizedPathname(i18n, i18n.defaultLocale, pathname),
+            url: target,
           }),
         ],
         i18n.defaultLocale,
+        target,
       ];
     }
     const home =
       stripLocalePrefix(i18n, pathname) === "/" &&
       findPageByUrl(manifest, pathname) === undefined;
+    const preloaded = preloadedPageFor(pathname);
     return home
-      ? [PageHome(), [], locale]
-      : [PageLoading({ pathname }), [LoadPage({ pathname })], locale];
+      ? [PageHome(), [], locale, pathname]
+      : preloaded === undefined
+        ? [
+            PageLoading({ pathname }),
+            [LoadPage({ pathname })],
+            locale,
+            pathname,
+          ]
+        : [preloaded, [], locale, pathname];
   };
 
   const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
-    const [page, commands, locale] = pageRequest(url.pathname);
+    const [page, commands, locale, pathname] = pageRequest(url.pathname);
     return [
       {
-        pathname: url.pathname,
+        pathname,
         locale,
         page,
         sidebarOpen: false,
@@ -801,7 +872,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         ...commands,
         ReadTheme(),
         ReadSidebarGroups(),
-        ApplyLocaleMetadata({ locale, pathname: url.pathname }),
+        ApplyLocaleMetadata({ locale, pathname }),
       ],
     ];
   };
@@ -818,11 +889,13 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           : [model, [LoadExternal({ href: message.request.href })]];
       case "ChangedUrl": {
         if (message.url.pathname === model.pathname) return [model, []];
-        const [page, commands, locale] = pageRequest(message.url.pathname);
+        const [page, commands, locale, pathname] = pageRequest(
+          message.url.pathname,
+        );
         return [
           {
             ...model,
-            pathname: message.url.pathname,
+            pathname,
             locale,
             page,
             sidebarOpen: false,
@@ -841,7 +914,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             ...commands,
             ApplyLocaleMetadata({
               locale,
-              pathname: message.url.pathname,
+              pathname,
             }),
           ],
         ];

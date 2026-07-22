@@ -929,6 +929,54 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     }
   };
 
+  const servePrerenderedHtml = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    next: (error?: unknown) => void,
+  ): Promise<void> => {
+    if (
+      !config.prerender ||
+      (request.method !== "GET" && request.method !== "HEAD")
+    ) {
+      next();
+      return;
+    }
+    try {
+      const pathname = decodeURIComponent(
+        new URL(request.url ?? "/", "http://foldocs.local").pathname,
+      );
+      if (
+        path.extname(pathname) !== "" ||
+        pathname.split("/").some((segment) => segment === "..")
+      ) {
+        next();
+        return;
+      }
+      const outDir = path.resolve(viteConfig.root, viteConfig.build.outDir);
+      const file = path.resolve(outDir, routeHtmlFile(pathname));
+      if (file !== outDir && !file.startsWith(`${outDir}${path.sep}`)) {
+        next();
+        return;
+      }
+      const source = await fs.readFile(file).catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT")
+          return undefined;
+        throw error;
+      });
+      if (source === undefined) {
+        next();
+        return;
+      }
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
+      response.setHeader("X-Content-Type-Options", "nosniff");
+      response.setHeader("Content-Length", String(source.byteLength));
+      response.end(request.method === "HEAD" ? undefined : source);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     name: "foldocs",
     enforce: "pre",
@@ -960,7 +1008,11 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           }
           void serveSearchIndex(request, response, (error) => {
             if (error !== undefined) next(error);
-            else void serveMarkdown(request, response, next);
+            else
+              void serveMarkdown(request, response, (markdownError) => {
+                if (markdownError !== undefined) next(markdownError);
+                else void servePrerenderedHtml(request, response, next);
+              });
           });
         });
       });

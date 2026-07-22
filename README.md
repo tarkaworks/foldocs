@@ -22,6 +22,8 @@ layout by default, including keyboard search, active desktop/mobile tables of
 contents, the Foldkit website's cream/charcoal visual system, a separate generated
 landing page, collapsible navigation, code copy controls, flash-free three-way
 theming, route-specific metadata, and fully rendered static HTML for every route.
+The current route chunk is preloaded before Foldkit adopts that HTML, so a refresh
+never replaces finished documentation with an intermediate loading screen.
 Every page also has an appended `.md` URL plus
 Copy Markdown and View as Markdown actions. There is no framework-selection prompt.
 Fumadocs-style `meta.json` files and parenthesized route groups provide explicit

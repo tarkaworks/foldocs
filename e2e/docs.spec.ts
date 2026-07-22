@@ -14,16 +14,75 @@ test("prerendered homepage, localized docs, Markdown, and remote content agree",
   request,
 }) => {
   const errors = expectNoRuntimeErrors(page);
+  await page.addInitScript(() => {
+    const loadingStates: Array<string> = [];
+    Object.defineProperty(window, "__foldocsLoadingStates", {
+      value: loadingStates,
+      configurable: true,
+    });
+    const rememberLoadingState = (node: Node): void => {
+      const text = node.textContent ?? "";
+      if (
+        text.includes("Loading documentation") &&
+        !loadingStates.includes(text)
+      )
+        loadingStates.push(text);
+    };
+    new MutationObserver((records) => {
+      for (const record of records) {
+        rememberLoadingState(record.target);
+        for (const node of record.addedNodes) rememberLoadingState(node);
+      }
+    }).observe(document, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  });
   await page.goto("/");
   await expect(page).toHaveURL(/\/en$/u);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "documentation framework",
   );
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __foldocsLoadingStates: ReadonlyArray<string>;
+          }
+        ).__foldocsLoadingStates,
+    ),
+  ).toEqual([]);
 
   await page.goto("/en/docs/getting-started");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Getting started",
   );
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __foldocsLoadingStates: ReadonlyArray<string>;
+          }
+        ).__foldocsLoadingStates,
+    ),
+  ).toEqual([]);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Getting started",
+  );
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __foldocsLoadingStates: ReadonlyArray<string>;
+          }
+        ).__foldocsLoadingStates,
+    ),
+  ).toEqual([]);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
     "https://foldocs.dev/en/docs/getting-started",
@@ -33,6 +92,12 @@ test("prerendered homepage, localized docs, Markdown, and remote content agree",
   expect(markdown.ok()).toBe(true);
   expect(markdown.headers()["content-type"]).toContain("text/markdown");
   expect(await markdown.text()).toContain("# Getting started");
+
+  const staticHtml = await request.get("/en/docs/getting-started");
+  expect(staticHtml.ok()).toBe(true);
+  const staticSource = await staticHtml.text();
+  expect(staticSource).toContain("Getting started");
+  expect(staticSource).not.toContain("Loading documentation");
 
   const localizedAsset = await request.get(
     "/es/docs/features/_assets/portable.svg",

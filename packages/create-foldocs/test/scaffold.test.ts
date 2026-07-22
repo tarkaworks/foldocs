@@ -60,6 +60,9 @@ describe("create-foldocs", () => {
       fs.readFile(path.join(result.directory, "src/entry.ts"), "utf8"),
     ).resolves.toContain("navigation");
     await expect(
+      fs.readFile(path.join(result.directory, "src/entry.ts"), "utf8"),
+    ).resolves.toContain("preloadDocsPage");
+    await expect(
       fs.readFile(
         path.join(result.directory, "content/docs/en/(get-started)/meta.json"),
         "utf8",

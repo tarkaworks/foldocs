@@ -128,8 +128,16 @@ Copy Markdown and links to them for View as Markdown.
 After Vite writes the client bundle, Foldocs serializes the same Foldkit layout and
 typed document AST into a directory `index.html` for every landing and documentation
 route. Each file receives its own title, description, keywords, social image,
-canonical URL, and locale alternates. The client bundle then progressively replaces
-the static VNode tree, preserving the normal Effect-powered runtime.
+canonical URL, and locale alternates. This is enabled by default and produces plain
+static files; production does not require a Node server or a headless browser.
+
+Before Foldkit takes ownership of the prerendered root, the generated entry point
+loads only the current route chunk. `createDocsProgram` starts from that compiled
+page, so its first VNode matches the HTML already on screen and Foldkit can adopt the
+existing DOM instead of briefly painting `PageLoading`. Locale aliases initialize
+from their canonical landing/page state while the router replaces the URL. This is
+the same build-time SSG model as Foldkit's website reference script, implemented in
+the Vite plugin with deterministic VNode serialization rather than Playwright.
 
 Localized builds produce the same Markdown routes for fallback pages, per-locale
 `llms.txt` and `llms-full.txt` corpora, and a sitemap containing every locale route

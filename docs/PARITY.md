@@ -28,7 +28,7 @@ is used where the core exists but Fumadocs still has a broader surface.
 | Language packs                 | Implemented  | Typed Spanish and Simplified/Traditional Chinese UI translation presets            |
 | Versioned documentation        | Implemented  | Localized root-folder tabs isolate version trees, sidebars, and pagination         |
 | Hosted search ingestion        | Implemented  | Static corpus loader plus Algolia, Orama Cloud, Typesense, Trieve, Mixedbread sync |
-| Static export/prerender        | Implemented  | Full Foldkit layout/content and route metadata emitted to directory HTML           |
+| Static export/prerender        | Implemented  | Directory HTML plus flash-free current-route preload and Foldkit DOM adoption      |
 | OpenAPI/API reference          | Implemented  | Separate generator emits operation MDX, schemas, samples, responses, and roots     |
 | CMS/remote content sources     | Implemented  | Lazy virtual MDX plus HTTP, Sanity, BaseHub, and custom build-time adapters        |
 | Multiple layout presets        | Implemented  | Docs, notebook, flux, and glass compositions share one accessible Foldkit shell    |

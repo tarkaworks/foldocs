@@ -9,10 +9,16 @@ import {
   searchIndexUrls,
   siteConfig,
 } from "virtual:foldocs";
-import { createDocsProgram } from "foldocs";
+import { createDocsProgram, preloadDocsPage } from "foldocs";
 import { Runtime } from "foldkit";
 
 import { mdxComponents } from "./mdx-components.js";
+
+const preloadedPage = await preloadDocsPage(
+  manifest,
+  i18n,
+  window.location.pathname,
+);
 
 const program = createDocsProgram({
   manifest,
@@ -25,6 +31,7 @@ const program = createDocsProgram({
   markdown,
   components: mdxComponents,
   searchIndexUrls,
+  ...(preloadedPage === undefined ? {} : { preloadedPage }),
 });
 
 const application = Runtime.makeApplication({
