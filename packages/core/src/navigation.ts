@@ -19,7 +19,14 @@ export interface NavigationFolder {
   readonly children: ReadonlyArray<NavigationNode>;
 }
 
-export type NavigationNode = NavigationPage | NavigationFolder;
+/** A static sidebar section heading declared as `---Section---` in meta.json. */
+export interface NavigationSeparator {
+  readonly _tag: "Separator";
+  readonly label: string;
+}
+
+export type NavigationNode =
+  NavigationPage | NavigationFolder | NavigationSeparator;
 
 interface MutableFolder {
   label: string;
@@ -53,19 +60,63 @@ const comparePages = (left: PageMetadata, right: PageMetadata): number =>
   pageOrder(left) - pageOrder(right) ||
   left.frontmatter.title.localeCompare(right.frontmatter.title);
 
-const metaPosition = (
-  key: string,
-  pages: ReadonlyArray<string> | undefined,
-): number => {
-  if (pages === undefined) return Number.MAX_SAFE_INTEGER;
-  const exact = pages.indexOf(key);
-  if (exact >= 0) return exact;
-  const rest = pages.indexOf("...");
-  return rest >= 0 ? rest : Number.MAX_SAFE_INTEGER;
-};
-
 const folderLabel = (segment: string): string =>
   humanize(segment.replace(/^\((.*)\)$/u, "$1"));
+
+const separatorLabel = (entry: string): string | undefined => {
+  const match = /^---(.+?)---$/u.exec(entry.trim());
+  const label = match?.[1]?.trim();
+  return label === undefined || label.length === 0 ? undefined : label;
+};
+
+const orderChildren = (
+  entries: ReadonlyArray<{
+    readonly key: string;
+    readonly node: NavigationPage | NavigationFolder;
+  }>,
+  pages: ReadonlyArray<string> | undefined,
+): ReadonlyArray<NavigationNode> => {
+  const sorted = [...entries].sort((left, right) => {
+    if (left.node._tag === "Page" && right.node._tag === "Page")
+      return comparePages(left.node.page, right.node.page);
+    return left.node.label.localeCompare(right.node.label);
+  });
+  if (pages === undefined) return sorted.map(({ node }) => node);
+
+  const explicitKeys = new Set(
+    pages.filter(
+      (entry) => entry !== "..." && separatorLabel(entry) === undefined,
+    ),
+  );
+  const explicit = new Map(sorted.map((entry) => [entry.key, entry.node]));
+  const remaining = sorted
+    .filter(({ key }) => !explicitKeys.has(key))
+    .map(({ node }) => node);
+  const ordered: NavigationNode[] = [];
+  const included = new Set<string>();
+  let includedRemaining = false;
+
+  for (const entry of pages) {
+    const separator = separatorLabel(entry);
+    if (separator !== undefined) {
+      ordered.push({ _tag: "Separator", label: separator });
+      continue;
+    }
+    if (entry === "...") {
+      if (!includedRemaining) ordered.push(...remaining);
+      includedRemaining = true;
+      continue;
+    }
+    const node = explicit.get(entry);
+    if (node !== undefined && !included.has(entry)) {
+      ordered.push(node);
+      included.add(entry);
+    }
+  }
+
+  if (!includedRemaining) ordered.push(...remaining);
+  return ordered;
+};
 
 const freezeFolder = (
   folder: MutableFolder,
@@ -87,17 +138,7 @@ const freezeFolder = (
         page,
       } satisfies NavigationPage,
     }));
-  const children = [...pages, ...folders]
-    .sort((left, right) => {
-      const byMeta =
-        metaPosition(left.key, meta?.pages) -
-        metaPosition(right.key, meta?.pages);
-      if (byMeta !== 0) return byMeta;
-      if (left.node._tag === "Page" && right.node._tag === "Page")
-        return comparePages(left.node.page, right.node.page);
-      return left.node.label.localeCompare(right.node.label);
-    })
-    .map(({ node }) => node);
+  const children = orderChildren([...pages, ...folders], meta?.pages);
   return {
     _tag: "Folder",
     label: meta?.title ?? folder.label,
@@ -165,7 +206,11 @@ export const flattenNavigation = (
   nodes: ReadonlyArray<NavigationNode>,
 ): ReadonlyArray<NavigationPage> =>
   nodes.flatMap((node) =>
-    node._tag === "Page" ? [node] : flattenNavigation(node.children),
+    node._tag === "Page"
+      ? [node]
+      : node._tag === "Folder"
+        ? flattenNavigation(node.children)
+        : [],
   );
 
 export interface NavigationTab {
@@ -179,13 +224,15 @@ export interface NavigationTab {
 const containsUrl = (node: NavigationNode, currentUrl: string): boolean =>
   node._tag === "Page"
     ? node.url === currentUrl
-    : node.children.some((child) => containsUrl(child, currentUrl));
+    : node._tag === "Folder"
+      ? node.children.some((child) => containsUrl(child, currentUrl))
+      : false;
 
 const collectRootFolders = (
   nodes: ReadonlyArray<NavigationNode>,
 ): ReadonlyArray<NavigationFolder> =>
   nodes.flatMap((node) => {
-    if (node._tag === "Page") return [];
+    if (node._tag !== "Folder") return [];
     return node.root ? [node] : collectRootFolders(node.children);
   });
 
@@ -194,7 +241,7 @@ const activeRootFolder = (
   currentUrl: string,
 ): NavigationFolder | undefined => {
   for (const node of nodes) {
-    if (node._tag === "Page") continue;
+    if (node._tag !== "Folder") continue;
     const nested = activeRootFolder(node.children, currentUrl);
     if (nested !== undefined) return nested;
     if (node.root && containsUrl(node, currentUrl)) return node;
@@ -204,13 +251,24 @@ const activeRootFolder = (
 
 const withoutRootFolders = (
   nodes: ReadonlyArray<NavigationNode>,
-): ReadonlyArray<NavigationNode> =>
-  nodes.flatMap((node): ReadonlyArray<NavigationNode> => {
-    if (node._tag === "Page") return [node];
+): ReadonlyArray<NavigationNode> => {
+  const filtered = nodes.flatMap((node): ReadonlyArray<NavigationNode> => {
+    if (node._tag !== "Folder") return [node];
     if (node.root) return [];
     const children = withoutRootFolders(node.children);
-    return children.length === 0 ? [] : [{ ...node, children }];
+    return children.some((child) => child._tag !== "Separator")
+      ? [{ ...node, children }]
+      : [];
   });
+  return filtered.filter((node, index) => {
+    if (node._tag !== "Separator") return true;
+    for (const candidate of filtered.slice(index + 1)) {
+      if (candidate._tag === "Separator") return false;
+      return true;
+    }
+    return false;
+  });
+};
 
 /** Returns the sidebar tree visible for a URL, respecting Fumadocs-style roots. */
 export const navigationForUrl = (

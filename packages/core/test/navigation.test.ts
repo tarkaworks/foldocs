@@ -5,6 +5,7 @@ import {
   adjacentPages,
   buildNavigation,
   findPageByUrl,
+  flattenNavigation,
   navigationForUrl,
   navigationTabsForUrl,
 } from "../src/index.js";
@@ -77,6 +78,48 @@ describe("navigation", () => {
         ],
       },
       { _tag: "Folder", label: "Features", defaultOpen: false },
+    ]);
+  });
+
+  it("renders static separators separately from collapsible folders", () => {
+    const grouped = [
+      page("", "Overview"),
+      page("manual-installation/pnpm", "pnpm"),
+      page("configuration", "Configuration"),
+    ];
+    const tree = buildNavigation(grouped, {
+      "": {
+        pages: [
+          "---Introduction---",
+          "index",
+          "manual-installation",
+          "---Writing---",
+          "configuration",
+        ],
+      },
+      "manual-installation": {
+        title: "Manual installation",
+        defaultOpen: false,
+        pages: ["pnpm"],
+      },
+    });
+
+    expect(tree).toMatchObject([
+      { _tag: "Separator", label: "Introduction" },
+      { _tag: "Page", label: "Overview" },
+      {
+        _tag: "Folder",
+        label: "Manual installation",
+        defaultOpen: false,
+        children: [{ _tag: "Page", label: "pnpm" }],
+      },
+      { _tag: "Separator", label: "Writing" },
+      { _tag: "Page", label: "Configuration" },
+    ]);
+    expect(flattenNavigation(tree).map((entry) => entry.label)).toEqual([
+      "Overview",
+      "pnpm",
+      "Configuration",
     ]);
   });
 

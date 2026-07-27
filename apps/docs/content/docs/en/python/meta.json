@@ -3,5 +3,10 @@
   "description": "Generated Python API reference.",
   "root": true,
   "defaultOpen": true,
-  "pages": ["index", "documentation-url", "searchclient"]
+  "pages": [
+    "---Python reference---",
+    "index",
+    "documentation-url",
+    "searchclient"
+  ]
 }

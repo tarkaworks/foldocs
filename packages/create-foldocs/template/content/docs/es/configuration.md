@@ -37,11 +37,13 @@ manifiesto JavaScript.
 
 ## Navegación y versiones
 
-Los archivos `meta.json` controlan el título, el orden y el estado inicial de
-cada grupo. Usa `"root": true` y una `description` opcional para convertir una
-carpeta en una pestaña del layout. Solo las páginas de la raíz activa aparecen
-en la barra lateral y la paginación. Las carpetas `v1` y `v2` permiten versionado
-parcial; los grupos `(guides)` y `(api)` aíslan secciones sin cambiar sus URLs.
+Usa entradas como `"---Introducción---"` en `meta.json` para encabezados
+estáticos. Las carpetas hijas se convierten en secciones desplegables y su propio
+`meta.json` controla `title`, `pages` y `defaultOpen`. Usa `"root": true` y una
+`description` opcional para convertir una carpeta en una pestaña del layout.
+Solo las páginas de la raíz activa aparecen en la barra lateral y la paginación.
+Las carpetas `v1` y `v2` permiten versionado parcial; los grupos `(guides)` y
+`(api)` aíslan secciones sin cambiar sus URLs.
 
 ## Componentes MDX personalizados
 

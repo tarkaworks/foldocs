@@ -3,13 +3,15 @@
   "description": "Production documentation primitives",
   "root": true,
   "pages": [
+    "---Core features---",
     "search",
     "custom-components",
     "navigation-versioning",
+    "layouts-customization",
+    "---Content and integrations---",
     "openapi",
     "asyncapi",
     "remote-content",
-    "layouts-customization",
     "language-reference",
     "portable-content"
   ],

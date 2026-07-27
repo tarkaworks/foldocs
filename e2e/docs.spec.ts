@@ -140,6 +140,61 @@ test("search traps focus, resolves local results, and restores its trigger", asy
   expect(errors).toEqual([]);
 });
 
+test("Fumadocs-style sections, folders, page actions, and pager work together", async ({
+  page,
+}) => {
+  const errors = expectNoRuntimeErrors(page);
+  await page.goto("/en/docs/getting-started");
+
+  await expect(page.locator(".fd-sidebar-section-label")).toHaveText(
+    "Introduction",
+  );
+  const folder = page.getByRole("button", { name: "Manual installation" });
+  await expect(folder).toBeEnabled();
+  await expect(folder).toHaveAttribute("aria-expanded", "false");
+  await folder.click();
+  await expect(folder).toHaveAttribute("aria-expanded", "true");
+
+  const pnpmPage = page.locator(
+    '.fd-sidebar a[href="/en/docs/manual-installation/pnpm"]',
+  );
+  await expect(pnpmPage).toBeVisible();
+  await pnpmPage.click();
+  await expect(page).toHaveURL(/\/en\/docs\/manual-installation\/pnpm$/u);
+  await expect(page.locator(".fd-page-context")).toHaveText(
+    "IntroductionManual installation",
+  );
+  await expect(folder).toBeDisabled();
+  await expect(folder).toHaveAttribute("aria-expanded", "true");
+
+  const open = page.locator(".fd-page-open > summary");
+  await open.click();
+  const menu = page.locator(".fd-page-open-menu");
+  await expect(menu).toBeVisible();
+  await expect(
+    menu.getByRole("menuitem", { name: "View as Markdown" }),
+  ).toHaveAttribute("href", "/en/docs/manual-installation/pnpm.md");
+  await expect(
+    menu.getByRole("menuitem", { name: "Open in ChatGPT" }),
+  ).toHaveAttribute("href", /^https:\/\/chatgpt\.com\/\?q=/u);
+  await expect(
+    menu.getByRole("menuitem", { name: "Open in Claude" }),
+  ).toHaveAttribute("href", /^https:\/\/claude\.ai\/new\?q=/u);
+  await expect(
+    menu.getByRole("menuitem", { name: "Open in Grok" }),
+  ).toHaveAttribute("href", /^https:\/\/grok\.com\/\?q=/u);
+
+  await expect(page.locator(".fd-pager-direction")).toHaveText([
+    "Previous",
+    "Next",
+  ]);
+  await expect(page.locator(".fd-article .fd-doc-footer")).toHaveCount(0);
+  await expect(
+    page.locator(".fd-content-column > .fd-doc-footer"),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test("mobile navigation traps focus and restores the menu button", async ({
   page,
 }) => {

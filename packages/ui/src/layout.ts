@@ -15,7 +15,7 @@ import { Option } from "effect";
 import { type Html, html } from "foldkit/html";
 
 import { renderMarkdown, type MarkdownViewOptions } from "./markdown.js";
-import { icons, type IconName } from "./icons.js";
+import { foldocsLogoSvg, icons, type IconName } from "./icons.js";
 
 export type ThemePreference = "light" | "system" | "dark";
 
@@ -123,9 +123,7 @@ const brandView = <Message>(
         [
           h.Class("fd-brand-mark"),
           h.AriaHidden(true),
-          h.InnerHTML(
-            '<svg viewBox="0 0 180 180" fill="currentColor"><rect x="41.25" y="41.25" width="45" height="97.5"/><rect x="93.75" y="41.25" width="45" height="18.75"/><rect x="93.75" y="67.5" width="45" height="18.75"/></svg>',
-          ),
+          h.InnerHTML(foldocsLogoSvg),
         ],
         [],
       ),
@@ -308,7 +306,35 @@ const headerActions = <Message>(
 const nodeContainsUrl = (node: NavigationNode, currentUrl: string): boolean =>
   node._tag === "Page"
     ? node.url === currentUrl
-    : node.children.some((child) => nodeContainsUrl(child, currentUrl));
+    : node._tag === "Folder"
+      ? node.children.some((child) => nodeContainsUrl(child, currentUrl))
+      : false;
+
+const navigationContextForUrl = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+  ancestors: ReadonlyArray<string> = [],
+): ReadonlyArray<string> | undefined => {
+  let section: string | undefined;
+  for (const node of nodes) {
+    if (node._tag === "Separator") {
+      section = node.label;
+      continue;
+    }
+    if (node._tag === "Page") {
+      if (node.url === currentUrl)
+        return [...ancestors, ...(section === undefined ? [] : [section])];
+      continue;
+    }
+    const nested = navigationContextForUrl(node.children, currentUrl, [
+      ...ancestors,
+      ...(section === undefined ? [] : [section]),
+      node.label,
+    ]);
+    if (nested !== undefined) return nested;
+  }
+  return undefined;
+};
 
 const navigationView = <Message>(
   nodes: ReadonlyArray<NavigationNode>,
@@ -321,6 +347,12 @@ const navigationView = <Message>(
 ): ReadonlyArray<Html> => {
   const h = html<Message>();
   return nodes.map((node) => {
+    if (node._tag === "Separator") {
+      return h.li(
+        [h.Class("fd-sidebar-section"), h.Role("presentation")],
+        [h.span([h.Class("fd-sidebar-section-label")], [node.label])],
+      );
+    }
     if (node._tag === "Page") {
       const active = node.url === currentUrl;
       return h.li(
@@ -330,7 +362,7 @@ const navigationView = <Message>(
             [
               h.Href(node.url),
               h.Class(
-                `fd-sidebar-link${active ? " fd-sidebar-link-active" : ""}`,
+                `fd-sidebar-link${depth === 0 ? " fd-sidebar-link-root" : ""}${active ? " fd-sidebar-link-active" : ""}`,
               ),
               h.OnClick(closeSidebar),
               ...(active ? [h.AriaCurrent("page")] : []),
@@ -346,17 +378,13 @@ const navigationView = <Message>(
     return h.li(
       [
         h.Class(
-          `${depth === 0 ? "fd-sidebar-group" : "fd-sidebar-subgroup"}${collapsed ? " fd-sidebar-group-collapsed" : ""}`,
+          `fd-sidebar-folder${containsActive ? " fd-sidebar-folder-active" : ""}${collapsed ? " fd-sidebar-folder-collapsed" : ""}`,
         ),
       ],
       [
         h.button(
           [
-            h.Class(
-              depth === 0
-                ? "fd-sidebar-group-label"
-                : "fd-sidebar-subgroup-label",
-            ),
+            h.Class("fd-sidebar-folder-label"),
             h.OnClick(toggleGroup(key)),
             h.AriaExpanded(!collapsed),
             h.Disabled(containsActive),
@@ -676,11 +704,114 @@ const keyboardWarmup = <Message>(): Html => {
   ]);
 };
 
+const markdownDocumentUrl = (site: SiteConfig, markdownUrl: string): string => {
+  if (site.baseUrl === undefined) return markdownUrl;
+  try {
+    return new URL(
+      markdownUrl.replace(/^\//u, ""),
+      `${site.baseUrl.replace(/\/+$/u, "")}/`,
+    ).toString();
+  } catch {
+    return markdownUrl;
+  }
+};
+
+const pageActionsView = <Message>(
+  options: DocsLayoutOptions<Message>,
+): Html => {
+  const h = html<Message>();
+  const t = options.translations;
+  if (!options.markdownEnabled) return h.empty;
+  const sourceUrl = markdownDocumentUrl(options.site, options.markdownUrl);
+  const prompt = interpolateTranslation(t.askAiAboutPage, { url: sourceUrl });
+  const aiLinks = [
+    {
+      label: t.openInChatGPT,
+      href: `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`,
+    },
+    {
+      label: t.openInClaude,
+      href: `https://claude.ai/new?q=${encodeURIComponent(prompt)}`,
+    },
+    {
+      label: t.openInGrok,
+      href: `https://grok.com/?q=${encodeURIComponent(prompt)}`,
+    },
+  ];
+
+  return h.div(
+    [h.Class("fd-page-actions")],
+    [
+      h.button(
+        [
+          h.OnClick(options.actions.copyMarkdown),
+          h.Disabled(options.copyMarkdownStatus === "loading"),
+          h.AriaLabel(t.copyPageMarkdown),
+        ],
+        [
+          icon<Message>(
+            options.copyMarkdownStatus === "copied" ? "check" : "copy",
+          ),
+          options.copyMarkdownStatus === "loading"
+            ? t.loading
+            : options.copyMarkdownStatus === "copied"
+              ? t.copiedMarkdown
+              : options.copyMarkdownStatus === "error"
+                ? t.tryCopyAgain
+                : t.copyMarkdown,
+        ],
+      ),
+      h.details(
+        [h.Class("fd-page-open")],
+        [
+          h.summary(
+            [h.AriaLabel(t.openPageMenu), h.Title(t.openPageMenu)],
+            [t.openPage, icon<Message>("chevron", "fd-page-open-chevron")],
+          ),
+          h.div(
+            [h.Class("fd-page-open-menu"), h.Role("menu")],
+            [
+              h.a(
+                [
+                  h.Href(options.markdownUrl),
+                  h.Target("_blank"),
+                  h.Rel("noreferrer"),
+                  h.Role("menuitem"),
+                ],
+                [icon<Message>("markdown"), h.span([], [t.viewAsMarkdown])],
+              ),
+              h.div([h.Class("fd-page-open-separator")], []),
+              ...aiLinks.map(({ label, href }) =>
+                h.a(
+                  [
+                    h.Href(href),
+                    h.Target("_blank"),
+                    h.Rel("noreferrer noopener"),
+                    h.Role("menuitem"),
+                  ],
+                  [
+                    h.span([], [label]),
+                    icon<Message>("arrow", "fd-page-open-external"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+};
+
 export const docsLayout = <Message>(
   options: DocsLayoutOptions<Message>,
 ): Html => {
   const h = html<Message>();
   const t = options.translations;
+  const pageContext =
+    navigationContextForUrl(options.navigation, options.currentUrl)?.filter(
+      (label, index, labels) => index === 0 || labels[index - 1] !== label,
+    ) ?? [];
   const backgroundDisabled = options.searchOpen
     ? [h.AriaHidden(true), h.Attribute("inert", "")]
     : [];
@@ -814,109 +945,130 @@ export const docsLayout = <Message>(
               ...sidebarBackgroundDisabled,
             ],
             [
-              h.article(
-                [h.Class("fd-article")],
+              h.div(
+                [h.Class("fd-content-column")],
                 [
-                  h.h1(
-                    [h.Class("fd-page-title")],
-                    [options.page.frontmatter.title],
-                  ),
-                  ...(options.page.frontmatter.description === undefined
-                    ? []
-                    : [
-                        h.p(
-                          [h.Class("fd-page-description")],
-                          [options.page.frontmatter.description],
-                        ),
-                      ]),
-                  ...(options.markdownEnabled
-                    ? [
-                        h.div(
-                          [h.Class("fd-page-actions")],
-                          [
-                            h.button(
-                              [
-                                h.OnClick(options.actions.copyMarkdown),
-                                h.Disabled(
-                                  options.copyMarkdownStatus === "loading",
-                                ),
-                                h.AriaLabel(t.copyPageMarkdown),
-                              ],
-                              [
-                                icon<Message>(
-                                  options.copyMarkdownStatus === "copied"
-                                    ? "check"
-                                    : "copy",
-                                ),
-                                options.copyMarkdownStatus === "loading"
-                                  ? t.loading
-                                  : options.copyMarkdownStatus === "copied"
-                                    ? t.copiedMarkdown
-                                    : options.copyMarkdownStatus === "error"
-                                      ? t.tryCopyAgain
-                                      : t.copyMarkdown,
-                              ],
-                            ),
-                            h.a(
-                              [
-                                h.Href(options.markdownUrl),
-                                h.Target("_blank"),
-                                h.Rel("noreferrer"),
-                              ],
-                              [icon<Message>("markdown"), t.viewAsMarkdown],
-                            ),
-                          ],
-                        ),
-                      ]
-                    : []),
-                  renderMarkdown(
-                    {
-                      blocks:
-                        options.page.document.blocks[0]?._tag === "Heading" &&
-                        options.page.document.blocks[0].level === 1
-                          ? options.page.document.blocks.slice(1)
-                          : options.page.document.blocks,
-                    },
-                    options.markdown,
-                  ),
-                  h.nav(
-                    [h.Class("fd-pager"), h.AriaLabel(t.pagination)],
+                  h.article(
+                    [h.Class("fd-article")],
                     [
-                      options.previous === undefined
-                        ? h.span([], [])
-                        : h.a(
-                            [h.Href(options.previous.url)],
-                            [
-                              h.span(
+                      ...(pageContext.length === 0
+                        ? []
+                        : [
+                            h.div(
+                              [
+                                h.Class("fd-page-context"),
+                                h.AriaLabel(t.documentationNavigation),
+                              ],
+                              pageContext.flatMap((label, index) => [
+                                ...(index === 0
+                                  ? []
+                                  : [
+                                      icon<Message>(
+                                        "chevronRight",
+                                        "fd-page-context-separator",
+                                      ),
+                                    ]),
+                                h.span([], [label]),
+                              ]),
+                            ),
+                          ]),
+                      h.h1(
+                        [h.Class("fd-page-title")],
+                        [options.page.frontmatter.title],
+                      ),
+                      ...(options.page.frontmatter.description === undefined
+                        ? []
+                        : [
+                            h.p(
+                              [h.Class("fd-page-description")],
+                              [options.page.frontmatter.description],
+                            ),
+                          ]),
+                      pageActionsView(options),
+                      renderMarkdown(
+                        {
+                          blocks:
+                            options.page.document.blocks[0]?._tag ===
+                              "Heading" &&
+                            options.page.document.blocks[0].level === 1
+                              ? options.page.document.blocks.slice(1)
+                              : options.page.document.blocks,
+                        },
+                        options.markdown,
+                      ),
+                      h.nav(
+                        [h.Class("fd-pager"), h.AriaLabel(t.pagination)],
+                        [
+                          options.previous === undefined
+                            ? h.span([], [])
+                            : h.a(
                                 [
+                                  h.Href(options.previous.url),
                                   h.Class(
-                                    "fd-pager-arrow fd-pager-arrow-previous",
+                                    "fd-pager-link fd-pager-link-previous",
                                   ),
                                 ],
-                                ["←"],
+                                [
+                                  h.span(
+                                    [h.Class("fd-pager-direction")],
+                                    [t.previousPage],
+                                  ),
+                                  h.span(
+                                    [h.Class("fd-pager-title")],
+                                    [
+                                      icon<Message>(
+                                        "chevronLeft",
+                                        "fd-pager-arrow",
+                                      ),
+                                      h.span(
+                                        [],
+                                        [options.previous.frontmatter.title],
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              h.span([], [options.previous.frontmatter.title]),
-                            ],
-                          ),
-                      options.next === undefined
-                        ? h.span([], [])
-                        : h.a(
-                            [
-                              h.Href(options.next.url),
-                              h.Class("fd-pager-next"),
-                            ],
-                            [
-                              h.span([], [options.next.frontmatter.title]),
-                              h.span([h.Class("fd-pager-arrow")], ["→"]),
-                            ],
-                          ),
+                          options.next === undefined
+                            ? h.span([], [])
+                            : h.a(
+                                [
+                                  h.Href(options.next.url),
+                                  h.Class("fd-pager-link fd-pager-link-next"),
+                                ],
+                                [
+                                  h.span(
+                                    [h.Class("fd-pager-direction")],
+                                    [t.nextPage],
+                                  ),
+                                  h.span(
+                                    [h.Class("fd-pager-title")],
+                                    [
+                                      h.span(
+                                        [],
+                                        [options.next.frontmatter.title],
+                                      ),
+                                      icon<Message>(
+                                        "chevronRight",
+                                        "fd-pager-arrow",
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                        ],
+                      ),
                     ],
                   ),
                   h.footer(
                     [h.Class("fd-doc-footer")],
                     [
-                      h.span([], [t.builtWith]),
-                      h.a([h.Href(options.docsUrl)], [t.documentation]),
+                      h.div(
+                        [h.Class("fd-doc-footer-inner")],
+                        [
+                          h.span([], [t.builtWith]),
+                          h.a([h.Href(options.docsUrl)], [t.documentation]),
+                        ],
+                      ),
                     ],
                   ),
                 ],

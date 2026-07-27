@@ -3,5 +3,10 @@
   "description": "Generated TypeScript API reference.",
   "root": true,
   "defaultOpen": true,
-  "pages": ["index", "compile-options", "documentation-url"]
+  "pages": [
+    "---TypeScript reference---",
+    "index",
+    "compile-options",
+    "documentation-url"
+  ]
 }

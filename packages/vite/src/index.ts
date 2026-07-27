@@ -306,10 +306,12 @@ const navigationWithoutSearchContent = (
   nodes.map((node) =>
     node._tag === "Page"
       ? { ...node, page: { ...node.page, plainText: "" } }
-      : {
-          ...node,
-          children: navigationWithoutSearchContent(node.children),
-        },
+      : node._tag === "Folder"
+        ? {
+            ...node,
+            children: navigationWithoutSearchContent(node.children),
+          }
+        : node,
   );
 
 const socialImageUrl = (config: ResolvedFoldocsConfig): string | undefined => {

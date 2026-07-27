@@ -12,6 +12,38 @@ tags:
 Foldocs supports Fumadocs-style root folders. A root becomes a layout tab, and
 only the active root's pages appear in the sidebar and pager.
 
+## Static groups and collapsible sections
+
+Use a separator entry for a non-collapsible sidebar heading, then place child
+folders among the pages that belong to it:
+
+```json
+{
+  "pages": [
+    "---Introduction---",
+    "index",
+    "manual-installation",
+    "---Writing---",
+    "configuration"
+  ]
+}
+```
+
+`---Introduction---` and `---Writing---` render as static group labels.
+`manual-installation` is a real folder, so its own `meta.json` controls the
+collapsible section:
+
+```json
+{
+  "title": "Manual installation",
+  "defaultOpen": false,
+  "pages": ["pnpm", "npm"]
+}
+```
+
+Pages in that folder show `Introduction / Manual installation` above their
+document title.
+
 Add `root: true` to a folder's `meta.json`:
 
 ```json

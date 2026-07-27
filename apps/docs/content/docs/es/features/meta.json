@@ -3,13 +3,15 @@
   "description": "Primitivas de documentación para producción",
   "root": true,
   "pages": [
+    "---Funciones principales---",
     "search",
     "custom-components",
     "navigation-versioning",
+    "layouts-customization",
+    "---Contenido e integraciones---",
     "openapi",
     "asyncapi",
     "remote-content",
-    "layouts-customization",
     "language-reference",
     "portable-content"
   ],

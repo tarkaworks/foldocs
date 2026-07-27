@@ -66,14 +66,28 @@ control page metadata.
 
 ## Sidebar structure
 
-Add a `meta.json` file to any content directory to name the sidebar group,
-choose its page order, and control whether it starts open:
+Use separator entries in `meta.json` for static group headings. Child folders
+become collapsible sections and use their own metadata:
 
 ```json
 {
-  "title": "Get started",
-  "pages": ["index", "installation", "..."],
-  "defaultOpen": true
+  "pages": [
+    "---Introduction---",
+    "index",
+    "manual-installation",
+    "---Writing---",
+    "configuration"
+  ]
+}
+```
+
+`manual-installation/meta.json` defines its dropdown:
+
+```json
+{
+  "title": "Manual installation",
+  "pages": ["pnpm", "npm"],
+  "defaultOpen": false
 }
 ```
 

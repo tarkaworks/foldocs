@@ -2,6 +2,11 @@
   "title": "Primeros pasos",
   "description": "Instala y aprende Foldocs",
   "root": true,
-  "pages": ["index", "getting-started"],
+  "pages": [
+    "---Introducción---",
+    "index",
+    "getting-started",
+    "manual-installation"
+  ],
   "defaultOpen": true
 }

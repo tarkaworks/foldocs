@@ -30,8 +30,16 @@ export const UiTranslations = S.Struct({
   copiedMarkdown: S.optionalKey(S.String),
   tryCopyAgain: S.optionalKey(S.String),
   copyMarkdown: S.optionalKey(S.String),
+  openPage: S.optionalKey(S.String),
+  openPageMenu: S.optionalKey(S.String),
   viewAsMarkdown: S.optionalKey(S.String),
+  openInChatGPT: S.optionalKey(S.String),
+  openInClaude: S.optionalKey(S.String),
+  openInGrok: S.optionalKey(S.String),
+  askAiAboutPage: S.optionalKey(S.String),
   pagination: S.optionalKey(S.String),
+  previousPage: S.optionalKey(S.String),
+  nextPage: S.optionalKey(S.String),
   builtWith: S.optionalKey(S.String),
   documentNotFound: S.optionalKey(S.String),
   loadingDocumentation: S.optionalKey(S.String),
@@ -78,8 +86,16 @@ export interface ResolvedUiTranslations {
   readonly copiedMarkdown: string;
   readonly tryCopyAgain: string;
   readonly copyMarkdown: string;
+  readonly openPage: string;
+  readonly openPageMenu: string;
   readonly viewAsMarkdown: string;
+  readonly openInChatGPT: string;
+  readonly openInClaude: string;
+  readonly openInGrok: string;
+  readonly askAiAboutPage: string;
   readonly pagination: string;
+  readonly previousPage: string;
+  readonly nextPage: string;
   readonly builtWith: string;
   readonly documentNotFound: string;
   readonly loadingDocumentation: string;
@@ -125,8 +141,16 @@ export const defaultUiTranslations: ResolvedUiTranslations = {
   copiedMarkdown: "Copied Markdown",
   tryCopyAgain: "Try Copy Again",
   copyMarkdown: "Copy Markdown",
+  openPage: "Open",
+  openPageMenu: "Open page options",
   viewAsMarkdown: "View as Markdown",
+  openInChatGPT: "Open in ChatGPT",
+  openInClaude: "Open in Claude",
+  openInGrok: "Open in Grok",
+  askAiAboutPage: "Read {url} so I can ask questions about it.",
   pagination: "Pagination",
+  previousPage: "Previous",
+  nextPage: "Next",
   builtWith: "Built with Foldocs and Foldkit.",
   documentNotFound: "Document not found",
   loadingDocumentation: "Loading documentation…",

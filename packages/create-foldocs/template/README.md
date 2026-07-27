@@ -32,3 +32,24 @@ persistent Cloudflare state store when `ALCHEMY_STATE_TOKEN` is present.
 
 See `FONTS.md` for the optional licensed ABC Favorit files used by Foldkit in
 production.
+
+## Organize the sidebar
+
+Use separator entries in `meta.json` for non-collapsible Fumadocs-style groups,
+and child folders for collapsible sections:
+
+```json
+{
+  "pages": [
+    "---Introduction---",
+    "index",
+    "manual-installation",
+    "---Writing---",
+    "configuration"
+  ]
+}
+```
+
+The `manual-installation/meta.json` file supplies its dropdown title, page
+order, and `defaultOpen` state. Foldocs also displays that section path above
+each page title.

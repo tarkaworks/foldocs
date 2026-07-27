@@ -1,4 +1,11 @@
 {
   "title": "Documentación",
-  "pages": ["(get-started)", "guides"]
+  "pages": [
+    "---Introducción---",
+    "index",
+    "getting-started",
+    "manual-installation",
+    "---Escritura---",
+    "configuration"
+  ]
 }

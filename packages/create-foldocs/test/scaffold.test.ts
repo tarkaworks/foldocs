@@ -43,9 +43,7 @@ describe("create-foldocs", () => {
       fs.stat(path.join(result.directory, ".env.example")),
     ).resolves.toBeDefined();
     await expect(
-      fs.stat(
-        path.join(result.directory, "content/docs/en/(get-started)/index.mdx"),
-      ),
+      fs.stat(path.join(result.directory, "content/docs/en/index.mdx")),
     ).resolves.toBeDefined();
     await expect(
       fs.stat(path.join(result.directory, "content/docs/en/meta.json")),
@@ -70,16 +68,34 @@ describe("create-foldocs", () => {
     ).resolves.toContain("preloadDocsPage");
     await expect(
       fs.readFile(
-        path.join(result.directory, "content/docs/en/(get-started)/meta.json"),
+        path.join(result.directory, "content/docs/en/meta.json"),
         "utf8",
       ),
-    ).resolves.toContain('"root": true');
+    ).resolves.toContain("---Introduction---");
+    await expect(
+      fs.readFile(
+        path.join(result.directory, "content/docs/en/meta.json"),
+        "utf8",
+      ),
+    ).resolves.toContain("---Writing---");
+    await expect(
+      fs.readFile(
+        path.join(
+          result.directory,
+          "content/docs/en/manual-installation/meta.json",
+        ),
+        "utf8",
+      ),
+    ).resolves.toContain('"defaultOpen": false');
     await expect(
       fs.stat(path.join(result.directory, "public/theme-init.js")),
     ).resolves.toBeDefined();
     await expect(
       fs.stat(path.join(result.directory, "public/favicon.svg")),
     ).resolves.toBeDefined();
+    await expect(
+      fs.readFile(path.join(result.directory, "public/favicon.svg"), "utf8"),
+    ).resolves.toContain("M148.656 50.395");
     await expect(
       fs.stat(
         path.join(

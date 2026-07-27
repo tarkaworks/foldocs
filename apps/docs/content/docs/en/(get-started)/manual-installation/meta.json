@@ -1,0 +1,5 @@
+{
+  "title": "Manual installation",
+  "defaultOpen": false,
+  "pages": ["pnpm", "npm"]
+}
