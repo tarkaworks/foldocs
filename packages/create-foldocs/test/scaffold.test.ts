@@ -24,6 +24,7 @@ describe("create-foldocs", () => {
       name: string;
       dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
+      scripts: Record<string, string>;
     };
     expect(packageJson.name).toBe("my-docs");
     expect(packageJson.dependencies.foldocs).toBe("latest");
@@ -33,8 +34,13 @@ describe("create-foldocs", () => {
     expect(packageJson.devDependencies["@foldocs/epub"]).toBe("latest");
     expect(packageJson.devDependencies["@foldocs/language"]).toBe("latest");
     expect(packageJson.devDependencies["@foldocs/obsidian"]).toBe("latest");
+    expect(packageJson.devDependencies.alchemy).toBe("0.93.12");
+    expect(packageJson.scripts.deploy).toBe("alchemy deploy");
     await expect(
       fs.stat(path.join(result.directory, ".gitignore")),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.stat(path.join(result.directory, ".env.example")),
     ).resolves.toBeDefined();
     await expect(
       fs.stat(
@@ -74,6 +80,17 @@ describe("create-foldocs", () => {
     await expect(
       fs.stat(path.join(result.directory, "public/favicon.svg")),
     ).resolves.toBeDefined();
+    await expect(
+      fs.stat(
+        path.join(
+          result.directory,
+          "public/fonts/JetBrainsMono-Variable.woff2",
+        ),
+      ),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.readFile(path.join(result.directory, "alchemy.run.ts"), "utf8"),
+    ).resolves.toContain('"my-docs",');
     await expect(
       fs.stat(path.join(result.directory, "openapi.yaml")),
     ).resolves.toBeDefined();

@@ -1,5 +1,7 @@
 # Foldocs
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Aniket-508/foldocs)
+
 Foldocs is a production documentation framework for Foldkit applications,
 with Effect powering the runtime. It provides typed Markdown and MDX content, filesystem
 routing, accessible documentation layouts, local and hosted search adapters,
@@ -16,6 +18,35 @@ pnpm create foldocs@latest my-docs
 cd my-docs
 pnpm dev
 ```
+
+## Deploy to Cloudflare
+
+Every generated Foldocs application includes
+[`alchemy.run.ts`](./packages/create-foldocs/template/alchemy.run.ts) and
+Alchemy `deploy`, `destroy`, and Cloudflare-aware development scripts. The
+deployment builds the same prerendered output used in production, publishes it
+with Cloudflare Workers static assets, uses automatic trailing-slash HTML
+handling, and explicitly disables SPA fallback. Refreshes therefore resolve to
+the generated page HTML instead of briefly booting through a client-only
+loading route.
+
+Deploy this repository's dogfood documentation in one click with the button at
+the top of this README, or deploy a generated project locally:
+
+```sh
+cp .env.example .env
+pnpm deploy
+```
+
+Replace the two generated example secrets before deploying. Local deployment
+uses Alchemy's filesystem state. CI and one-click deployments use Alchemy's
+persistent Cloudflare state store when `ALCHEMY_STATE_TOKEN` is present. CI
+should provide `ALCHEMY_PASSWORD`, `ALCHEMY_STATE_TOKEN`, and
+`CLOUDFLARE_API_TOKEN` as encrypted variables.
+
+After publishing a generated project to a public GitHub or GitLab repository,
+its generated README contains the exact Deploy to Cloudflare badge snippet;
+replace `<REPOSITORY_URL>` with that repository's URL.
 
 The generated application uses local Orama search and a complete responsive
 layout by default, including keyboard search, active desktop/mobile tables of
@@ -103,6 +134,19 @@ hooks for Trieve and Mixedbread.
 
 The generated project also contains ready-to-edit OpenAPI and AsyncAPI documents,
 plus scripts for API/event reference generation, EPUB export, and Obsidian import.
+
+## Foldkit design fidelity
+
+The default shell ports Foldkit's website measurements, breakpoints, palette,
+navigation states, prose treatment, responsive table of contents, icons, and
+landing-section rhythm. The corresponding Foldkit source is MIT licensed; its
+license ships with `@foldocs/tailwind`.
+
+JetBrains Mono is bundled under the SIL Open Font License. Foldkit's production
+sans-serif, ABC Favorit, is commercially licensed and is not redistributable.
+Foldocs uses Foldkit's exact system fallback by default; license holders can add
+the two webfont files described in [`FONTS.md`](./FONTS.md) for pixel-identical
+production typography.
 
 See [architecture](docs/ARCHITECTURE.md) and the explicit
 [Fumadocs parity matrix](docs/PARITY.md).

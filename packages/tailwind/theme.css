@@ -25,7 +25,7 @@
   --fd-background: var(--fd-cream);
   --fd-foreground: var(--fd-gray-800);
   --fd-muted: var(--fd-gray-100);
-  --fd-mutfd-foreground: var(--fd-gray-500);
+  --fd-muted-foreground: var(--fd-gray-500);
   --fd-card: var(--fd-cream);
   --fd-border: var(--fd-gray-300);
   --fd-primary: var(--fd-accent-600);
@@ -39,7 +39,7 @@
   --fd-background: var(--fd-gray-900);
   --fd-foreground: var(--fd-gray-200);
   --fd-muted: var(--fd-gray-800);
-  --fd-mutfd-foreground: var(--fd-gray-400);
+  --fd-muted-foreground: var(--fd-gray-400);
   --fd-card: var(--fd-gray-900);
   --fd-border: var(--fd-gray-700);
   --fd-primary: var(--fd-accent-400);

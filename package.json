@@ -9,7 +9,10 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "deploy": "alchemy deploy",
     "dev": "turbo run dev --parallel",
+    "dev:cloudflare": "alchemy dev",
+    "destroy": "alchemy destroy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "turbo run test",
@@ -24,6 +27,7 @@
     "@playwright/test": "^1.61.1",
     "@types/mdast": "^4.0.4",
     "@types/node": "26.1.1",
+    "alchemy": "0.93.12",
     "effect": "4.0.0-beta.97",
     "foldkit": "0.130.0",
     "prettier": "^3.8.4",

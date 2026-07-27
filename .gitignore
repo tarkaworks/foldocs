@@ -1,9 +1,12 @@
 .DS_Store
+.env
 node_modules/
 dist/
 .turbo/
+.alchemy/
 coverage/
 *.tsbuildinfo
 playwright-report/
 test-results/
-
+apps/docs/public/fonts/ABCFavorit-Book.woff2
+apps/docs/public/fonts/ABCFavorit-Light.woff2

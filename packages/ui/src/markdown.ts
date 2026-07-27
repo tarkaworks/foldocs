@@ -8,6 +8,8 @@ import type {
 } from "foldocs-mdx";
 import { type Html, html } from "foldkit/html";
 
+import { icons } from "./icons.js";
+
 export type InlineComponentView = (
   component: InlineComponent,
   content: ReadonlyArray<Html | string>,
@@ -32,11 +34,6 @@ export interface MarkdownViewOptions<Message> {
   readonly copyAriaLabel?: string;
   readonly copiedAriaLabel?: string;
 }
-
-const copyIcon =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>';
-const copiedIcon =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>';
 
 const externalUrl = (url: string): boolean => /^(?:https?:)?\/\//iu.test(url);
 
@@ -115,19 +112,41 @@ export const renderMarkdown = <Message>(
           h.Class(`fd-heading fd-h${block.level}`),
         ];
         const content = block.content.map(renderInline);
+        const anchor =
+          block.level === 1
+            ? []
+            : [
+                h.a(
+                  [
+                    h.Class("fd-heading-anchor"),
+                    h.Href(`#${block.id}`),
+                    h.AriaLabel("Link to section"),
+                  ],
+                  [
+                    h.span(
+                      [
+                        h.Class("fd-icon"),
+                        h.AriaHidden(true),
+                        h.InnerHTML(icons.link),
+                      ],
+                      [],
+                    ),
+                  ],
+                ),
+              ];
         switch (block.level) {
           case 1:
             return h.h1(attributes, content);
           case 2:
-            return h.h2(attributes, content);
+            return h.h2(attributes, [...content, ...anchor]);
           case 3:
-            return h.h3(attributes, content);
+            return h.h3(attributes, [...content, ...anchor]);
           case 4:
-            return h.h4(attributes, content);
+            return h.h4(attributes, [...content, ...anchor]);
           case 5:
-            return h.h5(attributes, content);
+            return h.h5(attributes, [...content, ...anchor]);
           default:
-            return h.h6(attributes, content);
+            return h.h6(attributes, [...content, ...anchor]);
         }
       }
       case "Paragraph":
@@ -162,8 +181,8 @@ export const renderMarkdown = <Message>(
                               h.Class("fd-icon"),
                               h.InnerHTML(
                                 options.copiedCode === block.value
-                                  ? copiedIcon
-                                  : copyIcon,
+                                  ? icons.check
+                                  : icons.copy,
                               ),
                             ],
                             [],
@@ -257,7 +276,21 @@ export const renderMarkdown = <Message>(
                 : [
                     h.strong(
                       [h.Class("fd-callout-title")],
-                      [block.attributes.title],
+                      [
+                        h.span(
+                          [
+                            h.Class("fd-icon"),
+                            h.AriaHidden(true),
+                            h.InnerHTML(
+                              block.attributes.type === "warning"
+                                ? icons.warning
+                                : icons.information,
+                            ),
+                          ],
+                          [],
+                        ),
+                        h.span([], [block.attributes.title]),
+                      ],
                     ),
                   ]),
               ...content,

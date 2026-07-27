@@ -54,7 +54,7 @@ export default defineConfig({
     locales: [{ locale: "en", name: "English" }, spanish()],
   },
   basePath: "/docs",
-  layout: { preset: "glass" },
+  layout: { preset: "docs" },
   landing: {
     sections: ["hero", "overview", "stack", "features", "ai", "proof", "cta"],
     command: "pnpm create foldocs@latest",

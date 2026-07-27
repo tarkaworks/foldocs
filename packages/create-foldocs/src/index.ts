@@ -94,11 +94,24 @@ export const scaffold = (
         path.join(directory, "gitignore"),
         path.join(directory, ".gitignore"),
       );
+      await fs.rename(
+        path.join(directory, "env.example"),
+        path.join(directory, ".env.example"),
+      );
       const packageFile = path.join(directory, "package.json");
       const packageJson = await fs.readFile(packageFile, "utf8");
       await fs.writeFile(
         packageFile,
         packageJson.replace(
+          "__FOLDOCS_PACKAGE_NAME__",
+          packageNameFromDirectory(directory),
+        ),
+      );
+      const alchemyFile = path.join(directory, "alchemy.run.ts");
+      const alchemySource = await fs.readFile(alchemyFile, "utf8");
+      await fs.writeFile(
+        alchemyFile,
+        alchemySource.replaceAll(
           "__FOLDOCS_PACKAGE_NAME__",
           packageNameFromDirectory(directory),
         ),

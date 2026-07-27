@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:cloudflare": "alchemy dev",
     "build": "tsc --noEmit && vite build",
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check": "foldocs check --locales en,es --fallback-locale en",
@@ -32,6 +35,7 @@
     "@foldocs/vite": "latest",
     "@foldkit/vite-plugin": "0.11.0",
     "@types/node": "latest",
+    "alchemy": "0.93.12",
     "typescript": "latest",
     "vite": "latest"
   }

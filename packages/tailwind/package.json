@@ -6,6 +6,7 @@
     "*.css"
   ],
   "files": [
+    "FOLDKIT-LICENSE.txt",
     "preset.css",
     "theme.css"
   ],
