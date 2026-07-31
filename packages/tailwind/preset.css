@@ -2398,7 +2398,7 @@ html[dir="rtl"] .fd-layout-glass .fd-docs-body {
   max-width: 60rem;
 }
 
-@media (max-width: 80rem) {
+@media (max-width: 79.999rem) {
   html {
     --fd-mobile-toc-height: 2.75rem;
   }
@@ -2558,7 +2558,7 @@ html[dir="rtl"] .fd-layout-glass .fd-docs-body {
   }
 
   .fd-header .fd-brand-name {
-    font-size: 0.92rem;
+    font-size: 1.15rem;
   }
 
   .fd-header .fd-brand-badge {
@@ -2566,7 +2566,6 @@ html[dir="rtl"] .fd-layout-glass .fd-docs-body {
   }
 
   .fd-search-trigger:not(.fd-search-trigger-mobile),
-  .fd-docs-header .fd-theme-selector,
   .fd-docs-header .fd-language-selector,
   .fd-header .fd-social-links-header {
     display: none;
@@ -2574,6 +2573,10 @@ html[dir="rtl"] .fd-layout-glass .fd-docs-body {
 
   .fd-header-actions {
     gap: 0.75rem;
+  }
+
+  .fd-docs-header .fd-theme-selector {
+    order: -1;
   }
 
   .fd-search-trigger-mobile,

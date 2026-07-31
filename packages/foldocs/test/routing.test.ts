@@ -121,4 +121,44 @@ describe("generated homepage routing", () => {
     expect(model.pathname).toBe("/en/docs");
     expect(model.page._tag).toBe("PageReady");
   });
+
+  it("keeps the current document visible while the next route chunk loads", async () => {
+    const manifest = [
+      manifestEntry(
+        "/en/docs/getting-started",
+        "getting-started",
+        "en",
+        compiled,
+      ),
+      manifestEntry("/en/docs/search", "search", "en", {
+        ...compiled,
+        frontmatter: { title: "Search" },
+      }),
+    ];
+    const preloadedPage = await preloadDocsPage(
+      manifest,
+      i18n,
+      "/en/docs/getting-started",
+    );
+    const program = createDocsProgram({
+      manifest,
+      site: { title: "Example docs" },
+      basePath: "/docs",
+      i18n,
+      ...(preloadedPage === undefined ? {} : { preloadedPage }),
+    });
+    const [ready] = program.init(
+      url("https://example.com/en/docs/getting-started"),
+    );
+    const [transitioning, commands] = program.update(
+      ready,
+      program.routing.onUrlChange(url("https://example.com/en/docs/search")),
+    );
+
+    expect(transitioning.pathname).toBe("/en/docs/search");
+    expect(transitioning.page._tag).toBe("PageReady");
+    if (transitioning.page._tag === "PageReady")
+      expect(transitioning.page.page.frontmatter.title).toBe("Introduction");
+    expect(commands).toHaveLength(2);
+  });
 });

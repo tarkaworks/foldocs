@@ -898,12 +898,16 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         const [page, commands, locale, pathname] = pageRequest(
           message.url.pathname,
         );
+        const transitionPage =
+          model.page._tag === "PageReady" && page._tag === "PageLoading"
+            ? model.page
+            : page;
         return [
           {
             ...model,
             pathname,
             locale,
-            page,
+            page: transitionPage,
             sidebarOpen: false,
             searchOpen: false,
             searchQuery: "",

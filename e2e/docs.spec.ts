@@ -88,6 +88,20 @@ test("prerendered homepage, localized docs, Markdown, and remote content agree",
     "https://foldocs.vercel.app/en/docs/getting-started",
   );
 
+  await page.locator('.fd-sidebar-link-root[href="/en/docs"]').click();
+  await expect(page).toHaveURL(/\/en\/docs$/u);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Foldocs");
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __foldocsLoadingStates: ReadonlyArray<string>;
+          }
+        ).__foldocsLoadingStates,
+    ),
+  ).toEqual([]);
+
   const markdown = await request.get("/en/docs/getting-started.md");
   expect(markdown.ok()).toBe(true);
   expect(markdown.headers()["content-type"]).toContain("text/markdown");
@@ -150,6 +164,9 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
   const search = page.locator("#fd-search-trigger");
   const light = page.getByRole("button", { name: "Light" });
   const dark = page.getByRole("button", { name: "Dark" });
+
+  await expect(page.locator(".fd-toc-shell")).toBeVisible();
+  await expect(page.locator(".fd-mobile-toc-shell")).toBeHidden();
 
   await light.click();
   await expect(root).toHaveCSS("background-color", "rgb(248, 247, 251)");
@@ -260,6 +277,19 @@ test("mobile navigation traps focus and restores the menu button", async ({
   const errors = expectNoRuntimeErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/docs/features/portable-content");
+  await expect(
+    page.locator(".fd-docs-header .fd-theme-selector"),
+  ).toBeVisible();
+  const brandBox = await page
+    .locator(".fd-docs-header .fd-brand")
+    .boundingBox();
+  expect(brandBox).not.toBeNull();
+  expect(brandBox?.width ?? 0).toBeGreaterThan(90);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === window.innerWidth,
+    ),
+  ).toBe(true);
   const trigger = page.locator("#fd-menu-trigger");
   await trigger.click();
   const dialog = page.getByRole("dialog", {
