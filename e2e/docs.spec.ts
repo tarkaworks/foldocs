@@ -140,6 +140,49 @@ test("search traps focus, resolves local results, and restores its trigger", asy
   expect(errors).toEqual([]);
 });
 
+test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
+  page,
+}) => {
+  const errors = expectNoRuntimeErrors(page);
+  await page.goto("/en/docs/getting-started");
+
+  const root = page.locator(".fd-root");
+  const search = page.locator("#fd-search-trigger");
+  const light = page.getByRole("button", { name: "Light" });
+  const dark = page.getByRole("button", { name: "Dark" });
+
+  await light.click();
+  await expect(root).toHaveCSS("background-color", "rgb(248, 247, 251)");
+  await expect(light).toHaveCSS("color", "rgb(30, 28, 33)");
+
+  await dark.click();
+  await expect(page.locator("html")).toHaveClass(/dark/u);
+  await expect(root).toHaveCSS("background-color", "rgb(30, 28, 33)");
+  await expect(dark).toHaveCSS("color", "rgb(255, 255, 255)");
+  expect(
+    await search.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    ),
+  ).not.toBe("color(srgb 1 1 1 / 0.5)");
+
+  const languageSelector = page.locator(".fd-header .fd-language-selector");
+  const languageSummary = languageSelector.locator("summary");
+  const languageChevron = languageSelector.locator(".fd-language-chevron");
+  await expect(languageChevron).toHaveClass(/fd-icon/u);
+  const languageChevronBox = await languageChevron.boundingBox();
+  expect(languageChevronBox).not.toBeNull();
+  expect(languageChevronBox?.width).toBe(languageChevronBox?.height);
+  expect(languageChevronBox?.width ?? 0).toBeGreaterThan(10);
+  expect(languageChevronBox?.width ?? 0).toBeLessThan(12);
+  await languageSummary.click();
+  await expect(languageSelector).toHaveAttribute("open", "");
+  await expect(languageChevron).toHaveCSS(
+    "transform",
+    "matrix(-1, 0, 0, -1, 0, 0)",
+  );
+  expect(errors).toEqual([]);
+});
+
 test("Fumadocs-style sections, folders, page actions, and pager work together", async ({
   page,
 }) => {
@@ -149,28 +192,44 @@ test("Fumadocs-style sections, folders, page actions, and pager work together", 
   await expect(page.locator(".fd-sidebar-section-label")).toHaveText(
     "Introduction",
   );
+  await expect(page.locator(".fd-page-context")).toHaveCount(0);
   const folder = page.getByRole("button", { name: "Manual installation" });
+  await expect(folder.locator(".fd-sidebar-chevron")).toHaveClass(/fd-icon/u);
   await expect(folder).toBeEnabled();
   await expect(folder).toHaveAttribute("aria-expanded", "false");
   await folder.click();
   await expect(folder).toHaveAttribute("aria-expanded", "true");
 
   const pnpmPage = page.locator(
-    '.fd-sidebar a[href="/en/docs/manual-installation/pnpm"]',
+    '.fd-sidebar > nav a[href="/en/docs/manual-installation/pnpm"]',
   );
   await expect(pnpmPage).toBeVisible();
   await pnpmPage.click();
   await expect(page).toHaveURL(/\/en\/docs\/manual-installation\/pnpm$/u);
   await expect(page.locator(".fd-page-context")).toHaveText(
-    "IntroductionManual installation",
+    "Manual installation",
   );
-  await expect(folder).toBeDisabled();
+  await expect(folder).toBeEnabled();
   await expect(folder).toHaveAttribute("aria-expanded", "true");
+  await folder.click();
+  await expect(folder).toHaveAttribute("aria-expanded", "false");
+  await expect(pnpmPage).toBeHidden();
+  await folder.click();
+  await expect(folder).toHaveAttribute("aria-expanded", "true");
+  await expect(pnpmPage).toBeVisible();
 
   const open = page.locator(".fd-page-open > summary");
   await open.click();
   const menu = page.locator(".fd-page-open-menu");
   await expect(menu).toBeVisible();
+  for (const externalIcon of await menu
+    .locator(".fd-page-open-external")
+    .all()) {
+    const box = await externalIcon.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.width).toBe(box?.height);
+    expect(box?.width ?? 0).toBeLessThan(16);
+  }
   await expect(
     menu.getByRole("menuitem", { name: "View as Markdown" }),
   ).toHaveAttribute("href", "/en/docs/manual-installation/pnpm.md");

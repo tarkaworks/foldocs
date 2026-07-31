@@ -21,7 +21,10 @@
   --fd-accent-700: #416812;
   --fd-accent-800: #365610;
   --fd-accent-900: #253b0a;
+}
 
+:root,
+.light {
   --fd-background: var(--fd-cream);
   --fd-foreground: var(--fd-gray-800);
   --fd-muted: var(--fd-gray-100);

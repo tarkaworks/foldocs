@@ -186,6 +186,8 @@ describe("documentation layout", () => {
     expect(Option.isSome(Scene.find(rendered, ".fd-sidebar-folder"))).toBe(
       true,
     );
+    expect(Scene.textContent(article)).toContain("Manual installation");
+    expect(Scene.textContent(article)).not.toContain("Introduction");
     expect(Scene.textContent(article)).not.toContain("Built with Foldocs");
     expect(text).toContain("Built with Foldocs and Foldkit.");
   });

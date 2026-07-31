@@ -101,9 +101,15 @@ export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
   readonly actions: LandingLayoutActions<Message>;
 }
 
-const icon = <Message>(name: IconName, className = "fd-icon"): Html => {
+const icon = <Message>(name: IconName, className?: string): Html => {
   const h = html<Message>();
-  return h.span([h.Class(className), h.InnerHTML(icons[name])], []);
+  return h.span(
+    [
+      h.Class(`fd-icon${className === undefined ? "" : ` ${className}`}`),
+      h.InnerHTML(icons[name]),
+    ],
+    [],
+  );
 };
 
 const brandView = <Message>(
@@ -191,9 +197,7 @@ const socialLinks = <Message>(site: SiteConfig): ReadonlyArray<Html> => {
             [
               icon<Message>(
                 iconName,
-                iconName === "npm"
-                  ? "fd-icon fd-social-npm-icon"
-                  : "fd-icon fd-social-icon",
+                iconName === "npm" ? "fd-social-npm-icon" : "fd-social-icon",
               ),
             ],
           ),
@@ -315,20 +319,14 @@ const navigationContextForUrl = (
   currentUrl: string,
   ancestors: ReadonlyArray<string> = [],
 ): ReadonlyArray<string> | undefined => {
-  let section: string | undefined;
   for (const node of nodes) {
-    if (node._tag === "Separator") {
-      section = node.label;
-      continue;
-    }
+    if (node._tag === "Separator") continue;
     if (node._tag === "Page") {
-      if (node.url === currentUrl)
-        return [...ancestors, ...(section === undefined ? [] : [section])];
+      if (node.url === currentUrl) return ancestors;
       continue;
     }
     const nested = navigationContextForUrl(node.children, currentUrl, [
       ...ancestors,
-      ...(section === undefined ? [] : [section]),
       node.label,
     ]);
     if (nested !== undefined) return nested;
@@ -374,7 +372,7 @@ const navigationView = <Message>(
     }
     const key = `${parentKey}/${node.segment}`;
     const containsActive = nodeContainsUrl(node, currentUrl);
-    const collapsed = !containsActive && collapsedGroups.includes(key);
+    const collapsed = collapsedGroups.includes(key);
     return h.li(
       [
         h.Class(
@@ -387,7 +385,6 @@ const navigationView = <Message>(
             h.Class("fd-sidebar-folder-label"),
             h.OnClick(toggleGroup(key)),
             h.AriaExpanded(!collapsed),
-            h.Disabled(containsActive),
           ],
           [
             h.span([], [node.label]),
@@ -778,7 +775,10 @@ const pageActionsView = <Message>(
                   h.Rel("noreferrer"),
                   h.Role("menuitem"),
                 ],
-                [icon<Message>("markdown"), h.span([], [t.viewAsMarkdown])],
+                [
+                  icon<Message>("markdown"),
+                  h.span([h.Class("fd-page-open-label")], [t.viewAsMarkdown]),
+                ],
               ),
               h.div([h.Class("fd-page-open-separator")], []),
               ...aiLinks.map(({ label, href }) =>
@@ -790,7 +790,7 @@ const pageActionsView = <Message>(
                     h.Role("menuitem"),
                   ],
                   [
-                    h.span([], [label]),
+                    h.span([h.Class("fd-page-open-label")], [label]),
                     icon<Message>("arrow", "fd-page-open-external"),
                   ],
                 ),

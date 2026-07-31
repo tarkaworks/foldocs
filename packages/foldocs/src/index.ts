@@ -481,21 +481,24 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     systemTheme: "light" | "dark",
   ): "light" | "dark" => (preference === "system" ? systemTheme : preference);
 
+  const readThemePreference = (): "light" | "system" | "dark" => {
+    let stored: string | null | undefined;
+    try {
+      stored = globalThis.localStorage?.getItem("foldocs-theme");
+    } catch {
+      stored = undefined;
+    }
+    return stored === "light" || stored === "dark" || stored === "system"
+      ? stored
+      : "system";
+  };
+
   const ReadTheme = Command.define(
     "ReadTheme",
     LoadedTheme,
   )(
     Effect.sync(() => {
-      let stored: string | null | undefined;
-      try {
-        stored = globalThis.localStorage?.getItem("foldocs-theme");
-      } catch {
-        stored = undefined;
-      }
-      const preference =
-        stored === "light" || stored === "dark" || stored === "system"
-          ? stored
-          : "system";
+      const preference = readThemePreference();
       const systemTheme = preferredSystemTheme();
       const theme = resolveTheme(preference, systemTheme);
       applyTheme(theme);
@@ -845,6 +848,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
 
   const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
     const [page, commands, locale, pathname] = pageRequest(url.pathname);
+    const systemTheme = preferredSystemTheme();
+    const themePreference = readThemePreference();
+    const theme = resolveTheme(themePreference, systemTheme);
     return [
       {
         pathname,
@@ -862,9 +868,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         narrowViewport:
           globalThis.matchMedia?.(narrowViewportQuery).matches ?? false,
         collapsedSidebarGroups: [],
-        theme: "light",
-        systemTheme: "light",
-        themePreference: "system",
+        theme,
+        systemTheme,
+        themePreference,
         copiedText: "",
         copyMarkdownStatus: "idle",
       },
