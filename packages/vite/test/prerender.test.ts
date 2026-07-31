@@ -86,7 +86,7 @@ describe("route prerendering", () => {
       'hreflang="es" href="https://example.com/es/docs/static"',
     );
     expect(html).toContain(
-      'class="fd-root fd-layout-docs light" data-layout="docs" id="root"',
+      'class="fd-root fd-layout-docs" data-layout="docs" id="root"',
     );
     expect(html).toContain("Available without JavaScript.");
     expect(html).toContain('<script type="module" src="/app.js"></script>');

@@ -1281,7 +1281,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     return {
       title: `${failed ? translations.documentNotFound : translations.loading} | ${options.site.title}`,
       body: h.div(
-        [h.Class(`fd-root ${model.theme}`)],
+        [h.Class("fd-root")],
         [
           h.main(
             [h.Class("fd-state-page")],

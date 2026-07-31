@@ -840,7 +840,7 @@ export const docsLayout = <Message>(
 
   return h.div(
     [
-      h.Class(`fd-root fd-layout-${options.preset ?? "docs"} ${options.theme}`),
+      h.Class(`fd-root fd-layout-${options.preset ?? "docs"}`),
       h.Attribute("data-layout", options.preset ?? "docs"),
     ],
     [
@@ -1116,7 +1116,7 @@ export const landingLayout = <Message>(
     h.li([], [icon<Message>("check"), h.span([], [value])]);
 
   return h.div(
-    [h.Class(`fd-root fd-landing-root ${options.theme}`)],
+    [h.Class("fd-root fd-landing-root")],
     [
       h.a(
         [h.Class("fd-skip-link"), h.Href("#main-content")],

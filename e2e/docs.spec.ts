@@ -158,12 +158,48 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
   page,
 }) => {
   const errors = expectNoRuntimeErrors(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("foldocs-theme", "dark");
+    const rootClasses: Array<string> = [];
+    Object.defineProperty(window, "__foldocsThemeRootClasses", {
+      value: rootClasses,
+      configurable: true,
+    });
+    const rememberRoot = (node: Node): void => {
+      if (!(node instanceof Element)) return;
+      if (node.matches(".fd-root")) rootClasses.push(node.className);
+      for (const root of node.querySelectorAll(".fd-root"))
+        rootClasses.push(root.className);
+    };
+    new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes) rememberRoot(node);
+    }).observe(document, { childList: true, subtree: true });
+  });
   await page.goto("/en/docs/getting-started");
 
   const root = page.locator(".fd-root");
   const search = page.locator("#fd-search-trigger");
   const light = page.getByRole("button", { name: "Light" });
   const dark = page.getByRole("button", { name: "Dark" });
+
+  await expect(page.locator("html")).toHaveClass(/dark/u);
+  await expect(root).toHaveCSS("background-color", "rgb(30, 28, 33)");
+  await expect(root).not.toHaveClass(/(?:^|\s)(?:light|dark)(?:\s|$)/u);
+  const initialRootClasses = await page.evaluate(
+    () =>
+      (
+        window as Window & {
+          __foldocsThemeRootClasses: ReadonlyArray<string>;
+        }
+      ).__foldocsThemeRootClasses,
+  );
+  expect(initialRootClasses.length).toBeGreaterThan(0);
+  expect(
+    initialRootClasses.every(
+      (className) => !/(?:^|\s)(?:light|dark)(?:\s|$)/u.test(className),
+    ),
+  ).toBe(true);
 
   await expect(page.locator(".fd-toc-shell")).toBeVisible();
   await expect(page.locator(".fd-mobile-toc-shell")).toBeHidden();
