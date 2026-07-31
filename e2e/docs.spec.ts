@@ -85,7 +85,7 @@ test("prerendered homepage, localized docs, Markdown, and remote content agree",
   ).toEqual([]);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "https://foldocs.dev/en/docs/getting-started",
+    "https://foldocs.vercel.app/en/docs/getting-started",
   );
 
   const markdown = await request.get("/en/docs/getting-started.md");

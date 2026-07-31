@@ -32,11 +32,11 @@ Required · `application/json`
 ## Request examples
 
 ```bash
-curl --request POST --url "https://api.foldocs.dev/search" --header 'content-type: application/json' --data '{"query":"string","locale":"string"}'
+curl --request POST --url "https://api.example.com/search" --header 'content-type: application/json' --data '{"query":"string","locale":"string"}'
 ```
 
 ```ts
-const response = await fetch("https://api.foldocs.dev/search", {
+const response = await fetch("https://api.example.com/search", {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({

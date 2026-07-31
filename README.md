@@ -11,7 +11,7 @@
 <h3 align="center">The documentation framework for Foldkit.</h3>
 
 <p align="center">
-  <a href="https://foldocs.dev"><strong>Documentation</strong></a> ·
+  <a href="https://foldocs.vercel.app"><strong>Documentation</strong></a> ·
   <a href="#get-started"><strong>Get Started</strong></a> ·
   <a href="./docs/ARCHITECTURE.md"><strong>Architecture</strong></a> ·
   <a href="./docs/PARITY.md"><strong>Fumadocs parity</strong></a> ·

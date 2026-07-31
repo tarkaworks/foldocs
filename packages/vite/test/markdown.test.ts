@@ -45,7 +45,7 @@ Read [configuration](/docs/configuration).
 
     expect(
       makePageMarkdown(
-        { title: "Foldocs", baseUrl: "https://foldocs.dev" },
+        { title: "Foldocs", baseUrl: "https://foldocs.vercel.app" },
         {
           metadata: {
             id: "getting-started.mdx",
@@ -63,7 +63,7 @@ Read [configuration](/docs/configuration).
 
 Build your first site.
 
-Read [configuration](https://foldocs.dev/docs/configuration).
+Read [configuration](https://foldocs.vercel.app/docs/configuration).
 `);
   });
 
@@ -73,10 +73,10 @@ Read [configuration](https://foldocs.dev/docs/configuration).
         {
           title: "Foldocs",
           tagline: "Docs powered by Effect.",
-          baseUrl: "https://foldocs.dev",
+          baseUrl: "https://foldocs.vercel.app",
         },
         "/docs",
       ),
-    ).toContain("[Read the documentation](https://foldocs.dev/docs)");
+    ).toContain("[Read the documentation](https://foldocs.vercel.app/docs)");
   });
 });

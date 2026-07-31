@@ -37,7 +37,7 @@ export default defineConfig({
   site: {
     title: "Foldocs",
     description: "A production documentation framework for Foldkit.",
-    baseUrl: "https://foldocs.dev",
+    baseUrl: "https://foldocs.vercel.app",
     logoText: "Foldocs",
     badge: "Beta",
     tagline:
