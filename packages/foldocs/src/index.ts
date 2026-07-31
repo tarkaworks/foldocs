@@ -28,7 +28,17 @@ import {
   CompiledPage,
   type CompiledPage as CompiledPageType,
 } from "foldocs-mdx/ast";
-import { docsLayout, landingLayout, type MdxComponents } from "foldocs-ui";
+import {
+  docsLayout,
+  headerLanguageMenuId,
+  initLanguageMenu,
+  landingLayout,
+  LanguageMenuMessage,
+  LanguageMenuModel,
+  sidebarLanguageMenuId,
+  type MdxComponents,
+} from "foldocs-ui";
+import { Menu } from "@foldkit/ui";
 import { Effect, Option, Queue, Schema as S, Stream } from "effect";
 import { Command, Render, Subscription, type Runtime } from "foldkit";
 import * as Dom from "foldkit/dom";
@@ -36,6 +46,8 @@ import { type Document, html } from "foldkit/html";
 import { m } from "foldkit/message";
 import { UrlRequest, load, pushUrl } from "foldkit/navigation";
 import { Url, toString as urlToString } from "foldkit/url";
+
+const LanguageMenu = Menu.create<string>();
 
 export interface DocsProgramOptions {
   readonly manifest: PageManifest<CompiledPageType>;
@@ -250,6 +262,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     themePreference: S.Literals(["light", "system", "dark"]),
     copiedText: S.String,
     copyMarkdownStatus: S.Literals(["idle", "loading", "copied", "error"]),
+    headerLanguageMenu: LanguageMenuModel,
+    sidebarLanguageMenu: LanguageMenuModel,
   });
   type Model = typeof Model.Type;
 
@@ -326,6 +340,12 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ctrlKey: S.Boolean,
     metaKey: S.Boolean,
   });
+  const GotHeaderLanguageMenuMessage = m("GotHeaderLanguageMenuMessage", {
+    message: LanguageMenuMessage,
+  });
+  const GotSidebarLanguageMenuMessage = m("GotSidebarLanguageMenuMessage", {
+    message: LanguageMenuMessage,
+  });
 
   const Message = S.Union([
     CompletedNavigateInternal,
@@ -366,6 +386,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     CompletedRestoreDialogFocus,
     CompletedScrollSearchResult,
     PressedGlobalKey,
+    GotHeaderLanguageMenuMessage,
+    GotSidebarLanguageMenuMessage,
   ]);
   type Message = typeof Message.Type;
 
@@ -873,6 +895,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         themePreference,
         copiedText: "",
         copyMarkdownStatus: "idle",
+        headerLanguageMenu: initLanguageMenu(headerLanguageMenuId),
+        sidebarLanguageMenu: initLanguageMenu(sidebarLanguageMenuId),
       },
       [
         ...commands,
@@ -886,6 +910,40 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>];
   const update = (model: Model, message: Message): UpdateReturn => {
     switch (message._tag) {
+      case "GotHeaderLanguageMenuMessage": {
+        const [headerLanguageMenu, commands, maybeOutMessage] =
+          LanguageMenu.update(model.headerLanguageMenu, message.message);
+        const nextModel = { ...model, headerLanguageMenu };
+        const mappedCommands = Command.mapMessages(commands, (childMessage) =>
+          GotHeaderLanguageMenuMessage({ message: childMessage }),
+        );
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [nextModel, mappedCommands],
+          onSome: ({ value }): UpdateReturn => [
+            nextModel,
+            value === model.pathname
+              ? mappedCommands
+              : [...mappedCommands, NavigateInternal({ url: value })],
+          ],
+        });
+      }
+      case "GotSidebarLanguageMenuMessage": {
+        const [sidebarLanguageMenu, commands, maybeOutMessage] =
+          LanguageMenu.update(model.sidebarLanguageMenu, message.message);
+        const nextModel = { ...model, sidebarLanguageMenu };
+        const mappedCommands = Command.mapMessages(commands, (childMessage) =>
+          GotSidebarLanguageMenuMessage({ message: childMessage }),
+        );
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [nextModel, mappedCommands],
+          onSome: ({ value }): UpdateReturn => [
+            nextModel,
+            value === model.pathname
+              ? mappedCommands
+              : [...mappedCommands, NavigateInternal({ url: value })],
+          ],
+        });
+      }
       case "ClickedLink":
         return message.request._tag === "Internal"
           ? [
@@ -1347,6 +1405,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           homeUrl,
           locales: localeLinks(model),
           currentLocale: model.locale,
+          headerLanguageMenu: model.headerLanguageMenu,
           theme: model.theme,
           themePreference: model.themePreference,
           copiedText: model.copiedText,
@@ -1359,6 +1418,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             selectSearchResult: (url) => SelectedSearchResult({ url }),
             selectTheme: (preference) => SelectedTheme({ preference }),
             copyText: (value) => ClickedCopyText({ value }),
+            gotHeaderLanguageMenuMessage: (message) =>
+              GotHeaderLanguageMenuMessage({ message }),
           },
         }),
       };
@@ -1390,6 +1451,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         homeUrl: localeHomePath(i18n, model.locale),
         locales: localeLinks(model),
         currentLocale: model.locale,
+        headerLanguageMenu: model.headerLanguageMenu,
+        sidebarLanguageMenu: model.sidebarLanguageMenu,
         markdownUrl,
         markdownEnabled: options.markdown ?? true,
         copyMarkdownStatus: model.copyMarkdownStatus,
@@ -1419,6 +1482,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           selectToc: (sectionId) => SelectedToc({ sectionId }),
           selectTheme: (preference) => SelectedTheme({ preference }),
           copyMarkdown: ClickedCopyMarkdown({ url: markdownUrl }),
+          gotHeaderLanguageMenuMessage: (message) =>
+            GotHeaderLanguageMenuMessage({ message }),
+          gotSidebarLanguageMenuMessage: (message) =>
+            GotSidebarLanguageMenuMessage({ message }),
         },
         markdown: {
           ...(options.components === undefined

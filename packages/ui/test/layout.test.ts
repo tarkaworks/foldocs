@@ -9,7 +9,7 @@ import {
 } from "foldocs-core";
 import type { CompiledPage } from "foldocs-mdx";
 
-import { docsLayout, landingLayout } from "../src/layout.js";
+import { docsLayout, initLanguageMenu, landingLayout } from "../src/layout.js";
 
 describe("landing layout", () => {
   it("uses custom hero copy and selected sections", () => {
@@ -33,6 +33,7 @@ describe("landing layout", () => {
         },
       ],
       currentLocale: "en",
+      headerLanguageMenu: initLanguageMenu("test-landing-language"),
       theme: "light",
       themePreference: "system",
       copiedText: "",
@@ -51,6 +52,7 @@ describe("landing layout", () => {
         selectSearchResult: () => "select-result",
         selectTheme: () => "select-theme",
         copyText: () => "copy-text",
+        gotHeaderLanguageMenuMessage: () => "language-menu",
       },
     });
     const text = Scene.textContent(rendered);
@@ -144,6 +146,8 @@ describe("documentation layout", () => {
         },
       ],
       currentLocale: "en",
+      headerLanguageMenu: initLanguageMenu("test-header-language"),
+      sidebarLanguageMenu: initLanguageMenu("test-sidebar-language"),
       markdownUrl: "/docs/manual-installation/pnpm.md",
       markdownEnabled: true,
       copyMarkdownStatus: "idle",
@@ -167,6 +171,8 @@ describe("documentation layout", () => {
         updateSearch: () => "update-search",
         searchKeyDown: () => "search-key",
         selectSearchResult: () => "select-result",
+        gotHeaderLanguageMenuMessage: () => "header-language-menu",
+        gotSidebarLanguageMenuMessage: () => "sidebar-language-menu",
       },
     });
     const text = Scene.textContent(rendered);

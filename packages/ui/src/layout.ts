@@ -11,13 +11,24 @@ import type {
 } from "foldocs-core";
 import { interpolateTranslation } from "foldocs-core";
 import type { CompiledPage } from "foldocs-mdx";
+import { Menu } from "@foldkit/ui";
 import { Option } from "effect";
-import { type Html, html } from "foldkit/html";
+import { childAttributes, type Html, html } from "foldkit/html";
 
 import { renderMarkdown, type MarkdownViewOptions } from "./markdown.js";
 import { foldocsLogoSvg, icons, type IconName } from "./icons.js";
 
 export type ThemePreference = "light" | "system" | "dark";
+
+const LanguageMenu = Menu.create<string>();
+export const headerLanguageMenuId = "foldocs-header-language";
+export const sidebarLanguageMenuId = "foldocs-sidebar-language";
+export const LanguageMenuModel = Menu.Model;
+export type LanguageMenuModel = Menu.Model;
+export const LanguageMenuMessage = Menu.Message;
+export type LanguageMenuMessage = Menu.Message;
+export const initLanguageMenu = (id: string): LanguageMenuModel =>
+  Menu.init({ id });
 
 interface SearchActions<Message> {
   readonly toggleSearch: Message;
@@ -54,6 +65,12 @@ export interface DocsLayoutActions<Message> extends SearchActions<Message> {
   readonly selectToc: (id: string) => Message;
   readonly selectTheme: (preference: ThemePreference) => Message;
   readonly copyMarkdown: Message;
+  readonly gotHeaderLanguageMenuMessage?: (
+    message: LanguageMenuMessage,
+  ) => Message;
+  readonly gotSidebarLanguageMenuMessage?: (
+    message: LanguageMenuMessage,
+  ) => Message;
 }
 
 export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
@@ -76,6 +93,8 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
   readonly homeUrl: string;
   readonly locales: ReadonlyArray<LocaleLink>;
   readonly currentLocale: string;
+  readonly headerLanguageMenu?: LanguageMenuModel;
+  readonly sidebarLanguageMenu?: LanguageMenuModel;
   readonly markdownUrl: string;
   readonly markdownEnabled: boolean;
   readonly copyMarkdownStatus: "idle" | "loading" | "copied" | "error";
@@ -86,6 +105,9 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
 export interface LandingLayoutActions<Message> extends SearchActions<Message> {
   readonly selectTheme: (preference: ThemePreference) => Message;
   readonly copyText: (value: string) => Message;
+  readonly gotHeaderLanguageMenuMessage?: (
+    message: LanguageMenuMessage,
+  ) => Message;
 }
 
 export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
@@ -95,6 +117,7 @@ export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
   readonly homeUrl: string;
   readonly locales: ReadonlyArray<LocaleLink>;
   readonly currentLocale: string;
+  readonly headerLanguageMenu?: LanguageMenuModel;
   readonly theme: "light" | "dark";
   readonly themePreference: ThemePreference;
   readonly copiedText: string;
@@ -208,46 +231,86 @@ const socialLinks = <Message>(site: SiteConfig): ReadonlyArray<Html> => {
 const languageSelector = <Message>(
   locales: ReadonlyArray<LocaleLink>,
   translations: ResolvedUiTranslations,
+  model: LanguageMenuModel | undefined,
+  slotId: string,
+  menuId: string,
+  toParentMessage: ((message: LanguageMenuMessage) => Message) | undefined,
+  placement: "bottom-end" | "top-start" = "bottom-end",
 ): Html => {
   const h = html<Message>();
   if (locales.length <= 1) return h.empty;
   const current = locales.find((locale) => locale.current) ?? locales[0]!;
-  return h.details(
-    [h.Class("fd-language-selector")],
+  const localeForHref = (href: string): LocaleLink =>
+    locales.find((locale) => locale.href === href) ?? current;
+  const buttonContent = h.span(
+    [h.Class("fd-language-trigger-content")],
     [
-      h.summary(
-        [
-          h.AriaLabel(translations.selectLanguage),
-          h.Title(translations.selectLanguage),
-        ],
-        [
-          icon<Message>("globe"),
-          h.span([h.Class("fd-language-current")], [current.name]),
-          icon<Message>("chevron", "fd-language-chevron"),
-        ],
-      ),
-      h.div(
-        [h.Class("fd-language-menu"), h.Role("listbox")],
-        locales.map((locale) =>
-          h.a(
+      icon<Message>("globe"),
+      h.span([h.Class("fd-language-current")], [current.name]),
+      icon<Message>("chevron", "fd-language-chevron"),
+    ],
+  );
+
+  if (model === undefined || toParentMessage === undefined) {
+    return h.div(
+      [h.Class("fd-language-selector")],
+      [
+        h.button(
+          [
+            h.Id(Menu.buttonId(menuId)),
+            h.Type("button"),
+            h.AriaHasPopup("menu"),
+            h.AriaExpanded(false),
+            h.AriaControls(`${menuId}-items`),
+            h.AriaLabel(translations.selectLanguage),
+            h.Title(translations.selectLanguage),
+            h.Class("fd-language-trigger"),
+          ],
+          [buttonContent],
+        ),
+      ],
+    );
+  }
+
+  return h.submodel({
+    slotId,
+    model,
+    view: LanguageMenu.view,
+    viewInputs: {
+      items: locales.map((locale) => locale.href),
+      itemToSearchText: (href) => localeForHref(href).name,
+      itemToConfig: (href, { isActive }) => {
+        const locale = localeForHref(href);
+        return {
+          className: [
+            "fd-language-option",
+            ...(locale.current ? ["fd-language-active"] : []),
+            ...(isActive ? ["fd-language-option-active"] : []),
+          ].join(" "),
+          content: h.span(
             [
-              h.Href(locale.href),
+              h.Class("fd-language-option-content"),
               h.Attribute("lang", locale.locale),
-              h.Attribute("hreflang", locale.locale),
               h.Attribute("dir", locale.dir),
-              h.Role("option"),
-              h.AriaSelected(locale.current),
-              h.Class(locale.current ? "fd-language-active" : ""),
             ],
             [
               h.span([], [locale.name]),
               locale.current ? icon<Message>("check") : h.empty,
             ],
           ),
-        ),
-      ),
-    ],
-  );
+        };
+      },
+      buttonContent,
+      buttonClassName: "fd-language-trigger",
+      buttonAttributes: childAttributes([h.Title(translations.selectLanguage)]),
+      itemsClassName: "fd-language-menu",
+      backdropClassName: "fd-language-backdrop",
+      className: "fd-language-selector",
+      ariaLabel: translations.selectLanguage,
+      anchor: { placement, gap: 7, padding: 8 },
+    },
+    toParentMessage,
+  });
 };
 
 const searchTrigger = <Message>(
@@ -288,6 +351,9 @@ const headerActions = <Message>(
   searchOpen: boolean,
   locales: ReadonlyArray<LocaleLink>,
   translations: ResolvedUiTranslations,
+  languageMenu: LanguageMenuModel | undefined,
+  gotLanguageMenuMessage:
+    ((message: LanguageMenuMessage) => Message) | undefined,
   mobileMenu?: Html,
 ): Html => {
   const h = html<Message>();
@@ -296,7 +362,14 @@ const headerActions = <Message>(
     [
       searchTrigger(searchAction, searchOpen, translations),
       searchTrigger(searchAction, searchOpen, translations, true),
-      languageSelector(locales, translations),
+      languageSelector(
+        locales,
+        translations,
+        languageMenu,
+        "header-language-menu",
+        headerLanguageMenuId,
+        gotLanguageMenuMessage,
+      ),
       themeSelector(preference, selectTheme, translations),
       h.div(
         [h.Class("fd-social-links fd-social-links-header")],
@@ -864,6 +937,8 @@ export const docsLayout = <Message>(
                 options.searchOpen,
                 options.locales,
                 t,
+                options.headerLanguageMenu,
+                options.actions.gotHeaderLanguageMenuMessage,
                 mobileMenuButton,
               ),
             ],
@@ -928,7 +1003,15 @@ export const docsLayout = <Message>(
                 options.actions.selectTheme,
                 t,
               ),
-              languageSelector(options.locales, t),
+              languageSelector(
+                options.locales,
+                t,
+                options.sidebarLanguageMenu,
+                "sidebar-language-menu",
+                sidebarLanguageMenuId,
+                options.actions.gotSidebarLanguageMenuMessage,
+                "top-start",
+              ),
               h.div([h.Class("fd-social-links")], socialLinks(options.site)),
             ],
           ),
@@ -1132,7 +1215,14 @@ export const landingLayout = <Message>(
               h.nav(
                 [h.Class("fd-landing-nav"), h.AriaLabel(t.mainNavigation)],
                 [
-                  languageSelector(options.locales, t),
+                  languageSelector(
+                    options.locales,
+                    t,
+                    options.headerLanguageMenu,
+                    "header-language-menu",
+                    headerLanguageMenuId,
+                    options.actions.gotHeaderLanguageMenuMessage,
+                  ),
                   themeSelector(
                     options.themePreference,
                     options.actions.selectTheme,

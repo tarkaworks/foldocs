@@ -219,7 +219,7 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
   ).not.toBe("color(srgb 1 1 1 / 0.5)");
 
   const languageSelector = page.locator(".fd-header .fd-language-selector");
-  const languageSummary = languageSelector.locator("summary");
+  const languageTrigger = languageSelector.locator(".fd-language-trigger");
   const languageChevron = languageSelector.locator(".fd-language-chevron");
   await expect(languageChevron).toHaveClass(/fd-icon/u);
   const languageChevronBox = await languageChevron.boundingBox();
@@ -227,12 +227,25 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
   expect(languageChevronBox?.width).toBe(languageChevronBox?.height);
   expect(languageChevronBox?.width ?? 0).toBeGreaterThan(10);
   expect(languageChevronBox?.width ?? 0).toBeLessThan(12);
-  await languageSummary.click();
-  await expect(languageSelector).toHaveAttribute("open", "");
+  await languageTrigger.click();
+  await expect(languageTrigger).toHaveAttribute("aria-expanded", "true");
+  await expect(languageSelector).toHaveAttribute("data-open", "");
+  await expect(page.getByRole("menu")).toBeFocused();
   await expect(languageChevron).toHaveCSS(
     "transform",
     "matrix(-1, 0, 0, -1, 0, 0)",
   );
+
+  await page.mouse.click(20, 200);
+  await expect(languageTrigger).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(languageTrigger).toBeFocused();
+
+  await languageTrigger.click();
+  await expect(page.getByRole("menu")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(languageTrigger).toHaveAttribute("aria-expanded", "false");
+  await expect(languageTrigger).toBeFocused();
   expect(errors).toEqual([]);
 });
 
@@ -351,6 +364,27 @@ test("mobile navigation traps focus and restores the menu button", async ({
   expect(wrappedToLast).toBe(true);
   await page.keyboard.press("Tab");
   await expect(first).toBeFocused();
+
+  const mobileLanguageTrigger = dialog.getByRole("button", {
+    name: "Select language",
+  });
+  await mobileLanguageTrigger.click();
+  const mobileLanguageMenu = page.getByRole("menu");
+  await expect(mobileLanguageMenu).toBeFocused();
+  const [mobileLanguageTriggerBox, mobileLanguageMenuBox] = await Promise.all([
+    mobileLanguageTrigger.boundingBox(),
+    mobileLanguageMenu.boundingBox(),
+  ]);
+  expect(mobileLanguageTriggerBox).not.toBeNull();
+  expect(mobileLanguageMenuBox).not.toBeNull();
+  expect(
+    mobileLanguageMenuBox === null
+      ? Infinity
+      : mobileLanguageMenuBox.y + mobileLanguageMenuBox.height,
+  ).toBeLessThanOrEqual((mobileLanguageTriggerBox?.y ?? 0) + 1);
+  await page.mouse.click(20, 100);
+  await expect(mobileLanguageMenu).toHaveCount(0);
+  await expect(mobileLanguageTrigger).toBeFocused();
 
   await dialog.getByRole("button", { name: "Close navigation" }).click();
   await expect(dialog).toBeHidden();

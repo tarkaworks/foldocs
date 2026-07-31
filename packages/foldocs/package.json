@@ -21,6 +21,7 @@
     "@foldocs/content": "workspace:*",
     "@foldocs/search": "workspace:*",
     "@foldocs/search-orama": "workspace:*",
+    "@foldkit/ui": "0.130.0",
     "effect": "4.0.0-beta.97",
     "foldocs-core": "workspace:*",
     "foldocs-mdx": "workspace:*",
