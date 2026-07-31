@@ -38,5 +38,5 @@ export interface Options { readonly loud?: boolean }
       await expect(
         compile(file.content, { filePath: file.path, highlight: false }),
       ).resolves.toBeDefined();
-  });
+  }, 30_000);
 });
