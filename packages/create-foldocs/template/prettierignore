@@ -2,7 +2,6 @@ node_modules
 dist
 *.tsbuildinfo
 pnpm-lock.yaml
-.alchemy/
 playwright-report/
 test-results/
 public/fonts/

@@ -25,9 +25,9 @@ against the built preview rather than the development server.
 
 ## Deployment
 
-Upload the generated `dist` directory to static hosting, or use the configured
-Alchemy deployment for Cloudflare. The same output can be served by Vercel
-without a server runtime.
+Upload the generated `dist` directory to static hosting, or use the Alchemy
+deployment added by `--deployment cloudflare`. The same output can be served by
+Vercel without a server runtime.
 
 ## Suggested workflow
 

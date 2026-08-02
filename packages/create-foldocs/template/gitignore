@@ -1,6 +1,5 @@
 node_modules
 dist
-.alchemy
 .env
 .DS_Store
 *.local

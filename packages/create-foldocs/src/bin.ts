@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 
 import { Effect } from 'effect'
+import { parseArgs } from 'node:util'
 
-import { type PackageManager, scaffold } from './index.js'
+import {
+  type DeploymentTarget,
+  type PackageManager,
+  deploymentTargets,
+  scaffold,
+} from './index.js'
 
 const help = `create-foldocs
 
@@ -12,23 +18,48 @@ Usage:
 Options:
   --no-install              Skip dependency installation
   --package-manager <name>  pnpm, npm, yarn, or bun
+  --deployment <target>     none, vercel, or cloudflare (default: none)
   -h, --help                Show this help
 `
 
 const args = process.argv.slice(2)
-if (args.includes('--help') || args.includes('-h')) {
+const parsed = (() => {
+  try {
+    return parseArgs({
+      args,
+      allowPositionals: true,
+      strict: true,
+      options: {
+        deployment: { type: 'string' },
+        help: { type: 'boolean', short: 'h' },
+        'no-install': { type: 'boolean' },
+        'package-manager': { type: 'string' },
+      },
+    })
+  } catch (error) {
+    process.stderr.write(
+      `${help}\nError: ${error instanceof Error ? error.message : String(error)}\n`,
+    )
+    process.exit(1)
+  }
+})()
+
+if (parsed.values.help === true) {
   process.stdout.write(help)
   process.exit(0)
 }
 
-const directory = args.find(argument => !argument.startsWith('-'))
+const [directory, ...extraPositionals] = parsed.positionals
 if (directory === undefined) {
   process.stderr.write(`${help}\nError: a destination directory is required.\n`)
   process.exit(1)
 }
+if (extraPositionals.length > 0) {
+  process.stderr.write(`Unexpected argument: ${extraPositionals[0]}\n`)
+  process.exit(1)
+}
 
-const managerIndex = args.indexOf('--package-manager')
-const manager = managerIndex === -1 ? undefined : args[managerIndex + 1]
+const manager = parsed.values['package-manager']
 if (
   manager !== undefined &&
   manager !== 'pnpm' &&
@@ -40,10 +71,17 @@ if (
   process.exit(1)
 }
 
+const deployment = parsed.values.deployment ?? 'none'
+if (!deploymentTargets.some(target => target === deployment)) {
+  process.stderr.write(`Unknown deployment target: ${deployment}\n`)
+  process.exit(1)
+}
+
 Effect.runPromise(
   scaffold({
     directory,
-    install: !args.includes('--no-install'),
+    deployment: deployment as DeploymentTarget,
+    install: parsed.values['no-install'] !== true,
     ...(manager === undefined
       ? {}
       : { packageManager: manager as PackageManager }),

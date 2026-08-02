@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { scaffold } from '../src/index.js'
 
 describe('create-foldocs', () => {
-  it('creates a complete, renamed application without prompts', async () => {
+  it('creates a host-neutral application by default', async () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'create-foldocs-'))
     const result = await Effect.runPromise(
       scaffold({
@@ -25,6 +25,7 @@ describe('create-foldocs', () => {
       devDependencies: Record<string, string>
       scripts: Record<string, string>
     }
+    expect(result.deployment).toBe('none')
     expect(packageJson.name).toBe('my-docs')
     expect(packageJson.dependencies.foldocs).toBe('latest')
     expect(packageJson.devDependencies['@foldocs/vite']).toBe('latest')
@@ -37,14 +38,16 @@ describe('create-foldocs', () => {
     ]) {
       expect(packageJson.devDependencies[privatePackage]).toBeUndefined()
     }
-    expect(packageJson.devDependencies.alchemy).toBe('0.93.12')
-    expect(packageJson.scripts.deploy).toBe('alchemy deploy')
+    expect(packageJson.devDependencies.alchemy).toBeUndefined()
+    expect(packageJson.scripts['dev:cloudflare']).toBeUndefined()
+    expect(packageJson.scripts.deploy).toBeUndefined()
+    expect(packageJson.scripts.destroy).toBeUndefined()
     await expect(
       fs.stat(path.join(result.directory, '.gitignore')),
     ).resolves.toBeDefined()
     await expect(
       fs.stat(path.join(result.directory, '.env.example')),
-    ).resolves.toBeDefined()
+    ).rejects.toMatchObject({ code: 'ENOENT' })
     await expect(
       fs.stat(path.join(result.directory, '.oxlintrc.json')),
     ).resolves.toBeDefined()
@@ -134,13 +137,93 @@ describe('create-foldocs', () => {
       fs.stat(path.join(result.directory, 'public/fonts')),
     ).rejects.toMatchObject({ code: 'ENOENT' })
     await expect(
-      fs.readFile(path.join(result.directory, 'alchemy.run.ts'), 'utf8'),
-    ).resolves.toContain("'my-docs',")
+      fs.stat(path.join(result.directory, 'alchemy.run.ts')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(
+      fs.stat(path.join(result.directory, 'vercel.json')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(
+      fs.readFile(path.join(result.directory, '.gitignore'), 'utf8'),
+    ).resolves.not.toContain('.alchemy')
+    await expect(
+      fs.readFile(path.join(result.directory, '.prettierignore'), 'utf8'),
+    ).resolves.not.toContain('.alchemy')
     await expect(
       fs.stat(path.join(result.directory, 'openapi.yaml')),
     ).rejects.toMatchObject({ code: 'ENOENT' })
     await expect(
       fs.stat(path.join(result.directory, 'asyncapi.yaml')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('adds only the Vercel static configuration when selected', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'create-foldocs-'))
+    const result = await Effect.runPromise(
+      scaffold({
+        directory: 'vercel-docs',
+        cwd,
+        deployment: 'vercel',
+        install: false,
+      }),
+    )
+    const packageJson = JSON.parse(
+      await fs.readFile(path.join(result.directory, 'package.json'), 'utf8'),
+    ) as {
+      devDependencies: Record<string, string>
+      scripts: Record<string, string>
+    }
+    const vercel = JSON.parse(
+      await fs.readFile(path.join(result.directory, 'vercel.json'), 'utf8'),
+    ) as { outputDirectory: string }
+
+    expect(result.deployment).toBe('vercel')
+    expect(vercel.outputDirectory).toBe('dist')
+    expect(packageJson.devDependencies.alchemy).toBeUndefined()
+    expect(packageJson.scripts.deploy).toBeUndefined()
+    await expect(
+      fs.stat(path.join(result.directory, 'alchemy.run.ts')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(
+      fs.stat(path.join(result.directory, '.env.example')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('adds only the Alchemy Cloudflare integration when selected', async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'create-foldocs-'))
+    const result = await Effect.runPromise(
+      scaffold({
+        directory: 'Cloudflare Docs',
+        cwd,
+        deployment: 'cloudflare',
+        install: false,
+      }),
+    )
+    const packageJson = JSON.parse(
+      await fs.readFile(path.join(result.directory, 'package.json'), 'utf8'),
+    ) as {
+      devDependencies: Record<string, string>
+      scripts: Record<string, string>
+    }
+
+    expect(result.deployment).toBe('cloudflare')
+    expect(packageJson.devDependencies.alchemy).toBe('0.93.12')
+    expect(packageJson.scripts['dev:cloudflare']).toBe('alchemy dev')
+    expect(packageJson.scripts.deploy).toBe('alchemy deploy')
+    expect(packageJson.scripts.destroy).toBe('alchemy destroy')
+    await expect(
+      fs.readFile(path.join(result.directory, 'alchemy.run.ts'), 'utf8'),
+    ).resolves.toContain("'cloudflare-docs',")
+    await expect(
+      fs.stat(path.join(result.directory, '.env.example')),
+    ).resolves.toBeDefined()
+    await expect(
+      fs.readFile(path.join(result.directory, '.gitignore'), 'utf8'),
+    ).resolves.toContain('.alchemy')
+    await expect(
+      fs.readFile(path.join(result.directory, '.prettierignore'), 'utf8'),
+    ).resolves.toContain('.alchemy/')
+    await expect(
+      fs.stat(path.join(result.directory, 'vercel.json')),
     ).rejects.toMatchObject({ code: 'ENOENT' })
   })
 })

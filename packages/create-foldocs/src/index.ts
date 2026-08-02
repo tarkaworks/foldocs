@@ -5,16 +5,20 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
+export const deploymentTargets = ['none', 'vercel', 'cloudflare'] as const
+export type DeploymentTarget = (typeof deploymentTargets)[number]
 
 export interface ScaffoldOptions {
   readonly directory: string
   readonly cwd?: string
+  readonly deployment?: DeploymentTarget
   readonly install?: boolean
   readonly packageManager?: PackageManager
 }
 
 export interface ScaffoldResult {
   readonly directory: string
+  readonly deployment: DeploymentTarget
   readonly packageManager: PackageManager
   readonly installed: boolean
 }
@@ -49,6 +53,13 @@ const packageNameFromDirectory = (directory: string): string => {
   return normalized.replace(/^[._-]+|[._-]+$/gu, '') || fallback
 }
 
+const appendLine = async (file: string, line: string): Promise<void> => {
+  const source = await fs.readFile(file, 'utf8')
+  const lines = source.split(/\r?\n/gu)
+  if (lines.includes(line)) return
+  await fs.writeFile(file, `${source.trimEnd()}\n${line}\n`)
+}
+
 const installDependencies = (
   directory: string,
   packageManager: PackageManager,
@@ -78,6 +89,10 @@ export const scaffold = (
     try: async () => {
       const cwd = options.cwd ?? process.cwd()
       const directory = path.resolve(cwd, options.directory)
+      const deployment = options.deployment ?? 'none'
+      if (!deploymentTargets.includes(deployment)) {
+        throw new ScaffoldError(`Unknown deployment target: ${deployment}`)
+      }
       const existing = await fs.readdir(directory).catch(error => {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
         throw error
@@ -92,10 +107,6 @@ export const scaffold = (
         path.join(directory, '.gitignore'),
       )
       await fs.rename(
-        path.join(directory, 'env.example'),
-        path.join(directory, '.env.example'),
-      )
-      await fs.rename(
         path.join(directory, 'oxlintrc.json'),
         path.join(directory, '.oxlintrc.json'),
       )
@@ -107,28 +118,52 @@ export const scaffold = (
         path.join(directory, 'prettierignore'),
         path.join(directory, '.prettierignore'),
       )
+      const packageName = packageNameFromDirectory(directory)
       const packageFile = path.join(directory, 'package.json')
-      const packageJson = await fs.readFile(packageFile, 'utf8')
+      const packageJson = JSON.parse(
+        await fs.readFile(packageFile, 'utf8'),
+      ) as {
+        name: string
+        scripts: Record<string, string>
+        devDependencies: Record<string, string>
+      }
+      packageJson.name = packageName
+
+      const alchemyFile = path.join(directory, 'alchemy.run.ts')
+      const environmentFile = path.join(directory, 'env.example')
+      if (deployment === 'cloudflare') {
+        packageJson.scripts['dev:cloudflare'] = 'alchemy dev'
+        packageJson.scripts.deploy = 'alchemy deploy'
+        packageJson.scripts.destroy = 'alchemy destroy'
+        packageJson.devDependencies.alchemy = '0.93.12'
+
+        const alchemySource = await fs.readFile(alchemyFile, 'utf8')
+        await fs.writeFile(
+          alchemyFile,
+          alchemySource.replaceAll('__FOLDOCS_PACKAGE_NAME__', packageName),
+        )
+        await fs.rename(environmentFile, path.join(directory, '.env.example'))
+        await appendLine(path.join(directory, '.gitignore'), '.alchemy')
+        await appendLine(path.join(directory, '.prettierignore'), '.alchemy/')
+      } else {
+        await Promise.all([
+          fs.rm(alchemyFile, { force: true }),
+          fs.rm(environmentFile, { force: true }),
+        ])
+      }
+
+      if (deployment !== 'vercel') {
+        await fs.rm(path.join(directory, 'vercel.json'), { force: true })
+      }
+
       await fs.writeFile(
         packageFile,
-        packageJson.replace(
-          '__FOLDOCS_PACKAGE_NAME__',
-          packageNameFromDirectory(directory),
-        ),
-      )
-      const alchemyFile = path.join(directory, 'alchemy.run.ts')
-      const alchemySource = await fs.readFile(alchemyFile, 'utf8')
-      await fs.writeFile(
-        alchemyFile,
-        alchemySource.replaceAll(
-          '__FOLDOCS_PACKAGE_NAME__',
-          packageNameFromDirectory(directory),
-        ),
+        `${JSON.stringify(packageJson, undefined, 2)}\n`,
       )
       const packageManager = options.packageManager ?? inferPackageManager()
       const install = options.install ?? true
       if (install) await installDependencies(directory, packageManager)
-      return { directory, packageManager, installed: install }
+      return { directory, deployment, packageManager, installed: install }
     },
     catch: cause =>
       cause instanceof ScaffoldError

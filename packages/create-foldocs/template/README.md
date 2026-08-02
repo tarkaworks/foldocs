@@ -9,26 +9,8 @@ npm install
 npm run dev
 ```
 
-## Deploy to Cloudflare
-
-Alchemy is configured in `alchemy.run.ts`. Copy `.env.example` to `.env`, replace
-the two example values, authenticate with Cloudflare, and deploy:
-
-```sh
-npm run deploy
-```
-
-The site is deployed as prerendered static assets with SPA fallback disabled.
-After pushing this project to a public GitHub or GitLab repository, add
-Cloudflare's one-click button to this README and replace `<REPOSITORY_URL>`:
-
-```md
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=<REPOSITORY_URL>)
-```
-
-For CI, configure `ALCHEMY_PASSWORD`, `ALCHEMY_STATE_TOKEN`, and
-`CLOUDFLARE_API_TOKEN` as secrets. Alchemy automatically switches to its
-persistent Cloudflare state store when `ALCHEMY_STATE_TOKEN` is present.
+See the [Foldocs documentation](https://foldocs.vercel.app/docs) for authoring,
+configuration, and deployment guides.
 
 ## Organize the sidebar
 

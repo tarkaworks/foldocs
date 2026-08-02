@@ -7,8 +7,15 @@ description: Deploy a generated Foldocs project to Cloudflare Workers static ass
 
 ## Generated infrastructure
 
-Generated projects include `alchemy.run.ts` and scripts for development,
-deployment, and teardown.
+Select Cloudflare when creating the application:
+
+```sh
+pnpm create foldocs@latest my-docs --deployment cloudflare
+```
+
+This adds `alchemy.run.ts`, `.env.example`, the `alchemy` development dependency,
+and scripts for Cloudflare development, deployment, and teardown. Projects
+created without this option contain none of those files or package entries.
 
 ## Deploy
 

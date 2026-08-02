@@ -5,10 +5,25 @@ description: Publish Foldocs static output on Vercel without purchasing a custom
 
 # Vercel
 
+## Generate the integration
+
+Select Vercel when creating the application:
+
+```sh
+pnpm create foldocs@latest my-docs --deployment vercel
+```
+
+This adds a minimal `vercel.json` that declares `dist` as the static output
+directory. It deliberately does not override the build command, allowing Vercel
+to detect Vite and run the package's existing `build` script.
+
+Projects created without this option remain host-neutral and can still be
+imported into Vercel later.
+
 ## Project settings
 
-Import the repository, use `pnpm build` as the build command, and set the output
-directory to `apps/docs/dist` for this monorepo or `dist` for a generated app.
+Import the generated repository with the Vite framework preset. Keep the default
+build command and publish `dist`.
 
 ## Static routing
 
