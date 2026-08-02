@@ -184,7 +184,7 @@ test('landing uses the shared docs header and the footer keeps its attribution',
   await expect(header.locator('#fd-search-trigger')).toBeFocused()
   await expect(
     header.locator('.fd-social-link[aria-label="GitHub"]'),
-  ).toHaveAttribute('href', 'https://github.com/Tarkaworks/foldocs')
+  ).toHaveAttribute('href', 'https://github.com/tarkaworks/foldocs')
   await expect(
     header.locator('.fd-social-link[aria-label="npm"]'),
   ).toBeVisible()
@@ -217,7 +217,7 @@ test('landing uses the shared docs header and the footer keeps its attribution',
   )
   await expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
     'href',
-    'https://github.com/Tarkaworks/foldocs',
+    'https://github.com/tarkaworks/foldocs',
   )
   await expect(footer).toContainText('© 2026 Tarkaworks')
   await expect(
@@ -517,7 +517,7 @@ test('Foldkit theme colors and dropdown chevrons stay synchronized', async ({
   )
   await expect(githubLink).toHaveAttribute(
     'href',
-    'https://github.com/Tarkaworks/foldocs',
+    'https://github.com/tarkaworks/foldocs',
   )
   const npmLink = page.locator('.fd-header .fd-social-link[aria-label="npm"]')
   await expect(githubLink).not.toHaveClass(/fd-control/u)
@@ -1031,7 +1031,7 @@ test('sections, folders, page actions, and pager work together', async ({
   ).toHaveAttribute('href', 'https://aniketpawar.com')
   await expect(
     docsFooter.getByRole('link', { name: 'GitHub' }),
-  ).toHaveAttribute('href', 'https://github.com/Tarkaworks/foldocs')
+  ).toHaveAttribute('href', 'https://github.com/tarkaworks/foldocs')
   await expect(docsFooter).toContainText('© 2026 Tarkaworks')
   await expect(
     docsFooter.getByRole('link', { name: 'Tarkaworks on X' }),

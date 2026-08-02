@@ -42,7 +42,7 @@ export default defineConfig({
     logoText: 'Foldocs',
     tagline:
       'Beautiful, searchable, LLM-ready documentation for Foldkit, powered by Effect.',
-    githubUrl: 'https://github.com/Tarkaworks/foldocs',
+    githubUrl: 'https://github.com/tarkaworks/foldocs',
     npmUrl: 'https://www.npmjs.com/package/foldocs',
     keywords: ['Foldkit', 'Effect', 'documentation'],
     favicon: '/favicon.svg',

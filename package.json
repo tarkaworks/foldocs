@@ -22,9 +22,9 @@
     "format:check": "prettier --check .",
     "lint": "oxlint --disable-nested-config",
     "lint:fix": "oxlint --fix --disable-nested-config",
-    "npm:setup": "fledgling add \"*\" --repo Tarkaworks/foldocs --workflow publish.yml",
-    "npm:setup:dry-run": "fledgling add \"*\" --repo Tarkaworks/foldocs --workflow publish.yml --dry-run",
-    "npm:trust": "fledgling sync --repo Tarkaworks/foldocs --workflow publish.yml",
+    "npm:setup": "fledgling add \"*\" --repo tarkaworks/foldocs --workflow publish.yml",
+    "npm:setup:dry-run": "fledgling add \"*\" --repo tarkaworks/foldocs --workflow publish.yml --dry-run",
+    "npm:trust": "fledgling sync --repo tarkaworks/foldocs --workflow publish.yml",
     "release:check": "node scripts/check-publish-boundary.mts",
     "pre-push": "pnpm check && pnpm test:e2e",
     "tegami": "node scripts/tegami.mts",
@@ -58,7 +58,7 @@
   },
   "fledgling": {
     "provider": "github",
-    "repo": "Tarkaworks/foldocs",
+    "repo": "tarkaworks/foldocs",
     "workflow": "publish.yml",
     "permissions": "publish",
     "trust": true

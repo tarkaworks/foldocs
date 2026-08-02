@@ -7,14 +7,14 @@ import { github } from 'tegami/plugins/github'
 export const paper = tegami({
   plugins: [
     github({
-      repo: 'Tarkaworks/foldocs',
+      repo: 'tarkaworks/foldocs',
       versionPr: {
         base: 'main',
       },
     }),
   ],
   npm: {
-    client: 'pnpm',
+    client: 'npm',
     updateLockFile: true,
     bumpDep: ({ dependent, kind }) => {
       if (dependent.manifest.private === true || kind === 'devDependencies') {
