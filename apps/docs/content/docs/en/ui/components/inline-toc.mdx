@@ -1,0 +1,30 @@
+---
+title: Inline TOC
+description: Place the current page headings directly inside the document body.
+---
+
+# Inline TOC
+
+`InlineTOC` renders the same heading data used by the desktop table of contents
+inside the page body. It is useful for long guides and remains available on
+small screens where the right sidebar is hidden.
+
+<InlineTOC label="On this page" />
+
+## Usage
+
+```mdx
+<InlineTOC label="On this page" />
+```
+
+## Properties
+
+| Property | Type     | Default        | Description                    |
+| -------- | -------- | -------------- | ------------------------------ |
+| `label`  | `string` | `On this page` | Heading displayed above links. |
+| `title`  | `false`  | —              | Hides the heading when false.  |
+
+## Behavior
+
+The links use the generated heading IDs and the Foldocs navigation action, so
+selection updates the URL fragment and scrolls without a document reload.

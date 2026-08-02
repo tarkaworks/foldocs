@@ -1,0 +1,28 @@
+---
+title: Zoomable images
+description: Open documentation images in an accessible full-screen preview.
+---
+
+# Zoomable images
+
+Relative Markdown images are zoomable automatically. No wrapper component or
+per-page registration is required.
+
+## Example
+
+![Portable content pipeline](<../../(get-started)/guides/_assets/portable.svg>)
+
+```md
+![Portable content pipeline](./portable.svg)
+```
+
+Foldocs inspects local images during compilation and emits intrinsic `width`
+and `height` attributes to prevent layout shift. Selecting the image opens a
+dialog with a backdrop, focus management, Escape-key dismissal, and an
+accessible label derived from the alt text.
+
+## Remote images
+
+Remote URLs remain supported, but Foldocs cannot infer their dimensions at
+build time. Prefer local assets when stable layout and completely static output
+matter.

@@ -1,0 +1,54 @@
+---
+title: Advanced authoring
+description: Combine built-in math and diagrams with dynamic code, typed API tables, and image metadata.
+order: 8
+tags:
+  - Markdown
+  - diagrams
+  - math
+---
+
+# Advanced authoring
+
+Foldocs compiles these features at build time wherever possible. The static
+HTML remains readable before the Foldkit runtime starts.
+
+## Math and diagrams
+
+[Math](/en/docs/markdown/math) is compiled to accessible KaTeX markup, while
+[Mermaid](/en/docs/markdown/mermaid) diagrams retain a readable source fallback
+and load the browser renderer only on routes that contain diagrams.
+
+## Dynamic highlighted code
+
+Use `DynamicCodeBlock` when generated content supplies a literal code string.
+It goes through the same Shiki pipeline as a fenced code block.
+
+<DynamicCodeBlock lang="ts" code="const answer: number = 42" />
+
+## Type tables
+
+Type tables use deterministic nested components, so they can be indexed and
+serialized without executing JavaScript in MDX.
+
+<TypeTable>
+  <TypeTableItem
+    name="title"
+    type="string"
+    description="Displayed page title."
+  />
+  <TypeTableItem
+    name="draft"
+    type="boolean"
+    default="false"
+    description="Excludes the page from production output."
+  />
+</TypeTable>
+
+## Image metadata and zoom
+
+Relative images are inspected during compilation. Foldocs writes intrinsic
+`width` and `height` attributes to prevent layout shift, then opens the image in
+an accessible full-screen preview when selected.
+
+![Portable content pipeline](../guides/_assets/portable.svg)

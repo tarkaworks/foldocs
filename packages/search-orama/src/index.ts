@@ -70,23 +70,33 @@ export const createOramaSearchClient = (
     const result = await search(await database, {
       mode: 'fulltext',
       term: query,
-      limit: searchOptions.limit ?? 12,
+      limit:
+        searchOptions.tags === undefined || searchOptions.tags.length === 0
+          ? (searchOptions.limit ?? 12)
+          : Math.max(50, searchOptions.limit ?? 12),
       tolerance: options.tolerance ?? 1,
       boost: { title: 3, description: 2 },
       ...(searchOptions.locale === undefined
         ? {}
         : { where: { locale: searchOptions.locale } }),
     })
-    return result.hits.map(hit => {
-      const document = hit.document
-      return {
-        id: document.id,
-        url: document.url,
-        title: document.title,
-        excerpt: excerpt(document.description || document.content, query),
-        score: hit.score,
-      }
-    })
+    return result.hits
+      .filter(
+        hit =>
+          searchOptions.tags === undefined ||
+          searchOptions.tags.every(tag => hit.document.tags.includes(tag)),
+      )
+      .slice(0, searchOptions.limit ?? 12)
+      .map(hit => {
+        const document = hit.document
+        return {
+          id: document.id,
+          url: document.url,
+          title: document.title,
+          excerpt: excerpt(document.description || document.content, query),
+          score: hit.score,
+        }
+      })
   }
 
   return {

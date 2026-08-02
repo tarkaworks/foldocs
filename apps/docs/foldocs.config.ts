@@ -69,6 +69,8 @@ export default defineConfig({
   llms: true,
   markdown: true,
   sitemap: true,
+  rss: true,
+  og: true,
   prerender: true,
   search: { staticIndex: true },
 })

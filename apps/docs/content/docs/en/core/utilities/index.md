@@ -1,6 +1,7 @@
 ---
 title: Utilities
 description: Resolve locale-aware routes and locate pages without depending on the UI.
+index: true
 ---
 
 # Utilities

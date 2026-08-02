@@ -55,4 +55,38 @@ describe('i18n configuration', () => {
       }),
     ).toThrow(/default locale fr/u)
   })
+
+  it('supports dotted locale files and an unprefixed default locale', () => {
+    const resolved = resolveConfig({
+      site: { title: 'Localized' },
+      i18n: {
+        defaultLocale: 'en',
+        parser: 'dot',
+        hideLocale: 'default-locale',
+        locales: [
+          { locale: 'en', name: 'English' },
+          { locale: 'es', name: 'Español' },
+        ],
+      },
+    })
+    expect(resolved.i18n.parser).toBe('dot')
+    expect(localizedPathname(resolved.i18n, 'en', '/docs')).toBe('/docs')
+    expect(localizedPathname(resolved.i18n, 'es', '/docs')).toBe('/es/docs')
+  })
+
+  it('rejects ambiguous locale-free multilingual static output', () => {
+    expect(() =>
+      resolveConfig({
+        site: { title: 'Localized' },
+        i18n: {
+          defaultLocale: 'en',
+          hideLocale: 'always',
+          locales: [
+            { locale: 'en', name: 'English' },
+            { locale: 'es', name: 'Español' },
+          ],
+        },
+      }),
+    ).toThrow(/requires a single locale/u)
+  })
 })

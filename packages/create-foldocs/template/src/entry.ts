@@ -1,7 +1,9 @@
 import { Runtime } from 'foldkit'
 import { createDocsProgram, preloadDocsPage } from 'foldocs'
 import {
+  banner,
   basePath,
+  feedback,
   i18n,
   landing,
   layout,
@@ -28,6 +30,8 @@ const program = createDocsProgram({
   basePath,
   i18n,
   landing,
+  banner,
+  feedback,
   layoutPreset: layout.preset,
   navigations,
   site: siteConfig,
@@ -50,3 +54,9 @@ const application = Runtime.makeApplication({
 })
 
 Runtime.run(application)
+
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    document.documentElement.dataset.foldocsReady = 'true'
+  })
+})

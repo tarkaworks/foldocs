@@ -1,0 +1,11 @@
+{
+  "title": "Sources",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "local-files",
+    "custom-adapters",
+    "remote-content",
+    "validation"
+  ]
+}

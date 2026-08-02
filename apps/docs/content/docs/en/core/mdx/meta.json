@@ -1,0 +1,14 @@
+{
+  "title": "MDX pipeline",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "headings",
+    "package-install",
+    "code-highlighting",
+    "directives",
+    "images",
+    "llm-output",
+    "structure"
+  ]
+}

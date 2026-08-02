@@ -19,6 +19,9 @@ const expectNoRuntimeErrors = (page: Page): Array<string> => {
   return errors
 }
 
+const waitForRuntime = (page: Page) =>
+  page.locator('html[data-foldocs-ready="true"]').waitFor()
+
 test('prerendered homepage, localized docs, Markdown, and remote content agree', async ({
   page,
   request,
@@ -249,11 +252,187 @@ test('open fonts are bundled and applied consistently', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
+test('package install blocks convert commands and remember the selected manager', async ({
+  page,
+}) => {
+  const errors = expectNoRuntimeErrors(page)
+  await page.goto('/en/docs/markdown/code-blocks')
+
+  const install = page.locator('[data-component="PackageInstall"]')
+  await expect(install).toHaveCount(1)
+  await expect(install).toHaveAttribute('data-package-manager', 'npm')
+  await expect(install.getByRole('tabpanel')).toContainText(
+    'npm install foldocs foldkit effect',
+  )
+
+  await install.getByRole('tab', { name: 'bun', exact: true }).click()
+  await expect(install).toHaveAttribute('data-package-manager', 'bun')
+  await expect(
+    install.getByRole('tab', { name: 'bun', exact: true }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await expect(install.getByRole('tabpanel')).toContainText(
+    'bun add foldocs foldkit effect',
+  )
+
+  await page.goto('/en/docs/ui/components/code-blocks')
+  const nextInstall = page.locator('[data-component="PackageInstall"]')
+  await expect(nextInstall).toHaveAttribute('data-package-manager', 'bun')
+  await expect(nextInstall.getByRole('tabpanel')).toContainText(
+    'bun add foldocs foldkit effect',
+  )
+
+  await page.reload()
+  await expect(nextInstall).toHaveAttribute('data-package-manager', 'bun')
+  expect(errors).toEqual([])
+})
+
+test('advanced authoring and static publishing features work together', async ({
+  page,
+  request,
+}) => {
+  const errors = expectNoRuntimeErrors(page)
+
+  const rss = await request.get('/rss.xml')
+  expect(rss.ok()).toBe(true)
+  expect(rss.headers()['content-type']).toMatch(/xml/)
+  expect(await rss.text()).toContain('<rss version="2.0">')
+
+  const socialImage = await request.get('/og/en/markdown/mermaid.png')
+  expect(socialImage.ok()).toBe(true)
+  expect(socialImage.headers()['content-type']).toContain('image/png')
+
+  await page.goto('/en/docs/markdown/math')
+  await expect(page.locator('.fd-math-display .katex')).toBeVisible()
+
+  await page.goto('/en/docs/markdown/mermaid')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Mermaid' }),
+  ).toBeVisible()
+  await expect(page.locator('.fd-mermaid')).toHaveAttribute(
+    'data-rendered',
+    'true',
+  )
+  await expect(page.locator('.fd-mermaid svg')).toBeVisible()
+
+  await page.goto('/en/docs/markdown/advanced')
+  await expect(page.locator('.fd-type-table')).toContainText(
+    'Displayed page title',
+  )
+  await expect(page.locator('.fd-last-updated')).toBeVisible()
+
+  await page.locator('.fd-image-zoom-trigger').click()
+  await expect(
+    page.getByRole('dialog', { name: 'Image preview' }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Image preview' })).toHaveCount(
+    0,
+  )
+
+  await page.locator('#fd-search-trigger').click()
+  const search = page.getByRole('dialog', { name: 'Search documentation' })
+  await expect(
+    search.getByRole('group', { name: 'Filter by topic' }),
+  ).toBeVisible()
+  await search.getByRole('button', { name: 'Markdown', exact: true }).click()
+  await search.getByRole('combobox').fill('advanced')
+  await expect(search.getByRole('option').first()).toBeVisible()
+
+  for (const [url, title] of [
+    ['/en/docs/guides/export-pdf', 'Export PDF'],
+    ['/en/docs/guides/rss', 'RSS feed'],
+    ['/en/docs/integrations/feedback', 'Feedback'],
+    ['/en/docs/integrations/social-images', 'Social images'],
+    ['/en/docs/integrations/openapi/operation-pages', 'Operation pages'],
+    ['/en/docs/integrations/asyncapi/schema-inputs', 'Schema inputs'],
+  ] as const) {
+    await page.goto(url)
+    await expect(
+      page.getByRole('heading', { level: 1, name: title }),
+    ).toBeVisible()
+  }
+  expect(errors).toEqual([])
+})
+
+test('Core exposes its headless component, MDX, utility, and source references', async ({
+  page,
+}) => {
+  const errors = expectNoRuntimeErrors(page)
+
+  await page.goto('/en/docs/core/components/breadcrumbs')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Breadcrumbs' }),
+  ).toBeVisible()
+  await expect(page.locator('.fd-page-context')).toHaveText(
+    'Headless components',
+  )
+  await expect(page.locator('.fd-sidebar-section-label')).toHaveText([
+    'Guide',
+    'API References',
+    'Sources',
+  ])
+  await expect(
+    page.getByRole('link', { name: 'Table of contents', exact: true }),
+  ).toBeVisible()
+
+  await page.goto('/en/docs/core/mdx/package-install')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Package install' }),
+  ).toBeVisible()
+  await expect(page.locator('.fd-page-context')).toHaveText('MDX pipeline')
+
+  await page.goto('/en/docs/core/content-sources/custom-adapters')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Custom adapters' }),
+  ).toBeVisible()
+  await expect(page.locator('.fd-page-context')).toHaveText('Sources')
+  expect(errors).toEqual([])
+})
+
+test('MDX documents its content pipeline, integrations, and automatic features', async ({
+  page,
+}) => {
+  const errors = expectNoRuntimeErrors(page)
+
+  await page.goto('/en/docs/mdx/accessing-content')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Accessing content' }),
+  ).toBeVisible()
+  await expect(page.locator('.fd-sidebar-section-label')).toHaveText([
+    'Guide',
+    'Integrations',
+    'Configuration',
+    'Features',
+    'Authoring',
+    'Reference',
+  ])
+
+  for (const [url, title] of [
+    ['/en/docs/mdx/vite', 'Vite'],
+    ['/en/docs/mdx/runtime-compilation', 'Standalone compilation'],
+    ['/en/docs/mdx/content-sources', 'Content sources'],
+    ['/en/docs/mdx/configuration', 'Configuration'],
+    ['/en/docs/mdx/reuse-content', 'Reuse content'],
+    ['/en/docs/mdx/lazy-loading', 'Lazy loading'],
+    ['/en/docs/mdx/type-safety', 'Type safety'],
+    ['/en/docs/mdx/monorepos', 'Monorepos'],
+  ] as const) {
+    await page.goto(url)
+    await expect(
+      page.getByRole('heading', { level: 1, name: title }),
+    ).toBeVisible()
+    await expect(page.locator('.fd-toc-shell a').first()).toBeVisible()
+  }
+
+  expect(errors).toEqual([])
+})
+
 test('search traps focus, resolves local results, and restores its trigger', async ({
   page,
 }) => {
   const errors = expectNoRuntimeErrors(page)
   await page.goto('/en/docs')
+  await waitForRuntime(page)
   const trigger = page.locator('#fd-search-trigger')
   await trigger.click()
   const dialog = page.getByRole('dialog', { name: 'Search documentation' })
@@ -268,6 +447,8 @@ test('search traps focus, resolves local results, and restores its trigger', asy
   )
 
   await page.keyboard.press('Shift+Tab')
+  await expect(dialog.locator('.fd-search-filter').last()).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(input).toBeFocused()
 
   const themeBeforeTyping = await page
@@ -500,6 +681,10 @@ test('sections, folders, page actions, and pager work together', async ({
   const documentationSelector = page.getByRole('button', {
     name: 'Select documentation',
   })
+  await expect(documentationSelector).toContainText('Framework')
+  await expect(documentationSelector).not.toContainText(
+    'Build production documentation with Foldkit',
+  )
   await navbarSearch.hover()
   await page.waitForTimeout(200)
   const controlHoverBorder = await navbarSearch.evaluate(
@@ -530,6 +715,9 @@ test('sections, folders, page actions, and pager work together', async ({
     ).toBeVisible()
   }
   await expect(documentationMenu.getByRole('menuitem')).toHaveCount(5)
+  await expect(
+    documentationMenu.getByRole('menuitem', { name: /^Framework/u }),
+  ).toContainText('Build production documentation with Foldkit')
   await expect(
     documentationMenu.locator(
       '.fd-layout-tab-active .fd-icon path[d="M20 6 9 17l-5-5"]',

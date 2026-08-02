@@ -16,6 +16,8 @@ declare module 'virtual:foldocs' {
   export const basePath: string
   export const layout: import('foldocs-core').ResolvedFoldocsConfig['layout']
   export const landing: import('foldocs-core').ResolvedLandingConfig
+  export const banner: import('foldocs-core').BannerConfig | undefined
+  export const feedback: import('foldocs-core').FeedbackConfig | undefined
   export const markdown: boolean
   export const searchIndexUrls: Readonly<Record<string, string>>
   export default manifest

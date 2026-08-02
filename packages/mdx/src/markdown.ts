@@ -34,6 +34,8 @@ const renderInline = (
       return inline.value
     case 'InlineCode':
       return inlineCode(inline.value)
+    case 'InlineMath':
+      return `$${inline.value}$`
     case 'HardBreak':
       return '  \n'
     case 'Emphasis':
@@ -133,6 +135,21 @@ const renderBlock = (
       const fence = '`'.repeat(longestFence)
       const info = [block.language, block.meta].filter(Boolean).join(' ')
       return `${fence}${info}\n${block.value.replace(/\n+$/u, '')}\n${fence}`
+    }
+    case 'MathBlock':
+      return `$$\n${block.value}\n$$`
+    case 'Mermaid':
+      return `\`\`\`mermaid\n${block.value.replace(/\n+$/u, '')}\n\`\`\``
+    case 'PackageInstall': {
+      const longestFence = Math.max(
+        3,
+        ...[...block.source.matchAll(/`+/gu)].map(
+          ([value]) => value.length + 1,
+        ),
+      )
+      const fence = '`'.repeat(longestFence)
+      const info = [block.sourceLanguage, block.meta].filter(Boolean).join(' ')
+      return `${fence}${info}\n${block.source.replace(/\n+$/u, '')}\n${fence}`
     }
     case 'List':
       return block.items

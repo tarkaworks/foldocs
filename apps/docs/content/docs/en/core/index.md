@@ -18,6 +18,23 @@ filesystem crawler.
 | `foldocs-core/manifest`   | Page lookup and adjacent-page helpers             |
 | `foldocs-core/navigation` | Folders, separators, roots, and layout tabs       |
 
+## Headless feature map
+
+Foldocs splits the responsibilities grouped into `fumadocs-core` across small
+packages:
+
+| Responsibility         | Foldocs package    |
+| ---------------------- | ------------------ |
+| Configuration and tree | `foldocs-core`     |
+| Content contracts      | `@foldocs/content` |
+| Markdown compilation   | `foldocs-mdx`      |
+| Foldkit views          | `foldocs-ui`       |
+| Search contracts       | `@foldocs/search`  |
+| Discovery and output   | `@foldocs/vite`    |
+
+The Core documentation follows those capabilities even when the implementation
+lives in a neighboring package.
+
 ## Why it is separate
 
 Adapters can create the same page metadata whether content comes from the local

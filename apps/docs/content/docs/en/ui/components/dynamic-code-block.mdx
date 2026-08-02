@@ -1,0 +1,36 @@
+---
+title: Dynamic code block
+description: Highlight a code string supplied through component attributes.
+---
+
+# Dynamic code block
+
+Use `DynamicCodeBlock` when code is generated or supplied as a string instead
+of written in a Markdown fence. Foldocs sends it through the same build-time
+Shiki pipeline as every other code block.
+
+## Example
+
+<DynamicCodeBlock
+  lang="ts"
+  code="const documentation: string = 'static and typed'"
+/>
+
+```mdx
+<DynamicCodeBlock
+  lang="ts"
+  code="const documentation: string = 'static and typed'"
+/>
+```
+
+## Properties
+
+| Property   | Type     | Description                                     |
+| ---------- | -------- | ----------------------------------------------- |
+| `code`     | `string` | Source passed to the highlighter.               |
+| `lang`     | `string` | Shiki language identifier.                      |
+| `language` | `string` | Alias for `lang`.                               |
+| `meta`     | `string` | Optional metadata forwarded to the highlighter. |
+
+The compiled result is a normal Foldocs code block, including its stable copy
+action and accessible source text.

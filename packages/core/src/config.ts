@@ -18,6 +18,7 @@ export const UiTranslations = S.Struct({
   searchUnavailable: S.optionalKey(S.String),
   noSearchResults: S.optionalKey(S.String),
   searchResultsAvailable: S.optionalKey(S.String),
+  searchFilters: S.optionalKey(S.String),
   openNavigation: S.optionalKey(S.String),
   closeNavigation: S.optionalKey(S.String),
   documentationNavigation: S.optionalKey(S.String),
@@ -44,6 +45,15 @@ export const UiTranslations = S.Struct({
   pagination: S.optionalKey(S.String),
   previousPage: S.optionalKey(S.String),
   nextPage: S.optionalKey(S.String),
+  lastUpdated: S.optionalKey(S.String),
+  dismissBanner: S.optionalKey(S.String),
+  imagePreview: S.optionalKey(S.String),
+  closeImagePreview: S.optionalKey(S.String),
+  wasThisHelpful: S.optionalKey(S.String),
+  helpful: S.optionalKey(S.String),
+  notHelpful: S.optionalKey(S.String),
+  feedbackThanks: S.optionalKey(S.String),
+  feedbackFailed: S.optionalKey(S.String),
   builtWith: S.optionalKey(S.String),
   documentNotFound: S.optionalKey(S.String),
   loadingDocumentation: S.optionalKey(S.String),
@@ -77,6 +87,7 @@ export interface ResolvedUiTranslations {
   readonly searchUnavailable: string
   readonly noSearchResults: string
   readonly searchResultsAvailable: string
+  readonly searchFilters: string
   readonly openNavigation: string
   readonly closeNavigation: string
   readonly documentationNavigation: string
@@ -103,6 +114,15 @@ export interface ResolvedUiTranslations {
   readonly pagination: string
   readonly previousPage: string
   readonly nextPage: string
+  readonly lastUpdated: string
+  readonly dismissBanner: string
+  readonly imagePreview: string
+  readonly closeImagePreview: string
+  readonly wasThisHelpful: string
+  readonly helpful: string
+  readonly notHelpful: string
+  readonly feedbackThanks: string
+  readonly feedbackFailed: string
   readonly builtWith: string
   readonly documentNotFound: string
   readonly loadingDocumentation: string
@@ -135,6 +155,7 @@ export const defaultUiTranslations: ResolvedUiTranslations = {
   searchUnavailable: 'Search is temporarily unavailable.',
   noSearchResults: 'No results for “{query}”.',
   searchResultsAvailable: '{count} results available.',
+  searchFilters: 'Filter by topic',
   openNavigation: 'Open navigation',
   closeNavigation: 'Close navigation',
   documentationNavigation: 'Documentation navigation',
@@ -161,6 +182,15 @@ export const defaultUiTranslations: ResolvedUiTranslations = {
   pagination: 'Pagination',
   previousPage: 'Previous',
   nextPage: 'Next',
+  lastUpdated: 'Last updated {date}',
+  dismissBanner: 'Dismiss announcement',
+  imagePreview: 'Image preview',
+  closeImagePreview: 'Close image preview',
+  wasThisHelpful: 'Was this page helpful?',
+  helpful: 'Yes',
+  notHelpful: 'No',
+  feedbackThanks: 'Thanks for your feedback.',
+  feedbackFailed: 'Feedback could not be sent. Please try again.',
   builtWith: 'Built with Foldocs and Foldkit.',
   documentNotFound: 'Document not found',
   loadingDocumentation: 'Loading documentation…',
@@ -188,6 +218,8 @@ export type LocaleConfig = typeof LocaleConfig.Type
 export const I18nConfig = S.Struct({
   defaultLocale: S.String,
   fallbackLocale: S.optionalKey(S.String),
+  parser: S.optionalKey(S.Literals(['dir', 'dot'])),
+  hideLocale: S.optionalKey(S.Literals(['never', 'default-locale', 'always'])),
   locales: S.Array(LocaleConfig),
 })
 export type I18nConfig = typeof I18nConfig.Type
@@ -203,6 +235,8 @@ export interface ResolvedI18nConfig {
   readonly enabled: boolean
   readonly defaultLocale: string
   readonly fallbackLocale: string
+  readonly parser: 'dir' | 'dot'
+  readonly hideLocale: 'never' | 'default-locale' | 'always'
   readonly locales: ReadonlyArray<ResolvedLocaleConfig>
 }
 
@@ -248,6 +282,21 @@ export const LandingFooterConfig = S.Struct({
 })
 export type LandingFooterConfig = typeof LandingFooterConfig.Type
 
+export const BannerConfig = S.Struct({
+  content: S.String,
+  id: S.optionalKey(S.String),
+  href: S.optionalKey(S.String),
+  variant: S.optionalKey(S.Literals(['default', 'rainbow'])),
+  dismissible: S.optionalKey(S.Boolean),
+})
+export type BannerConfig = typeof BannerConfig.Type
+
+export const FeedbackConfig = S.Struct({
+  endpoint: S.String,
+  prompt: S.optionalKey(S.String),
+})
+export type FeedbackConfig = typeof FeedbackConfig.Type
+
 export const LandingConfig = S.Struct({
   sections: S.optionalKey(S.Array(LandingSection)),
   headline: S.optionalKey(S.String),
@@ -278,15 +327,26 @@ export interface FoldocsConfig {
   readonly content?: {
     readonly dir?: string
     readonly sources?: ReadonlyArray<ContentAdapter>
+    readonly lastModified?: 'git' | 'filesystem' | false
   }
   readonly basePath?: string
   readonly layout?: {
     readonly preset?: LayoutPreset
   }
   readonly landing?: LandingConfig
+  readonly banner?: BannerConfig
+  readonly feedback?: FeedbackConfig
   readonly llms?: boolean
   readonly markdown?: boolean
   readonly sitemap?: boolean
+  readonly rss?:
+    | boolean
+    | {
+        readonly path?: string
+        readonly title?: string
+        readonly description?: string
+      }
+  readonly og?: boolean | { readonly directory?: string }
   readonly prerender?: boolean
   readonly search?: {
     readonly staticIndex?: boolean
@@ -299,15 +359,25 @@ export interface ResolvedFoldocsConfig {
   readonly content: {
     readonly dir: string
     readonly sources: ReadonlyArray<ContentAdapter>
+    readonly lastModified: 'git' | 'filesystem' | false
   }
   readonly basePath: string
   readonly layout: {
     readonly preset: LayoutPreset
   }
   readonly landing: ResolvedLandingConfig
+  readonly banner?: BannerConfig
+  readonly feedback?: FeedbackConfig
   readonly llms: boolean
   readonly markdown: boolean
   readonly sitemap: boolean
+  readonly rss: {
+    readonly enabled: boolean
+    readonly path: string
+    readonly title: string
+    readonly description?: string
+  }
+  readonly og: { readonly enabled: boolean; readonly directory: string }
   readonly prerender: boolean
   readonly search: {
     readonly staticIndex: boolean
@@ -330,6 +400,8 @@ const resolveI18n = (
       enabled: false,
       defaultLocale: locale,
       fallbackLocale: locale,
+      parser: 'dir',
+      hideLocale: 'never',
       locales: [
         {
           locale,
@@ -367,6 +439,8 @@ const resolveI18n = (
     enabled: true,
     defaultLocale: decoded.defaultLocale,
     fallbackLocale,
+    parser: decoded.parser ?? 'dir',
+    hideLocale: decoded.hideLocale ?? 'never',
     locales: decoded.locales.map(locale => ({
       locale: locale.locale,
       name: locale.name,
@@ -427,13 +501,18 @@ export const localizedPathname = (
 ): string => {
   const base = stripLocalePrefix(i18n, pathname)
   if (!i18n.enabled) return base
+  if (
+    i18n.hideLocale === 'always' ||
+    (i18n.hideLocale === 'default-locale' && locale === i18n.defaultLocale)
+  )
+    return base
   return base === '/' ? `/${locale}` : `/${locale}${base}`
 }
 
 export const localeHomePath = (
   i18n: ResolvedI18nConfig,
   locale: string,
-): string => (i18n.enabled ? `/${locale}` : '/')
+): string => localizedPathname(i18n, locale, '/')
 
 export const defineConfig = <const Config extends FoldocsConfig>(
   config: Config,
@@ -442,7 +521,19 @@ export const defineConfig = <const Config extends FoldocsConfig>(
 export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
   const site = S.decodeUnknownSync(SiteConfig)(config.site)
   const i18n = resolveI18n(config.i18n, site.locale)
+  if (i18n.hideLocale === 'always' && i18n.locales.length > 1)
+    throw new TypeError(
+      'Foldocs i18n.hideLocale "always" requires a single locale in a static application; use "default-locale" for multilingual static output.',
+    )
   const landing = S.decodeUnknownSync(LandingConfig)(config.landing ?? {})
+  const banner =
+    config.banner === undefined
+      ? undefined
+      : S.decodeUnknownSync(BannerConfig)(config.banner)
+  const feedback =
+    config.feedback === undefined
+      ? undefined
+      : S.decodeUnknownSync(FeedbackConfig)(config.feedback)
   const landingSections = landing.sections ?? defaultLandingSections
   if (landingSections.length === 0 || !landingSections.includes('hero'))
     throw new TypeError(
@@ -456,6 +547,7 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
     content: {
       dir: config.content?.dir ?? 'content/docs',
       sources: config.content?.sources ?? [],
+      lastModified: config.content?.lastModified ?? 'git',
     },
     basePath: normalizeBasePath(config.basePath ?? '/docs'),
     layout: {
@@ -472,9 +564,34 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
       command: landing.command ?? 'pnpm create foldocs@latest',
       ...(landing.footer === undefined ? {} : { footer: landing.footer }),
     },
+    ...(banner === undefined ? {} : { banner }),
+    ...(feedback === undefined ? {} : { feedback }),
     llms: config.llms ?? true,
     markdown: config.markdown ?? true,
     sitemap: config.sitemap ?? true,
+    rss: {
+      enabled: config.rss === true || typeof config.rss === 'object',
+      path:
+        typeof config.rss === 'object'
+          ? (config.rss.path ?? 'rss.xml').replace(/^\/+|\/+$/gu, '')
+          : 'rss.xml',
+      title:
+        typeof config.rss === 'object'
+          ? (config.rss.title ?? site.title)
+          : site.title,
+      ...(typeof config.rss === 'object' && config.rss.description !== undefined
+        ? { description: config.rss.description }
+        : site.description === undefined
+          ? {}
+          : { description: site.description }),
+    },
+    og: {
+      enabled: config.og === true || typeof config.og === 'object',
+      directory:
+        typeof config.og === 'object'
+          ? (config.og.directory ?? 'og').replace(/^\/+|\/+$/gu, '')
+          : 'og',
+    },
     prerender: config.prerender ?? true,
     search: {
       staticIndex: config.search?.staticIndex ?? true,

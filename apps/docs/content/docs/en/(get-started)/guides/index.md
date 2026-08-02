@@ -17,6 +17,8 @@ and content pipeline are available.
 - **Static output** for deployment and route verification.
 - **Access control** for placing authentication in front of static docs.
 - **Export an EPUB** for an offline release artifact from the same page AST.
+- **Export PDF documents** with the print-ready generated-site script.
+- **Publish an RSS feed** directly from the localized page manifest.
 - **Import an Obsidian vault** for authoring with wiki links and embeds.
 - **Build with remote content** for CMS and repository-backed documentation.
 

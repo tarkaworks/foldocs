@@ -6,6 +6,8 @@ import {
   childAttributes,
 } from 'foldkit/html'
 import type {
+  BannerConfig,
+  FeedbackConfig,
   LandingFooterConfig,
   LayoutPreset,
   NavigationNode,
@@ -15,7 +17,7 @@ import type {
   ResolvedUiTranslations,
   SiteConfig,
 } from 'foldocs-core'
-import { interpolateTranslation } from 'foldocs-core'
+import { interpolateTranslation, navigationContextForUrl } from 'foldocs-core'
 import type { CompiledPage } from 'foldocs-mdx'
 
 import { Button, Dialog, Disclosure, Menu } from '@foldkit/ui'
@@ -75,6 +77,7 @@ interface SearchActions<Message> {
   readonly updateSearch: (query: string) => Message
   readonly searchKeyDown: (key: string) => Message
   readonly selectSearchResult: (url: string) => Message
+  readonly toggleSearchTag: (tag: string) => Message
   readonly gotSearchDialogMessage?: (message: FoldocsDialogMessage) => Message
 }
 
@@ -85,6 +88,8 @@ interface SearchOptions<Message> {
   readonly searchLoading: boolean
   readonly searchError: string
   readonly activeSearchResultIndex: number
+  readonly availableSearchTags: ReadonlyArray<string>
+  readonly selectedSearchTags: ReadonlyArray<string>
   readonly translations: ResolvedUiTranslations
   readonly searchDialog?: FoldocsDialogModel
   readonly actions: SearchActions<Message>
@@ -106,6 +111,10 @@ export interface DocsLayoutActions<Message> extends SearchActions<Message> {
   readonly selectToc: (id: string) => Message
   readonly selectTheme: (preference: ThemePreference) => Message
   readonly copyMarkdown: Message
+  readonly dismissBanner: Message
+  readonly openImage: (url: string, alt: string) => Message
+  readonly closeImage: Message
+  readonly submitFeedback: (rating: 'positive' | 'negative') => Message
   readonly gotSidebarDialogMessage?: (message: FoldocsDialogMessage) => Message
   readonly gotHeaderLanguageMenuMessage?: (
     message: LanguageMenuMessage,
@@ -124,6 +133,7 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
   readonly tabs: ReadonlyArray<NavigationTab>
   readonly currentUrl: string
   readonly page: CompiledPage
+  readonly lastModified?: string
   readonly previous?: PageManifestEntry<CompiledPage>
   readonly next?: PageManifestEntry<CompiledPage>
   readonly sidebarOpen: boolean
@@ -145,6 +155,11 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
   readonly markdownUrl: string
   readonly markdownEnabled: boolean
   readonly footer?: LandingFooterConfig
+  readonly banner?: BannerConfig
+  readonly bannerDismissed: boolean
+  readonly feedback?: FeedbackConfig
+  readonly feedbackStatus: 'idle' | 'submitting' | 'submitted' | 'error'
+  readonly imagePreview?: { readonly url: string; readonly alt: string }
   readonly copyMarkdownStatus: 'idle' | 'loading' | 'copied' | 'error'
   readonly actions: DocsLayoutActions<Message>
   readonly markdown?: MarkdownViewOptions<Message>
@@ -154,6 +169,7 @@ export interface LandingLayoutActions<Message> extends SearchActions<Message> {
   readonly selectTheme: (preference: ThemePreference) => Message
   readonly copyText: (value: string) => Message
   readonly openExternal: (url: string) => Message
+  readonly dismissBanner: Message
   readonly gotHeaderLanguageMenuMessage?: (
     message: LanguageMenuMessage,
   ) => Message
@@ -170,6 +186,8 @@ export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
   readonly theme: 'light' | 'dark'
   readonly themePreference: ThemePreference
   readonly copiedText: string
+  readonly banner?: BannerConfig
+  readonly bannerDismissed: boolean
   readonly actions: LandingLayoutActions<Message>
 }
 
@@ -184,6 +202,44 @@ const icon = <Message>(
       h.InnerHTML(icons[name]),
     ],
     [],
+  )
+}
+
+const bannerView = <Message>(
+  banner: BannerConfig | undefined,
+  dismissed: boolean,
+  dismiss: Message,
+  dismissLabel: string,
+  h: HtmlBuilder<Message>,
+): Html => {
+  if (banner === undefined || dismissed) return h.empty
+  const content =
+    banner.href === undefined
+      ? h.span([], [banner.content])
+      : h.a([h.Href(banner.href)], [banner.content])
+  return h.aside(
+    [
+      h.Class(
+        `fd-banner${banner.variant === 'rainbow' ? ' fd-banner-rainbow' : ''}`,
+      ),
+      h.DataAttribute('banner-id', banner.id ?? ''),
+    ],
+    [
+      content,
+      ...(banner.dismissible === false
+        ? []
+        : [
+            h.button(
+              [
+                h.Type('button'),
+                h.Class('fd-banner-dismiss'),
+                h.OnClick(dismiss),
+                h.AriaLabel(dismissLabel),
+              ],
+              [icon('close', h)],
+            ),
+          ]),
+    ],
   )
 }
 
@@ -598,27 +654,6 @@ const headerView = <Message>(
     ],
   )
 
-const navigationContextForUrl = (
-  nodes: ReadonlyArray<NavigationNode>,
-  currentUrl: string,
-  ancestors: ReadonlyArray<string> = [],
-): ReadonlyArray<string> | undefined => {
-  for (const node of nodes) {
-    if (node._tag === 'Separator') continue
-    if (node._tag === 'Page') {
-      if (node.url === currentUrl) return ancestors
-      continue
-    }
-    if (node.index?.url === currentUrl) return ancestors
-    const nested = navigationContextForUrl(node.children, currentUrl, [
-      ...ancestors,
-      node.label,
-    ])
-    if (nested !== undefined) return nested
-  }
-  return undefined
-}
-
 const navigationView = <Message>(
   nodes: ReadonlyArray<NavigationNode>,
   currentUrl: string,
@@ -782,12 +817,7 @@ const layoutTabsView = <Message>(
       navigationIcon(current.icon, customIcons, h),
       h.span(
         [h.Class('fd-layout-tab-current')],
-        [
-          h.strong([], [current.title]),
-          ...(current.description === undefined
-            ? []
-            : [h.span([], [current.description])]),
-        ],
+        [h.strong([], [current.title])],
       ),
       icon('chevron', h, 'fd-layout-tabs-chevron'),
     ],
@@ -1068,6 +1098,37 @@ const searchDialogView = <Message>(
                             ]),
                           ],
                         ),
+                        ...(options.availableSearchTags.length === 0
+                          ? []
+                          : [
+                              h.div(
+                                [
+                                  h.Class('fd-search-filters'),
+                                  h.Role('group'),
+                                  h.AriaLabel(t.searchFilters),
+                                ],
+                                options.availableSearchTags.map(tag => {
+                                  const selected =
+                                    options.selectedSearchTags.includes(tag)
+                                  return h.button(
+                                    [
+                                      h.Type('button'),
+                                      h.Class(
+                                        `fd-search-filter${selected ? ' fd-search-filter-active' : ''}`,
+                                      ),
+                                      h.Attribute(
+                                        'aria-pressed',
+                                        String(selected),
+                                      ),
+                                      h.OnClick(
+                                        options.actions.toggleSearchTag(tag),
+                                      ),
+                                    ],
+                                    [tag],
+                                  )
+                                }),
+                              ),
+                            ]),
                         h.div(
                           [
                             h.Id('fd-search-results'),
@@ -1544,6 +1605,13 @@ export const docsLayout = <Message>(
         [h.Class('fd-skip-link'), h.Href('#main-content')],
         [t.skipToContent],
       ),
+      bannerView(
+        options.banner,
+        options.bannerDismissed,
+        options.actions.dismissBanner,
+        t.dismissBanner,
+        h,
+      ),
       headerView(
         options.site,
         options.homeUrl,
@@ -1643,12 +1711,102 @@ export const docsLayout = <Message>(
                             },
                             {
                               ...options.markdown,
+                              toc: options.page.toc,
+                              selectToc: options.actions.selectToc,
+                              openImage: options.actions.openImage,
                               ...(options.site.icons === undefined
                                 ? {}
                                 : { icons: options.site.icons }),
                             },
                             h,
                           ),
+                          ...(options.lastModified === undefined
+                            ? []
+                            : [
+                                h.p(
+                                  [
+                                    h.Class('fd-last-updated'),
+                                    h.Attribute(
+                                      'data-last-modified',
+                                      options.lastModified,
+                                    ),
+                                  ],
+                                  [
+                                    interpolateTranslation(t.lastUpdated, {
+                                      date: new Intl.DateTimeFormat(
+                                        options.currentLocale,
+                                        {
+                                          dateStyle: 'medium',
+                                        },
+                                      ).format(new Date(options.lastModified)),
+                                    }),
+                                  ],
+                                ),
+                              ]),
+                          ...(options.feedback === undefined
+                            ? []
+                            : [
+                                h.section(
+                                  [
+                                    h.Class('fd-feedback'),
+                                    h.AriaLive('polite'),
+                                  ],
+                                  options.feedbackStatus === 'submitted'
+                                    ? [t.feedbackThanks]
+                                    : [
+                                        h.span(
+                                          [h.Class('fd-feedback-prompt')],
+                                          [
+                                            options.feedback.prompt ??
+                                              t.wasThisHelpful,
+                                          ],
+                                        ),
+                                        h.div(
+                                          [h.Class('fd-feedback-actions')],
+                                          [
+                                            h.button(
+                                              [
+                                                h.Type('button'),
+                                                h.Disabled(
+                                                  options.feedbackStatus ===
+                                                    'submitting',
+                                                ),
+                                                h.OnClick(
+                                                  options.actions.submitFeedback(
+                                                    'positive',
+                                                  ),
+                                                ),
+                                              ],
+                                              [t.helpful],
+                                            ),
+                                            h.button(
+                                              [
+                                                h.Type('button'),
+                                                h.Disabled(
+                                                  options.feedbackStatus ===
+                                                    'submitting',
+                                                ),
+                                                h.OnClick(
+                                                  options.actions.submitFeedback(
+                                                    'negative',
+                                                  ),
+                                                ),
+                                              ],
+                                              [t.notHelpful],
+                                            ),
+                                          ],
+                                        ),
+                                        ...(options.feedbackStatus === 'error'
+                                          ? [
+                                              h.span(
+                                                [h.Class('fd-feedback-error')],
+                                                [t.feedbackFailed],
+                                              ),
+                                            ]
+                                          : []),
+                                      ],
+                                ),
+                              ]),
                           h.nav(
                             [h.Class('fd-pager'), h.AriaLabel(t.pagination)],
                             [
@@ -1741,6 +1899,42 @@ export const docsLayout = <Message>(
         h,
       ),
       searchDialogView(options, h),
+      ...(options.imagePreview === undefined
+        ? []
+        : [
+            h.div(
+              [
+                h.Class('fd-image-preview'),
+                h.Role('dialog'),
+                h.AriaModal(true),
+                h.AriaLabel(t.imagePreview),
+              ],
+              [
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.Class('fd-image-preview-backdrop'),
+                    h.OnClick(options.actions.closeImage),
+                    h.AriaLabel(t.closeImagePreview),
+                  ],
+                  [],
+                ),
+                h.img([
+                  h.Src(options.imagePreview.url),
+                  h.Alt(options.imagePreview.alt),
+                ]),
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.Class('fd-image-preview-close'),
+                    h.OnClick(options.actions.closeImage),
+                    h.AriaLabel(t.closeImagePreview),
+                  ],
+                  [icon('close', h)],
+                ),
+              ],
+            ),
+          ]),
     ],
   )
 }
@@ -1778,6 +1972,13 @@ export const landingLayout = <Message>(
       h.a(
         [h.Class('fd-skip-link'), h.Href('#main-content')],
         [t.skipToContent],
+      ),
+      bannerView(
+        options.banner,
+        options.bannerDismissed,
+        options.actions.dismissBanner,
+        t.dismissBanner,
+        h,
       ),
       headerView(
         options.site,

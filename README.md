@@ -34,7 +34,7 @@ repository running locally and land a change. By participating, you agree to our
 
 ## Acknowledgements
 
-- [Fumadocs] by [Fuma Nama](https://x.com/fuma_nama)
+- [Fumadocs](https://www.fumadocs.dev/) by [Fuma Nama](https://x.com/fuma_nama)
 
 ## License
 

@@ -19,6 +19,11 @@ output before the client runtime starts.
 - accordions for optional detail
 - file trees for project structure
 - highlighted code blocks with copy actions
+- dynamic code blocks for generated source strings
+- zoomable images with intrinsic dimensions
+- inline tables of contents
+- type-reference tables
+- dismissible announcement banners
 
 ## Use from MDX
 

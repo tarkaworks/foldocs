@@ -30,3 +30,17 @@ manifest so local and remote content remain searchable together.
 
 The `excerpt` helper creates a bounded text fragment around a match when a
 provider does not return one.
+
+## Provider guides
+
+- [Orama local search](/en/docs/search/orama)
+- [FlexSearch local search](/en/docs/search/flexsearch)
+- [Algolia](/en/docs/search/algolia)
+- [Typesense](/en/docs/search/typesense)
+- [Orama Cloud](/en/docs/search/orama-cloud)
+- [Trieve](/en/docs/search/trieve)
+- [Mixedbread](/en/docs/search/mixedbread)
+- [Custom providers](/en/docs/search/custom)
+
+Provider packages implement the same `SearchClient` and optional indexing
+contracts, so switching providers does not change the layout.

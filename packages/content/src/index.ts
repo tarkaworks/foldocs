@@ -34,6 +34,8 @@ export const PageMetadata = S.Struct({
   sourceLocale: S.optionalKey(S.String),
   translationKey: S.optionalKey(S.String),
   navigationPath: S.optionalKey(S.String),
+  /** ISO-8601 timestamp supplied by the source or derived from Git/filesystem. */
+  lastModified: S.optionalKey(S.String),
   frontmatter: PageFrontmatter,
   toc: S.Array(TocItem),
   plainText: S.String,
@@ -56,6 +58,7 @@ export const ContentFile = S.Struct({
   path: S.String,
   source: S.String,
   locale: S.optionalKey(S.String),
+  lastModified: S.optionalKey(S.String),
 })
 export type ContentFile = typeof ContentFile.Type
 
@@ -73,3 +76,6 @@ export const defineContentAdapter = (
 export const decodePageFrontmatter = S.decodeUnknownSync(PageFrontmatter)
 export const decodePageMetadata = S.decodeUnknownSync(PageMetadata)
 export const decodeContentFile = S.decodeUnknownSync(ContentFile)
+
+export { notion } from './notion.js'
+export type { NotionClientLike, NotionOptions } from './notion.js'

@@ -38,4 +38,18 @@ const program = Effect.succeed(1)
 \`\`\`
 `)
   })
+
+  it('serializes the authored package-install block instead of generated variants', async () => {
+    const page = await compile(
+      '# Install\n\n```package-install\nfoldocs foldkit effect\n```',
+      { highlight: false },
+    )
+
+    expect(documentToMarkdown(page.document)).toBe(`# Install
+
+\`\`\`package-install
+foldocs foldkit effect
+\`\`\`
+`)
+  })
 })

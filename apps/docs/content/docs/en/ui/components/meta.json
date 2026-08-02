@@ -9,6 +9,11 @@
     "steps",
     "accordion",
     "files",
-    "code-blocks"
+    "code-blocks",
+    "dynamic-code-block",
+    "zoomable-images",
+    "inline-toc",
+    "type-table",
+    "banner"
   ]
 }

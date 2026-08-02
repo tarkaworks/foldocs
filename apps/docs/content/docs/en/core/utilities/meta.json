@@ -1,0 +1,11 @@
+{
+  "title": "Utilities",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "toc",
+    "last-modified",
+    "content-negotiation",
+    "syntax-highlighting"
+  ]
+}

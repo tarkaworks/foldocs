@@ -27,6 +27,10 @@ and prerendering.
   [AsyncAPI](/en/docs/integrations/asyncapi) generate contract references.
 - [Language references](/en/docs/integrations/docgen) generate TypeScript and
   Python API pages.
+- [Feedback](/en/docs/integrations/feedback) posts page ratings to your own
+  endpoint without prescribing an analytics provider.
+- [Social images](/en/docs/integrations/social-images) generate static Open
+  Graph images and metadata for every route.
 - [LLM output](/en/docs/integrations/llms) emits page Markdown and corpus files.
 - [Link validation](/en/docs/integrations/validate-links) checks the merged
   content graph before deployment.

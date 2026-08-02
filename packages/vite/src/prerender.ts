@@ -7,6 +7,7 @@ import {
   localeDefinition,
   localeHomePath,
   localizedPathname,
+  navigationFolderKeysForUrl,
   navigationForUrl,
   navigationTabsForUrl,
 } from 'foldocs-core'
@@ -203,14 +204,15 @@ const localeLinksFor = (
 
 const collapsedNavigationGroups = (
   nodes: ReadonlyArray<NavigationNode>,
+  expandedGroups: ReadonlySet<string> = new Set(),
   parentKey = '',
 ): ReadonlyArray<string> =>
   nodes.flatMap(node => {
     if (node._tag !== 'Folder') return []
     const key = `${parentKey}/${node.segment}`
     return [
-      ...(node.defaultOpen ? [] : [key]),
-      ...collapsedNavigationGroups(node.children, key),
+      ...(node.defaultOpen || expandedGroups.has(key) ? [] : [key]),
+      ...collapsedNavigationGroups(node.children, expandedGroups, key),
     ]
   })
 
@@ -239,6 +241,8 @@ const renderRouteBody = (
     searchLoading: false,
     searchError: '',
     activeSearchResultIndex: -1,
+    availableSearchTags: [],
+    selectedSearchTags: [],
     translations: definition.ui,
     actions: {
       toggleSearch: staticMessage,
@@ -246,6 +250,7 @@ const renderRouteBody = (
       updateSearch: () => staticMessage,
       searchKeyDown: () => staticMessage,
       selectSearchResult: () => staticMessage,
+      toggleSearchTag: () => staticMessage,
     },
   } as const
 
@@ -255,6 +260,8 @@ const renderRouteBody = (
         {
           site: config.site,
           landing: config.landing,
+          ...(config.banner === undefined ? {} : { banner: config.banner }),
+          bannerDismissed: false,
           docsUrl,
           homeUrl: localeHomePath(config.i18n, route.locale),
           locales,
@@ -268,6 +275,7 @@ const renderRouteBody = (
             selectTheme: () => staticMessage,
             copyText: () => staticMessage,
             openExternal: () => staticMessage,
+            dismissBanner: staticMessage,
           },
         },
         staticHtml,
@@ -298,12 +306,20 @@ const renderRouteBody = (
         tabs: navigationTabsForUrl(completeNavigation, route.page.metadata.url),
         currentUrl: route.page.metadata.url,
         page: route.page.compiled,
+        ...(route.page.metadata.lastModified === undefined
+          ? {}
+          : { lastModified: route.page.metadata.lastModified }),
         ...(adjacent.previous === undefined
           ? {}
           : { previous: adjacent.previous }),
         ...(adjacent.next === undefined ? {} : { next: adjacent.next }),
         sidebarOpen: false,
-        collapsedSidebarGroups: collapsedNavigationGroups(navigation),
+        collapsedSidebarGroups: collapsedNavigationGroups(
+          navigation,
+          new Set(
+            navigationFolderKeysForUrl(navigation, route.page.metadata.url),
+          ),
+        ),
         activeTocId: '',
         mobileTocOpen: false,
         narrowViewport: false,
@@ -318,6 +334,10 @@ const renderRouteBody = (
         ...(config.landing.footer === undefined
           ? {}
           : { footer: config.landing.footer }),
+        ...(config.banner === undefined ? {} : { banner: config.banner }),
+        bannerDismissed: false,
+        ...(config.feedback === undefined ? {} : { feedback: config.feedback }),
+        feedbackStatus: 'idle',
         copyMarkdownStatus: 'idle',
         ...search,
         actions: {
@@ -329,11 +349,17 @@ const renderRouteBody = (
           selectToc: () => staticMessage,
           selectTheme: () => staticMessage,
           copyMarkdown: staticMessage,
+          dismissBanner: staticMessage,
+          openImage: () => staticMessage,
+          closeImage: staticMessage,
+          submitFeedback: () => staticMessage,
         },
         markdown: {
           ...(islands === undefined ? {} : { islands }),
           ...(components === undefined ? {} : { components }),
           copyCode: () => staticMessage,
+          toc: route.page.compiled.toc,
+          selectToc: () => staticMessage,
           copyLabel: definition.ui.copy,
           copiedLabel: definition.ui.copied,
           copyAriaLabel: definition.ui.copyCode,
@@ -392,7 +418,15 @@ export const prerenderRouteHtml = (
       ? undefined
       : absoluteUrl(config.site.baseUrl, contentPath)
   const configuredImage =
-    route.page?.metadata.frontmatter.socialImage ?? config.site.socialImage
+    route.page?.metadata.frontmatter.socialImage ??
+    config.site.socialImage ??
+    (config.og.enabled
+      ? `/${[
+          config.og.directory,
+          ...(config.i18n.enabled ? [route.locale] : []),
+          'home.png',
+        ].join('/')}`
+      : undefined)
   const image =
     configuredImage === undefined || config.site.baseUrl === undefined
       ? configuredImage
@@ -433,6 +467,11 @@ export const prerenderRouteHtml = (
           ),
           `<link rel="alternate" hreflang="x-default" href="${escapeAttribute(absoluteUrl(config.site.baseUrl!, localeLinks.find(link => link.locale === config.i18n.defaultLocale)?.href ?? contentPath))}" data-foldocs-i18n="true">`,
         ]),
+    ...(config.rss.enabled && config.site.baseUrl !== undefined
+      ? [
+          `<link rel="alternate" type="application/rss+xml" title="${escapeAttribute(config.rss.title)}" href="/${escapeAttribute(`${config.i18n.enabled && route.locale !== config.i18n.defaultLocale ? `${route.locale}/` : ''}${config.rss.path}`)}">`,
+        ]
+      : []),
   ].join('\n    ')
   const localized = stripRouteMetadata(template).replace(
     /<html(?:\s+lang="[^"]*")?(?:\s+dir="[^"]*")?\s*>/iu,

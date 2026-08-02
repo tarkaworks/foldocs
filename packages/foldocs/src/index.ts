@@ -6,6 +6,8 @@ import { m } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Url, toString as urlToString } from 'foldkit/url'
 import {
+  type BannerConfig,
+  type FeedbackConfig,
   type LayoutPreset,
   type NavigationNode,
   type PageManifest,
@@ -21,6 +23,7 @@ import {
   localeFromPathname,
   localeHomePath,
   localizedPathname,
+  navigationFolderKeysForUrl,
   navigationForUrl,
   navigationTabsForUrl,
   stripLocalePrefix,
@@ -28,6 +31,7 @@ import {
 import {
   CompiledPage,
   type CompiledPage as CompiledPageType,
+  type PackageManager,
 } from 'foldocs-mdx/ast'
 import {
   DocsMenuMessage,
@@ -69,6 +73,8 @@ export interface DocsProgramOptions {
   readonly site: SiteConfig
   readonly layoutPreset?: LayoutPreset
   readonly landing?: ResolvedLandingConfig
+  readonly banner?: BannerConfig
+  readonly feedback?: FeedbackConfig
   readonly i18n?: ResolvedI18nConfig
   readonly basePath?: string
   readonly search?: SearchClient
@@ -94,6 +100,7 @@ export interface PreloadedDocsPage {
 
 const hasLocalePrefix = (i18n: ResolvedI18nConfig, pathname: string): boolean =>
   !i18n.enabled ||
+  i18n.hideLocale !== 'never' ||
   i18n.locales.some(
     entry =>
       pathname === `/${entry.locale}` ||
@@ -142,6 +149,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     enabled: false,
     defaultLocale: legacyLocale,
     fallbackLocale: legacyLocale,
+    parser: 'dir',
+    hideLocale: 'never',
     locales: [
       {
         locale: legacyLocale,
@@ -164,6 +173,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     navigations[locale] ??
     navigations[i18n.fallbackLocale] ??
     fallbackNavigation
+  const activeSidebarGroupKeys = (pathname: string): ReadonlyArray<string> =>
+    navigationFolderKeysForUrl(
+      navigationFor(localeFromPathname(i18n, pathname)),
+      pathname,
+    )
+  const revealActiveSidebarGroups = (
+    groups: ReadonlyArray<string>,
+    pathname: string,
+  ): ReadonlyArray<string> => {
+    const active = new Set(activeSidebarGroupKeys(pathname))
+    return groups.filter(key => !active.has(key))
+  }
   const defaultCollapsedSidebarGroups = (() => {
     const groups: string[] = []
     const visit = (
@@ -264,6 +285,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     searchError: S.String,
     searchLoading: S.Boolean,
     activeSearchResultIndex: S.Number,
+    selectedSearchTags: S.Array(S.String),
     activeTocId: S.String,
     mobileTocOpen: S.Boolean,
     narrowViewport: S.Boolean,
@@ -271,8 +293,13 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     theme: S.Literals(['light', 'dark']),
     systemTheme: S.Literals(['light', 'dark']),
     themePreference: S.Literals(['light', 'system', 'dark']),
+    packageManager: S.Literals(['npm', 'pnpm', 'yarn', 'bun']),
     copiedText: S.String,
     copyMarkdownStatus: S.Literals(['idle', 'loading', 'copied', 'error']),
+    bannerDismissed: S.Boolean,
+    imagePreviewUrl: S.String,
+    imagePreviewAlt: S.String,
+    feedbackStatus: S.Literals(['idle', 'submitting', 'submitted', 'error']),
     headerLanguageMenu: LanguageMenuModel,
     sidebarLanguageMenu: LanguageMenuModel,
     layoutTabsMenu: DocsMenuModel,
@@ -299,6 +326,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   })
   const LoadPageResult = S.Union([SucceededLoadPage, FailedLoadPage])
   const ChangedSearch = m('ChangedSearch', { query: S.String })
+  const ToggledSearchTag = m('ToggledSearchTag', { tag: S.String })
   const SucceededSearch = m('SucceededSearch', {
     query: S.String,
     results: S.Array(SearchResult),
@@ -336,8 +364,26 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     theme: S.Literals(['light', 'dark']),
   })
   const CompletedApplyTheme = m('CompletedApplyTheme')
+  const CompletedRenderMermaid = m('CompletedRenderMermaid')
+  const DismissedBanner = m('DismissedBanner')
+  const CompletedSaveBannerDismissal = m('CompletedSaveBannerDismissal')
+  const OpenedImagePreview = m('OpenedImagePreview', {
+    url: S.String,
+    alt: S.String,
+  })
+  const ClosedImagePreview = m('ClosedImagePreview')
+  const SubmittedFeedback = m('SubmittedFeedback', {
+    rating: S.Literals(['positive', 'negative']),
+  })
+  const SucceededFeedback = m('SucceededFeedback')
+  const FailedFeedback = m('FailedFeedback')
+  const FeedbackResult = S.Union([SucceededFeedback, FailedFeedback])
   const CompletedApplyLocaleMetadata = m('CompletedApplyLocaleMetadata')
   const CompletedSaveTheme = m('CompletedSaveTheme')
+  const SelectedPackageManager = m('SelectedPackageManager', {
+    manager: S.Literals(['npm', 'pnpm', 'yarn', 'bun']),
+  })
+  const CompletedSavePackageManager = m('CompletedSavePackageManager')
   const ClickedCopyText = m('ClickedCopyText', { value: S.String })
   const CompletedCopyText = m('CompletedCopyText', { value: S.String })
   const ClickedCopyMarkdown = m('ClickedCopyMarkdown', { url: S.String })
@@ -385,6 +431,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     SucceededLoadPage,
     FailedLoadPage,
     ChangedSearch,
+    ToggledSearchTag,
     SucceededSearch,
     FailedSearch,
     PressedSearchKey,
@@ -404,8 +451,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     LoadedTheme,
     ChangedSystemTheme,
     CompletedApplyTheme,
+    CompletedRenderMermaid,
+    DismissedBanner,
+    CompletedSaveBannerDismissal,
+    OpenedImagePreview,
+    ClosedImagePreview,
+    SubmittedFeedback,
+    SucceededFeedback,
+    FailedFeedback,
     CompletedApplyLocaleMetadata,
     CompletedSaveTheme,
+    SelectedPackageManager,
+    CompletedSavePackageManager,
     ClickedCopyText,
     CompletedCopyText,
     ClickedCopyMarkdown,
@@ -486,19 +543,29 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   })
 
   const Search = Command.define('Search', {
-    args: { query: S.String, locale: S.String },
+    args: {
+      query: S.String,
+      locale: S.String,
+      tags: S.Array(S.String),
+    },
     messages: [SearchResultMessage],
-    execute: ({ query, locale }) =>
-      searchClient.search(query, { limit: 12, locale }).pipe(
-        Effect.map(results =>
-          SucceededSearch({ query, results: [...results] }),
-        ),
-        Effect.catch(error =>
-          Effect.succeed(
-            FailedSearch({ query, reason: messageFromError(error) }),
+    execute: ({ query, locale, tags }) =>
+      searchClient
+        .search(query, {
+          limit: 12,
+          locale,
+          ...(tags.length === 0 ? {} : { tags }),
+        })
+        .pipe(
+          Effect.map(results =>
+            SucceededSearch({ query, results: [...results] }),
+          ),
+          Effect.catch(error =>
+            Effect.succeed(
+              FailedSearch({ query, reason: messageFromError(error) }),
+            ),
           ),
         ),
-      ),
   })
 
   const ScrollSearchResult = Command.define('ScrollSearchResult', {
@@ -550,6 +617,47 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     }),
   })
 
+  const readPackageManager = (): PackageManager => {
+    let stored: string | null | undefined
+    try {
+      stored = globalThis.localStorage?.getItem('foldocs-package-manager')
+    } catch {
+      stored = undefined
+    }
+    return stored === 'npm' ||
+      stored === 'pnpm' ||
+      stored === 'yarn' ||
+      stored === 'bun'
+      ? stored
+      : 'npm'
+  }
+
+  const readBannerDismissed = (): boolean => {
+    const id = options.banner?.id
+    if (id === undefined) return false
+    try {
+      return (
+        globalThis.localStorage?.getItem(`foldocs-banner-${id}`) === 'dismissed'
+      )
+    } catch {
+      return false
+    }
+  }
+
+  const SavePackageManager = Command.define('SavePackageManager', {
+    args: { manager: S.Literals(['npm', 'pnpm', 'yarn', 'bun']) },
+    messages: [CompletedSavePackageManager],
+    execute: ({ manager }) =>
+      Effect.sync(() => {
+        try {
+          globalThis.localStorage?.setItem('foldocs-package-manager', manager)
+        } catch {
+          // Storage can be unavailable in private or embedded browsing contexts.
+        }
+        return CompletedSavePackageManager()
+      }),
+  })
+
   const SaveTheme = Command.define('SaveTheme', {
     args: {
       preference: S.Literals(['light', 'system', 'dark']),
@@ -576,6 +684,89 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         applyTheme(theme)
         return CompletedApplyTheme()
       }),
+  })
+
+  const RenderMermaid = Command.define('RenderMermaid', {
+    args: { theme: S.Literals(['light', 'dark']) },
+    messages: [CompletedRenderMermaid],
+    execute: ({ theme }) =>
+      Effect.promise(async () => {
+        if (globalThis.document === undefined) return CompletedRenderMermaid()
+        await new Promise<void>(resolve =>
+          globalThis.requestAnimationFrame === undefined
+            ? resolve()
+            : globalThis.requestAnimationFrame(() => resolve()),
+        )
+        const diagrams = [
+          ...globalThis.document.querySelectorAll<HTMLElement>('.fd-mermaid'),
+        ]
+        if (diagrams.length === 0) return CompletedRenderMermaid()
+        try {
+          const { default: mermaid } = await import('mermaid')
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            theme: theme === 'dark' ? 'dark' : 'default',
+          })
+          for (const [index, diagram] of diagrams.entries()) {
+            const encoded = diagram.dataset.source
+            if (encoded === undefined) continue
+            try {
+              const source = decodeURIComponent(encoded)
+              const id = `fd-mermaid-${String(Date.now())}-${String(index)}`
+              const { svg, bindFunctions } = await mermaid.render(id, source)
+              diagram.innerHTML = svg
+              diagram.dataset.rendered = 'true'
+              bindFunctions?.(diagram)
+            } catch {
+              diagram.dataset.rendered = 'error'
+            }
+          }
+        } catch {
+          // The readable source remains visible when Mermaid cannot load.
+        }
+        return CompletedRenderMermaid()
+      }),
+  })
+
+  const SaveBannerDismissal = Command.define('SaveBannerDismissal', {
+    messages: [CompletedSaveBannerDismissal],
+    execute: Effect.sync(() => {
+      const id = options.banner?.id
+      if (id !== undefined) {
+        try {
+          globalThis.localStorage?.setItem(`foldocs-banner-${id}`, 'dismissed')
+        } catch {
+          // Storage can be unavailable in private or embedded contexts.
+        }
+      }
+      return CompletedSaveBannerDismissal()
+    }),
+  })
+
+  const SendFeedback = Command.define('SendFeedback', {
+    args: {
+      endpoint: S.String,
+      url: S.String,
+      rating: S.Literals(['positive', 'negative']),
+    },
+    messages: [FeedbackResult],
+    execute: ({ endpoint, url, rating }) =>
+      Effect.tryPromise({
+        try: async () => {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, rating }),
+          })
+          if (!response.ok)
+            throw new Error(
+              `Feedback endpoint returned ${String(response.status)}.`,
+            )
+          return SucceededFeedback()
+        },
+        catch: () => FailedFeedback(),
+      }).pipe(Effect.catch(error => Effect.succeed(error))),
   })
 
   const alternatePathnames = (
@@ -733,25 +924,35 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   })
 
   const ReadSidebarGroups = Command.define('ReadSidebarGroups', {
+    args: { pathname: S.String },
     messages: [LoadedSidebarGroups],
-    execute: Effect.sync(() => {
-      try {
-        const value = globalThis.localStorage?.getItem('foldocs-sidebar-groups')
-        const parsed: unknown =
-          value === null || value === undefined
-            ? defaultCollapsedSidebarGroups
-            : JSON.parse(value)
-        return LoadedSidebarGroups({
-          groups: Array.isArray(parsed)
+    execute: ({ pathname }) =>
+      Effect.sync(() => {
+        try {
+          const value = globalThis.localStorage?.getItem(
+            'foldocs-sidebar-groups',
+          )
+          const parsed: unknown =
+            value === null || value === undefined
+              ? defaultCollapsedSidebarGroups
+              : JSON.parse(value)
+          const groups = Array.isArray(parsed)
             ? parsed.filter(
                 (entry): entry is string => typeof entry === 'string',
               )
-            : [],
-        })
-      } catch {
-        return LoadedSidebarGroups({ groups: defaultCollapsedSidebarGroups })
-      }
-    }),
+            : []
+          return LoadedSidebarGroups({
+            groups: revealActiveSidebarGroups(groups, pathname),
+          })
+        } catch {
+          return LoadedSidebarGroups({
+            groups: revealActiveSidebarGroups(
+              defaultCollapsedSidebarGroups,
+              pathname,
+            ),
+          })
+        }
+      }),
   })
 
   const SaveSidebarGroups = Command.define('SaveSidebarGroups', {
@@ -895,6 +1096,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         searchError: '',
         searchLoading: false,
         activeSearchResultIndex: -1,
+        selectedSearchTags: [],
         activeTocId: '',
         mobileTocOpen: false,
         narrowViewport:
@@ -903,8 +1105,13 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         theme,
         systemTheme,
         themePreference,
+        packageManager: readPackageManager(),
         copiedText: '',
         copyMarkdownStatus: 'idle',
+        bannerDismissed: readBannerDismissed(),
+        imagePreviewUrl: '',
+        imagePreviewAlt: '',
+        feedbackStatus: 'idle',
         headerLanguageMenu: initLanguageMenu(headerLanguageMenuId),
         sidebarLanguageMenu: initLanguageMenu(sidebarLanguageMenuId),
         layoutTabsMenu: initDocsMenu(layoutTabsMenuId),
@@ -915,8 +1122,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       [
         ...commands,
         ReadTheme(),
-        ReadSidebarGroups(),
+        ReadSidebarGroups({ pathname }),
         ApplyLocaleMetadata({ pathname }),
+        RenderMermaid({ theme }),
       ],
     ]
   }
@@ -1134,6 +1342,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             ...model,
             pathname,
             locale,
+            collapsedSidebarGroups: revealActiveSidebarGroups(
+              model.collapsedSidebarGroups,
+              pathname,
+            ),
             page: transitionPage,
             sidebarOpen: false,
             searchOpen: false,
@@ -1144,10 +1356,14 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             searchError: '',
             searchLoading: false,
             activeSearchResultIndex: -1,
+            selectedSearchTags: [],
             activeTocId: '',
             mobileTocOpen: false,
             copiedText: '',
             copyMarkdownStatus: 'idle',
+            imagePreviewUrl: '',
+            imagePreviewAlt: '',
+            feedbackStatus: 'idle',
           },
           [
             ...commands,
@@ -1172,7 +1388,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
                 activeTocId: message.page.toc[0]?.id ?? '',
                 mobileTocOpen: false,
               },
-              [],
+              [RenderMermaid({ theme: model.theme })],
             ]
       case 'FailedLoadPage':
         return message.pathname !== model.pathname
@@ -1200,7 +1416,37 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           },
           query.trim().length === 0
             ? []
-            : [Search({ query, locale: model.locale })],
+            : [
+                Search({
+                  query,
+                  locale: model.locale,
+                  tags: model.selectedSearchTags,
+                }),
+              ],
+        ]
+      }
+      case 'ToggledSearchTag': {
+        const selectedSearchTags = model.selectedSearchTags.includes(
+          message.tag,
+        )
+          ? model.selectedSearchTags.filter(tag => tag !== message.tag)
+          : [...model.selectedSearchTags, message.tag]
+        return [
+          {
+            ...model,
+            selectedSearchTags,
+            searchLoading: model.searchQuery.trim().length > 0,
+            activeSearchResultIndex: -1,
+          },
+          model.searchQuery.trim().length === 0
+            ? []
+            : [
+                Search({
+                  query: model.searchQuery,
+                  locale: model.locale,
+                  tags: selectedSearchTags,
+                }),
+              ],
         ]
       }
       case 'SucceededSearch':
@@ -1326,7 +1572,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         const theme = resolveTheme(message.preference, model.systemTheme)
         return [
           { ...model, themePreference: message.preference, theme },
-          [SaveTheme({ preference: message.preference, theme })],
+          [
+            SaveTheme({ preference: message.preference, theme }),
+            RenderMermaid({ theme }),
+          ],
         ]
       }
       case 'LoadedTheme':
@@ -1343,9 +1592,16 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         const theme = resolveTheme(model.themePreference, message.theme)
         return [
           { ...model, systemTheme: message.theme, theme },
-          theme === model.theme ? [] : [ApplyTheme({ theme })],
+          theme === model.theme
+            ? []
+            : [ApplyTheme({ theme }), RenderMermaid({ theme })],
         ]
       }
+      case 'SelectedPackageManager':
+        return [
+          { ...model, packageManager: message.manager },
+          [SavePackageManager({ manager: message.manager })],
+        ]
       case 'ClickedCopyText':
         return [
           { ...model, copiedText: message.value, copyMarkdownStatus: 'idle' },
@@ -1371,6 +1627,36 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         ]
       case 'FailedLoadMarkdown':
         return [{ ...model, copyMarkdownStatus: 'error' }, []]
+      case 'DismissedBanner':
+        return [{ ...model, bannerDismissed: true }, [SaveBannerDismissal()]]
+      case 'OpenedImagePreview':
+        return [
+          {
+            ...model,
+            imagePreviewUrl: message.url,
+            imagePreviewAlt: message.alt,
+          },
+          [],
+        ]
+      case 'ClosedImagePreview':
+        return [{ ...model, imagePreviewUrl: '', imagePreviewAlt: '' }, []]
+      case 'SubmittedFeedback':
+        return options.feedback === undefined
+          ? [model, []]
+          : [
+              { ...model, feedbackStatus: 'submitting' },
+              [
+                SendFeedback({
+                  endpoint: options.feedback.endpoint,
+                  url: model.pathname,
+                  rating: message.rating,
+                }),
+              ],
+            ]
+      case 'SucceededFeedback':
+        return [{ ...model, feedbackStatus: 'submitted' }, []]
+      case 'FailedFeedback':
+        return [{ ...model, feedbackStatus: 'error' }, []]
       case 'PressedGlobalKey':
         if (
           message.key.toLowerCase() === 'k' &&
@@ -1386,7 +1672,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           const preference = model.theme === 'dark' ? 'light' : 'dark'
           return [
             { ...model, themePreference: preference, theme: preference },
-            [SaveTheme({ preference, theme: preference })],
+            [
+              SaveTheme({ preference, theme: preference }),
+              RenderMermaid({ theme: preference }),
+            ],
           ]
         }
         if (message.key === 'Escape' && model.searchOpen) {
@@ -1407,8 +1696,14 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         if (message.key === 'Escape' && model.sidebarOpen) {
           return closeSidebar(model)
         }
+        if (message.key === 'Escape' && model.imagePreviewUrl.length > 0) {
+          return [{ ...model, imagePreviewUrl: '', imagePreviewAlt: '' }, []]
+        }
         return [model, []]
       case 'CompletedSaveTheme':
+      case 'CompletedRenderMermaid':
+      case 'CompletedSaveBannerDismissal':
+      case 'CompletedSavePackageManager':
       case 'CompletedApplyTheme':
       case 'CompletedApplyLocaleMetadata':
       case 'CompletedSaveSidebarGroups':
@@ -1464,6 +1759,14 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     searchLoading: model.searchLoading,
     searchError: model.searchError,
     activeSearchResultIndex: model.activeSearchResultIndex,
+    availableSearchTags: [
+      ...new Set(
+        manifest
+          .filter(page => (page.locale ?? i18n.defaultLocale) === model.locale)
+          .flatMap(page => page.frontmatter.tags ?? []),
+      ),
+    ].sort((left, right) => left.localeCompare(right)),
+    selectedSearchTags: model.selectedSearchTags,
     translations: localeDefinition(i18n, model.locale).ui,
   })
 
@@ -1497,6 +1800,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           {
             site: options.site,
             landing,
+            ...(options.banner === undefined ? {} : { banner: options.banner }),
+            bannerDismissed: model.bannerDismissed,
             docsUrl: docsUrlFor(model.locale),
             homeUrl,
             locales: localeLinks(model),
@@ -1512,11 +1817,13 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
               updateSearch: query => ChangedSearch({ query }),
               searchKeyDown: key => PressedSearchKey({ key }),
               selectSearchResult: url => SelectedSearchResult({ url }),
+              toggleSearchTag: tag => ToggledSearchTag({ tag }),
               gotSearchDialogMessage: message =>
                 GotSearchDialogMessage({ message }),
               selectTheme: preference => SelectedTheme({ preference }),
               copyText: value => ClickedCopyText({ value }),
               openExternal: url => ClickedOpenExternal({ href: url }),
+              dismissBanner: DismissedBanner(),
               gotHeaderLanguageMenuMessage: message =>
                 GotHeaderLanguageMenuMessage({ message }),
             },
@@ -1528,6 +1835,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     if (model.page._tag !== 'PageReady') return pendingView(model, h)
     const completeNavigation = navigationFor(model.locale)
     const navigation = navigationForUrl(completeNavigation, model.pathname)
+    const currentEntry = findPageByUrl(manifest, model.pathname)
     const adjacent = adjacentPages(manifest, model.pathname, navigation)
     const markdownUrl =
       model.pathname === '/'
@@ -1562,8 +1870,25 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           markdownUrl,
           markdownEnabled: options.markdown ?? true,
           ...(landing.footer === undefined ? {} : { footer: landing.footer }),
+          ...(options.banner === undefined ? {} : { banner: options.banner }),
+          bannerDismissed: model.bannerDismissed,
+          ...(options.feedback === undefined
+            ? {}
+            : { feedback: options.feedback }),
+          feedbackStatus: model.feedbackStatus,
+          ...(model.imagePreviewUrl.length === 0
+            ? {}
+            : {
+                imagePreview: {
+                  url: model.imagePreviewUrl,
+                  alt: model.imagePreviewAlt,
+                },
+              }),
           copyMarkdownStatus: model.copyMarkdownStatus,
           page: model.page.page,
+          ...(currentEntry?.lastModified === undefined
+            ? {}
+            : { lastModified: currentEntry.lastModified }),
           ...(adjacent.previous === undefined
             ? {}
             : { previous: adjacent.previous }),
@@ -1586,6 +1911,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             updateSearch: query => ChangedSearch({ query }),
             searchKeyDown: key => PressedSearchKey({ key }),
             selectSearchResult: url => SelectedSearchResult({ url }),
+            toggleSearchTag: tag => ToggledSearchTag({ tag }),
             gotSearchDialogMessage: message =>
               GotSearchDialogMessage({ message }),
             gotSidebarDialogMessage: message =>
@@ -1594,6 +1920,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             selectToc: sectionId => SelectedToc({ sectionId }),
             selectTheme: preference => SelectedTheme({ preference }),
             copyMarkdown: ClickedCopyMarkdown({ url: markdownUrl }),
+            dismissBanner: DismissedBanner(),
+            openImage: (url, alt) => OpenedImagePreview({ url, alt }),
+            closeImage: ClosedImagePreview(),
+            submitFeedback: rating => SubmittedFeedback({ rating }),
             gotHeaderLanguageMenuMessage: message =>
               GotHeaderLanguageMenuMessage({ message }),
             gotSidebarLanguageMenuMessage: message =>
@@ -1612,6 +1942,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
               : { components: options.components }),
             copiedCode: model.copiedText,
             copyCode: value => ClickedCopyText({ value }),
+            packageManager: model.packageManager,
+            selectPackageManager: manager =>
+              SelectedPackageManager({ manager }),
             copyLabel: localeDefinition(i18n, model.locale).ui.copy,
             copiedLabel: localeDefinition(i18n, model.locale).ui.copied,
             copyAriaLabel: localeDefinition(i18n, model.locale).ui.copyCode,
@@ -1779,8 +2112,13 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
 }
 
 export { defineConfig } from 'foldocs-core'
-export { defineContentAdapter } from '@foldocs/content'
-export type { ContentAdapter, ContentFile } from '@foldocs/content'
+export { defineContentAdapter, notion } from '@foldocs/content'
+export type {
+  ContentAdapter,
+  ContentFile,
+  NotionClientLike,
+  NotionOptions,
+} from '@foldocs/content'
 export type {
   FoldocsConfig,
   I18nConfig,

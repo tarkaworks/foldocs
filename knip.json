@@ -42,7 +42,8 @@
       "entry": [],
       "ignoreDependencies": [
         "@fontsource-variable/inter",
-        "@fontsource-variable/jetbrains-mono"
+        "@fontsource-variable/jetbrains-mono",
+        "katex"
       ]
     }
   },

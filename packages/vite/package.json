@@ -27,6 +27,7 @@
     "foldocs-core": "workspace:*",
     "foldocs-mdx": "workspace:*",
     "foldocs-ui": "workspace:*",
+    "sharp": "^0.34.5",
     "vite": "^7.0.0 || ^8.0.0"
   },
   "peerDependencies": {

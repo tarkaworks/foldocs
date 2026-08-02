@@ -17,7 +17,7 @@ export default defineConfig({
     title: 'My docs',
     baseUrl: 'https://docs.example.com',
   },
-  docs: { basePath: '/docs' },
+  basePath: '/docs',
   layout: { preset: 'docs' },
 })
 ```

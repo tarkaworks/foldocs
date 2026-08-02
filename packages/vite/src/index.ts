@@ -18,9 +18,11 @@ import {
   compile,
 } from 'foldocs-mdx'
 import type { MarkdownIslands, MdxComponents } from 'foldocs-ui'
+import { execFile as execFileCallback } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import type { HtmlTagDescriptor, Plugin, ResolvedConfig } from 'vite'
 
 import {
@@ -61,6 +63,7 @@ const virtualPagePrefix = 'virtual:foldocs/page/'
 const resolvedVirtualPagePrefix = `\0${virtualPagePrefix}`
 const documentPattern = /\.(?:md|mdx)$/iu
 const metaFileName = 'meta.json'
+const execFile = promisify(execFileCallback)
 
 interface DiscoveredPage {
   readonly moduleId: string
@@ -181,6 +184,30 @@ const slugFromFile = (contentRoot: string, file: string): string => {
   const segments = relative.split('/')
   if (segments.at(-1)?.toLowerCase() === 'index') segments.pop()
   return segments.filter(segment => !/^\(.+\)$/u.test(segment)).join('/')
+}
+
+const slugFromRelativeFile = (file: string): string => {
+  const segments = file.replace(documentPattern, '').split('/')
+  if (segments.at(-1)?.toLowerCase() === 'index') segments.pop()
+  return segments.filter(segment => !/^\(.+\)$/u.test(segment)).join('/')
+}
+
+const dottedLocaleFile = (
+  relativeFile: string,
+  locales: ReadonlyArray<string>,
+  defaultLocale: string,
+): { readonly locale: string; readonly file: string } => {
+  for (const locale of locales) {
+    const marker = `.${locale}`
+    const extension = path.posix.extname(relativeFile)
+    const stem = relativeFile.slice(0, -extension.length)
+    if (!stem.endsWith(marker)) continue
+    return {
+      locale,
+      file: `${stem.slice(0, -marker.length)}${extension}`,
+    }
+  }
+  return { locale: defaultLocale, file: relativeFile }
 }
 
 const discoverNavigationMeta = async (
@@ -318,6 +345,9 @@ const metadataWithoutPageContent = (metadata: PageMetadata): PageMetadata => ({
   ...(metadata.translationKey === undefined
     ? {}
     : { translationKey: metadata.translationKey }),
+  ...(metadata.lastModified === undefined
+    ? {}
+    : { lastModified: metadata.lastModified }),
   frontmatter: metadata.frontmatter,
   toc: [],
   plainText: '',
@@ -346,9 +376,87 @@ const navigationWithoutPageContent = (
   )
 
 const socialImageUrl = (config: ResolvedFoldocsConfig): string | undefined => {
-  const image = config.site.socialImage
+  const image =
+    config.site.socialImage ??
+    (config.og.enabled
+      ? ogLandingPath(config, config.i18n.defaultLocale)
+      : undefined)
   if (image === undefined || config.site.baseUrl === undefined) return image
   return absoluteUrl(config.site.baseUrl, image)
+}
+
+const ogLandingPath = (config: ResolvedFoldocsConfig, locale: string): string =>
+  `/${[
+    config.og.directory,
+    ...(config.i18n.enabled ? [locale] : []),
+    'home.png',
+  ].join('/')}`
+
+const ogImagePath = (
+  config: ResolvedFoldocsConfig,
+  locale: string,
+  slug: string,
+): string =>
+  `/${[
+    config.og.directory,
+    ...(config.i18n.enabled ? [locale] : []),
+    slug.length === 0 ? 'index.png' : `${slug}.png`,
+  ]
+    .filter(Boolean)
+    .join('/')}`
+
+const rssAssetPath = (config: ResolvedFoldocsConfig, locale: string): string =>
+  `${config.i18n.enabled && locale !== config.i18n.defaultLocale ? `${locale}/` : ''}${config.rss.path}`
+
+const makeRss = (
+  config: ResolvedFoldocsConfig,
+  pages: ReadonlyArray<DiscoveredPage>,
+  locale: string,
+): string => {
+  const channelUrl = absoluteUrl(
+    config.site.baseUrl!,
+    localeHomePath(config.i18n, locale),
+  )
+  const items = pages
+    .filter(page => page.metadata.locale === locale)
+    .map(({ metadata }) => {
+      const href = absoluteUrl(config.site.baseUrl!, metadata.url)
+      const published = metadata.lastModified
+      return [
+        '<item>',
+        `<title>${xmlEscape(metadata.frontmatter.title)}</title>`,
+        `<link>${xmlEscape(href)}</link>`,
+        `<guid isPermaLink="true">${xmlEscape(href)}</guid>`,
+        ...(metadata.frontmatter.description === undefined
+          ? []
+          : [
+              `<description>${xmlEscape(metadata.frontmatter.description)}</description>`,
+            ]),
+        ...(published === undefined
+          ? []
+          : [`<pubDate>${new Date(published).toUTCString()}</pubDate>`]),
+        '</item>',
+      ].join('')
+    })
+    .join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${xmlEscape(config.rss.title)}</title><link>${xmlEscape(channelUrl)}</link>${config.rss.description === undefined ? '' : `<description>${xmlEscape(config.rss.description)}</description>`}<language>${xmlEscape(locale)}</language>\n${items}\n</channel></rss>\n`
+}
+
+const ogSvg = (
+  siteTitle: string,
+  pageTitle: string,
+  description: string | undefined,
+): string => {
+  const titleWords = pageTitle.split(/\s+/u)
+  const lines: string[] = []
+  for (const word of titleWords) {
+    const current = lines.at(-1)
+    if (current === undefined || `${current} ${word}`.length > 34)
+      lines.push(word)
+    else lines[lines.length - 1] = `${current} ${word}`
+  }
+  const titleLines = lines.slice(0, 3)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#1c1a20"/><rect x="56" y="56" width="1088" height="518" rx="28" fill="#232127" stroke="#3d3944"/><circle cx="104" cy="108" r="18" fill="#9bd32e"/><text x="140" y="119" fill="#f7f5f8" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="600">${xmlEscape(siteTitle)}</text>${titleLines.map((line, index) => `<text x="96" y="${String(250 + index * 70)}" fill="#ffffff" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="500">${xmlEscape(line)}</text>`).join('')}${description === undefined ? '' : `<text x="96" y="500" fill="#aaa4b2" font-family="Inter,Arial,sans-serif" font-size="26">${xmlEscape(description.slice(0, 90))}</text>`}</svg>`
 }
 
 const headTags = (
@@ -434,6 +542,20 @@ const headTags = (
             injectTo: 'head' as const,
           },
         ]),
+    ...(config.rss.enabled && site.baseUrl !== undefined
+      ? [
+          {
+            tag: 'link',
+            attrs: {
+              rel: 'alternate',
+              type: 'application/rss+xml',
+              title: config.rss.title,
+              href: `/${rssAssetPath(config, config.i18n.defaultLocale)}`,
+            },
+            injectTo: 'head' as const,
+          },
+        ]
+      : []),
   ]
 }
 
@@ -531,6 +653,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
   let viteConfig: ResolvedConfig
   let contentRoot = ''
   const compiledCache = new Map<string, Promise<CompiledPage>>()
+  const lastModifiedCache = new Map<string, Promise<string | undefined>>()
   const remoteModuleCache = new Map<
     string,
     { readonly source: string; readonly filePath: string }
@@ -559,24 +682,68 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     return pending
   }
 
+  const lastModifiedForFile = (file: string): Promise<string | undefined> => {
+    if (config.content.lastModified === false) return Promise.resolve(undefined)
+    const existing = lastModifiedCache.get(file)
+    if (existing !== undefined) return existing
+    const pending = (async () => {
+      if (config.content.lastModified === 'git') {
+        try {
+          const result = await execFile(
+            'git',
+            ['log', '-1', '--format=%cI', '--', file],
+            { cwd: viteConfig.root },
+          )
+          const value = result.stdout.trim()
+          if (value.length > 0) return value
+        } catch {
+          // New/untracked files fall back to their filesystem timestamp.
+        }
+      }
+      return (await fs.stat(file)).mtime.toISOString()
+    })()
+    lastModifiedCache.set(file, pending)
+    return pending
+  }
+
   const discover = async (
     highlight: boolean,
   ): Promise<ReadonlyArray<DiscoveredPage>> => {
-    const localeRoots = config.i18n.enabled
-      ? config.i18n.locales.map(locale => ({
-          locale: locale.locale,
-          root: path.join(contentRoot, locale.locale),
-        }))
-      : [{ locale: config.i18n.defaultLocale, root: contentRoot }]
+    const localeRoots =
+      config.i18n.enabled && config.i18n.parser === 'dir'
+        ? config.i18n.locales.map(locale => ({
+            locale: locale.locale,
+            root: path.join(contentRoot, locale.locale),
+          }))
+        : [{ locale: config.i18n.defaultLocale, root: contentRoot }]
     const filesystemPages = (
       await Promise.all(
-        localeRoots.map(async ({ locale, root }) => {
+        localeRoots.map(async ({ locale: rootLocale, root }) => {
           const files = await walk(root)
           return Promise.all(
             files.map(async (absolutePath): Promise<DiscoveredPage> => {
               const compiled = await compileFile(absolutePath, highlight)
-              const slug = slugFromFile(root, absolutePath)
-              const relativeId = toPosix(path.relative(root, absolutePath))
+              const originalRelativeId = toPosix(
+                path.relative(root, absolutePath),
+              )
+              const dotted = dottedLocaleFile(
+                originalRelativeId,
+                config.i18n.locales.map(entry => entry.locale),
+                config.i18n.defaultLocale,
+              )
+              const locale =
+                config.i18n.enabled && config.i18n.parser === 'dot'
+                  ? dotted.locale
+                  : rootLocale
+              const relativeId =
+                config.i18n.enabled && config.i18n.parser === 'dot'
+                  ? dotted.file
+                  : originalRelativeId
+              const slug =
+                config.i18n.enabled && config.i18n.parser === 'dot'
+                  ? slugFromRelativeFile(relativeId)
+                  : slugFromFile(root, absolutePath)
+              const lastModified = await lastModifiedForFile(absolutePath)
               const relativeFile = toPosix(
                 path.relative(viteConfig.root, absolutePath),
               )
@@ -595,7 +762,15 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
                   sourceLocale: locale,
                   translationKey: slug,
                   navigationPath: relativeId,
-                  frontmatter: compiled.frontmatter,
+                  ...(lastModified === undefined ? {} : { lastModified }),
+                  frontmatter:
+                    config.og.enabled &&
+                    compiled.frontmatter.socialImage === undefined
+                      ? {
+                          ...compiled.frontmatter,
+                          socialImage: ogImagePath(config, locale, slug),
+                        }
+                      : compiled.frontmatter,
                   toc: compiled.toc,
                   plainText: compiled.plainText,
                 },
@@ -631,8 +806,17 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
               const pathLocale = config.i18n.locales.find(
                 ({ locale }) => locale === segments[0],
               )?.locale
+              const dotted = dottedLocaleFile(
+                rawPath,
+                config.i18n.locales.map(entry => entry.locale),
+                config.i18n.defaultLocale,
+              )
               const locale =
-                file.locale ?? pathLocale ?? config.i18n.defaultLocale
+                file.locale ??
+                pathLocale ??
+                (config.i18n.parser === 'dot'
+                  ? dotted.locale
+                  : config.i18n.defaultLocale)
               if (!config.i18n.locales.some(entry => entry.locale === locale))
                 throw new TypeError(
                   `Foldocs content source ${adapter.name} returned unknown locale ${JSON.stringify(locale)}.`,
@@ -642,7 +826,10 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
                 (file.locale === undefined || file.locale === pathLocale)
               )
                 segments.shift()
-              const relativePath = segments.join('/')
+              const relativePath =
+                config.i18n.parser === 'dot' && pathLocale === undefined
+                  ? dotted.file
+                  : segments.join('/')
               const virtualFile = `${adapter.name}:${locale}/${relativePath}`
               const compiled = await compile(file.source, {
                 filePath: virtualFile,
@@ -686,7 +873,17 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
                   sourceLocale: locale,
                   translationKey: slug,
                   navigationPath: relativePath,
-                  frontmatter: compiled.frontmatter,
+                  ...(file.lastModified === undefined
+                    ? {}
+                    : { lastModified: file.lastModified }),
+                  frontmatter:
+                    config.og.enabled &&
+                    compiled.frontmatter.socialImage === undefined
+                      ? {
+                          ...compiled.frontmatter,
+                          socialImage: ogImagePath(config, locale, slug),
+                        }
+                      : compiled.frontmatter,
                   toc: compiled.toc,
                   plainText: compiled.plainText,
                 },
@@ -778,7 +975,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     const navigationMetas = Object.fromEntries(
       await Promise.all(
         config.i18n.locales.map(async ({ locale }) => {
-          if (!config.i18n.enabled)
+          if (!config.i18n.enabled || config.i18n.parser === 'dot')
             return [locale, await discoverNavigationMeta(contentRoot)]
           const fallback = await discoverNavigationMeta(
             path.join(contentRoot, config.i18n.fallbackLocale),
@@ -938,14 +1135,15 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
         next()
         return
       }
-      const roots = config.i18n.enabled
-        ? [
-            path.join(contentRoot, locale),
-            ...(locale === config.i18n.fallbackLocale
-              ? []
-              : [path.join(contentRoot, config.i18n.fallbackLocale)]),
-          ]
-        : [contentRoot]
+      const roots =
+        config.i18n.enabled && config.i18n.parser === 'dir'
+          ? [
+              path.join(contentRoot, locale),
+              ...(locale === config.i18n.fallbackLocale
+                ? []
+                : [path.join(contentRoot, config.i18n.fallbackLocale)]),
+            ]
+          : [contentRoot]
       let file: string | undefined
       for (const root of roots) {
         file = (await walkAssets(root)).find(
@@ -1099,6 +1297,8 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           `export const basePath = ${JSON.stringify(config.basePath)};`,
           `export const layout = ${JSON.stringify(config.layout)};`,
           `export const landing = ${JSON.stringify(config.landing)};`,
+          `export const banner = ${JSON.stringify(config.banner)};`,
+          `export const feedback = ${JSON.stringify(config.feedback)};`,
           `export const i18n = ${JSON.stringify(config.i18n)};`,
           `export const markdown = ${JSON.stringify(config.markdown)};`,
           `export const searchIndexUrls = ${JSON.stringify(searchIndexUrls)};`,
@@ -1170,14 +1370,15 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     async generateBundle() {
       const pages = await discover(false)
       for (const { locale } of config.i18n.locales) {
-        const roots = config.i18n.enabled
-          ? [
-              path.join(contentRoot, config.i18n.fallbackLocale),
-              ...(locale === config.i18n.fallbackLocale
-                ? []
-                : [path.join(contentRoot, locale)]),
-            ]
-          : [contentRoot]
+        const roots =
+          config.i18n.enabled && config.i18n.parser === 'dir'
+            ? [
+                path.join(contentRoot, config.i18n.fallbackLocale),
+                ...(locale === config.i18n.fallbackLocale
+                  ? []
+                  : [path.join(contentRoot, locale)]),
+              ]
+            : [contentRoot]
         const assets = new Map<string, string>()
         for (const root of roots) {
           for (const file of await walkAssets(root)) {
@@ -1298,6 +1499,61 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             type: 'asset',
             fileName: 'llms-full.txt',
             source: makeLlmsFull(config, defaultPages),
+          })
+        }
+      }
+      if (config.rss.enabled) {
+        if (config.site.baseUrl === undefined) {
+          this.warn(
+            'Foldocs skipped RSS because site.baseUrl is not configured.',
+          )
+        } else {
+          for (const { locale } of config.i18n.locales) {
+            this.emitFile({
+              type: 'asset',
+              fileName: rssAssetPath(config, locale),
+              source: makeRss(config, pages, locale),
+            })
+          }
+        }
+      }
+      if (config.og.enabled) {
+        const { default: sharp } = await import('sharp')
+        for (const { locale } of config.i18n.locales) {
+          this.emitFile({
+            type: 'asset',
+            fileName: ogLandingPath(config, locale).replace(/^\/+/, ''),
+            source: await sharp(
+              Buffer.from(
+                ogSvg(
+                  config.site.title,
+                  config.landing.headline ?? config.site.title,
+                  config.landing.description ?? config.site.description,
+                ),
+              ),
+            )
+              .png()
+              .toBuffer(),
+          })
+        }
+        for (const { metadata } of pages) {
+          const locale = metadata.locale ?? config.i18n.defaultLocale
+          const generatedPath = ogImagePath(config, locale, metadata.slug)
+          if (metadata.frontmatter.socialImage !== generatedPath) continue
+          this.emitFile({
+            type: 'asset',
+            fileName: generatedPath.replace(/^\/+/, ''),
+            source: await sharp(
+              Buffer.from(
+                ogSvg(
+                  config.site.title,
+                  metadata.frontmatter.title,
+                  metadata.frontmatter.description,
+                ),
+              ),
+            )
+              .png()
+              .toBuffer(),
           })
         }
       }

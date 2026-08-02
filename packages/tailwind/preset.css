@@ -1,5 +1,6 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/jetbrains-mono';
+@import 'katex/dist/katex.min.css';
 @import './theme.css';
 
 * {
@@ -29,6 +30,55 @@ html {
 
 html.dark {
   color-scheme: dark;
+}
+
+.fd-banner {
+  position: relative;
+  z-index: 60;
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 3rem;
+  border-bottom: 1px solid var(--fd-border);
+  color: var(--fd-foreground);
+  background: var(--fd-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.fd-banner-rainbow {
+  border-bottom-color: transparent;
+  background:
+    linear-gradient(var(--fd-background), var(--fd-background)) padding-box,
+    linear-gradient(90deg, #9bd32e, #78a7ff, #d985ff) border-box;
+}
+
+.fd-banner a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.fd-banner-dismiss {
+  position: absolute;
+  right: 0.75rem;
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.375rem;
+  color: var(--fd-muted-foreground);
+  background: transparent;
+  cursor: pointer;
+}
+
+.fd-banner-dismiss:hover {
+  color: var(--fd-foreground);
+  background: color-mix(in srgb, var(--fd-foreground) 8%, transparent);
 }
 
 body {
@@ -572,11 +622,11 @@ html[dir='rtl'] .fd-sidebar {
 
 .fd-layout-tabs > button {
   width: 100%;
-  min-height: 3.25rem;
+  min-height: 2.5rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
   border: 1px solid var(--fd-gray-300);
   border-radius: 0.55rem;
   background: color-mix(in srgb, var(--fd-muted) 58%, transparent);
@@ -609,7 +659,7 @@ html[dir='rtl'] .fd-sidebar {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .fd-layout-tab-current,
@@ -638,13 +688,11 @@ html[dir='rtl'] .fd-sidebar {
   white-space: nowrap;
 }
 
-.fd-layout-tab-current span,
-.fd-layout-tabs-menu span {
-  overflow: hidden;
+.fd-layout-tab-copy > span {
   color: var(--fd-muted-foreground);
   font-size: 0.68rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  white-space: normal;
 }
 
 .fd-layout-tabs-chevron {
@@ -681,6 +729,7 @@ html[dir='rtl'] .fd-sidebar {
   line-height: 1.625;
   letter-spacing: 0.01em;
   text-align: left;
+  outline: none;
 }
 
 .fd-layout-tabs-menu [role='menuitem'] {
@@ -1379,6 +1428,132 @@ html[dir='rtl'] .fd-docs-body {
   font-weight: 400;
 }
 
+.fd-math-inline {
+  max-width: 100%;
+}
+
+.fd-math-display {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+.fd-mermaid {
+  max-width: 100%;
+  margin: 2rem 0;
+  overflow-x: auto;
+  padding: 1rem;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.5rem;
+  background: var(--fd-gray-100);
+  text-align: center;
+}
+
+.dark .fd-mermaid {
+  background: #1c1a20;
+}
+
+.fd-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.fd-mermaid-source {
+  margin: 0;
+  overflow: auto;
+  color: var(--fd-muted-foreground);
+  background: transparent;
+  font-family: var(--fd-font-mono);
+  font-size: 0.8125rem;
+  text-align: left;
+  white-space: pre;
+}
+
+.fd-inline-toc {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--fd-muted) 45%, transparent);
+}
+
+.fd-inline-toc-title {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.fd-inline-toc ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fd-inline-toc a {
+  display: block;
+  padding: 0.25rem 0;
+  color: var(--fd-muted-foreground);
+}
+
+.fd-inline-toc a:hover {
+  color: var(--fd-primary);
+}
+
+.fd-inline-toc-depth-3 {
+  padding-left: 0.75rem;
+}
+
+.fd-inline-toc-depth-4 {
+  padding-left: 1.5rem;
+}
+
+.fd-type-table-wrap {
+  max-width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.5rem;
+}
+
+.fd-type-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.fd-type-table th,
+.fd-type-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--fd-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.fd-type-table th {
+  color: var(--fd-muted-foreground);
+  background: var(--fd-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.fd-type-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.fd-type-value,
+.fd-type-default {
+  font-family: var(--fd-font-mono);
+  font-size: 0.8125rem;
+}
+
+.fd-type-value {
+  color: var(--fd-primary);
+}
+
 .dark .fd-inline-code {
   border-color: color-mix(in srgb, var(--fd-gray-700) 50%, transparent);
   background: var(--fd-gray-800);
@@ -1446,6 +1621,76 @@ html[dir='rtl'] .fd-docs-body {
 
 .fd-code-copy > span:last-child {
   display: none;
+}
+
+.fd-package-install-toolbar {
+  position: relative;
+  top: auto;
+  right: auto;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.5rem 0 0.75rem;
+  border-bottom: 1px solid var(--fd-border);
+}
+
+.fd-package-install-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.fd-package-install-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  border: 0;
+  color: var(--fd-muted-foreground);
+  background: transparent;
+  font-family: var(--fd-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fd-package-install-trigger::after {
+  position: absolute;
+  right: 0.5rem;
+  bottom: -1px;
+  left: 0.5rem;
+  height: 1px;
+  background: transparent;
+  content: '';
+}
+
+.fd-package-install-trigger:hover,
+.fd-package-install-trigger-active {
+  color: var(--fd-foreground);
+}
+
+.fd-package-install-trigger-active::after {
+  background: var(--fd-primary);
+}
+
+.fd-package-install-trigger:focus-visible {
+  outline: 2px solid var(--fd-primary);
+  outline-offset: -2px;
+  border-radius: 0.25rem;
+}
+
+.fd-package-install-toolbar .fd-code-copy {
+  flex: none;
+}
+
+.fd-package-install-panel {
+  min-width: 0;
+}
+
+.fd-package-install-panel .fd-shiki {
+  min-width: 0;
 }
 
 .fd-code-block pre {
@@ -2023,6 +2268,55 @@ html[dir='rtl'] .fd-file-folder-content {
   border: 1px solid var(--fd-border);
 }
 
+.fd-image-zoom-trigger {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.fd-image-preview {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 3rem;
+}
+
+.fd-image-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, #000 82%, transparent);
+  cursor: zoom-out;
+}
+
+.fd-image-preview img {
+  position: relative;
+  max-width: min(100%, 90rem);
+  max-height: calc(100vh - 6rem);
+  object-fit: contain;
+}
+
+.fd-image-preview-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, #fff 25%, transparent);
+  border-radius: 0.5rem;
+  color: #fff;
+  background: color-mix(in srgb, #000 55%, transparent);
+  cursor: pointer;
+}
+
 .fd-toc-shell {
   position: sticky;
   top: var(--fd-header-height);
@@ -2096,6 +2390,94 @@ html[dir='rtl'] .fd-file-folder-content {
   margin-top: 3rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--fd-border);
+}
+
+.fd-last-updated {
+  margin: 2.5rem 0 0;
+  color: var(--fd-muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.fd-feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2rem 0 0;
+  padding: 1rem;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.5rem;
+  color: var(--fd-muted-foreground);
+  font-size: 0.875rem;
+}
+
+.fd-feedback-prompt {
+  color: var(--fd-foreground);
+}
+
+.fd-feedback-actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.fd-feedback-actions button {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.375rem;
+  color: var(--fd-foreground);
+  background: transparent;
+  font-family: var(--fd-font-sans);
+  cursor: pointer;
+}
+
+.fd-feedback-actions button:hover {
+  border-color: var(--fd-primary);
+  color: var(--fd-primary);
+}
+
+.fd-feedback-error {
+  color: var(--fd-destructive, #dc2626);
+}
+
+@media print {
+  .fd-banner,
+  .fd-header,
+  .fd-sidebar,
+  .fd-mobile-toc-shell,
+  .fd-toc-shell,
+  .fd-page-actions,
+  .fd-pager,
+  .fd-site-footer,
+  .fd-feedback,
+  .fd-search-layer {
+    display: none !important;
+  }
+
+  .fd-root,
+  .fd-docs-frame,
+  .fd-docs-body,
+  .fd-main,
+  .fd-content-column,
+  .fd-article {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .fd-accordion-content,
+  .fd-tab-panel {
+    display: block !important;
+  }
+
+  .fd-code-block,
+  .fd-callout,
+  .fd-card,
+  .fd-prose-image {
+    break-inside: avoid;
+  }
 }
 
 .fd-pager-link {
@@ -2323,6 +2705,35 @@ html[dir='rtl'] .fd-sidebar-dialog-panel[data-closed] {
   max-height: 60dvh;
   overflow: auto;
   padding: 0;
+}
+
+.fd-search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  max-height: 6.75rem;
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--fd-border);
+}
+
+.fd-search-filter {
+  flex: none;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--fd-border);
+  border-radius: 999px;
+  color: var(--fd-muted-foreground);
+  background: transparent;
+  font-family: var(--fd-font-sans);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.fd-search-filter:hover,
+.fd-search-filter-active {
+  border-color: var(--fd-primary);
+  color: var(--fd-primary);
+  background: color-mix(in srgb, var(--fd-primary) 10%, transparent);
 }
 
 .fd-search-result {

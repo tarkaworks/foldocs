@@ -1,5 +1,7 @@
 import { Option, Schema as S } from 'effect'
 import GithubSlugger from 'github-slugger'
+import { imageSize } from 'image-size'
+import katex from 'katex'
 import type {
   BlockContent as MdastBlockContent,
   ListItem as MdastListItem,
@@ -10,9 +12,13 @@ import type {
 } from 'mdast'
 import type {} from 'mdast-util-directive'
 import type {} from 'mdast-util-mdx-jsx'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
+import npmToYarn from 'npm-to-yarn'
 import remarkDirective from 'remark-directive'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
 import remarkMdx from 'remark-mdx'
 import remarkParse from 'remark-parse'
 import { codeToHtml } from 'shiki'
@@ -36,6 +42,7 @@ import type {
   CompiledPage as CompiledPageType,
   Inline,
   InlineComponent,
+  PackageManager,
   Table,
   TableRow,
 } from './ast.js'
@@ -45,6 +52,7 @@ const processor = unified()
   .use(remarkParse)
   .use(remarkFrontmatter, ['yaml'])
   .use(remarkGfm)
+  .use(remarkMath)
   .use(remarkDirective)
   .use(remarkMdx)
   .freeze()
@@ -173,6 +181,7 @@ const inlineText = (content: ReadonlyArray<Inline>): string =>
       switch (node._tag) {
         case 'Text':
         case 'InlineCode':
+        case 'InlineMath':
           return node.value
         case 'HardBreak':
           return '\n'
@@ -197,6 +206,18 @@ const normalizeInline = (
       return { _tag: 'Text', value: String(node.value) }
     case 'inlineCode':
       return { _tag: 'InlineCode', value: String(node.value) }
+    case 'inlineMath': {
+      const value = String(node.value)
+      return {
+        _tag: 'InlineMath',
+        value,
+        html: katex.renderToString(value, {
+          displayMode: false,
+          output: 'htmlAndMathml',
+          throwOnError: false,
+        }),
+      }
+    }
     case 'break':
       return { _tag: 'HardBreak' }
     case 'emphasis':
@@ -350,6 +371,60 @@ const normalizeCodeBlock = async (
   }
 }
 
+const packageManagers = ['npm', 'pnpm', 'yarn', 'bun'] as const
+const convertPackageCommand = npmToYarn as unknown as (
+  command: string,
+  manager: PackageManager,
+) => string
+
+const convertPackageCommandLines = (
+  command: string,
+  manager: PackageManager,
+): string =>
+  command
+    .split('\n')
+    .map(line => convertPackageCommand(line, manager))
+    .join('\n')
+
+const normalizePackageInstall = async (
+  source: string,
+  sourceLanguage: 'npm' | 'package-install',
+  meta: string | undefined,
+  options: CompileOptions,
+): Promise<Extract<Block, { _tag: 'PackageInstall' }>> => {
+  const trimmed = source.trimStart()
+  const command =
+    sourceLanguage === 'package-install' &&
+    !/^(?:npm|npx)(?:\s|$)/u.test(trimmed)
+      ? `npm install ${source}`
+      : source
+  const commands = await Promise.all(
+    packageManagers.map(async manager => {
+      const highlighted = await normalizeCodeBlock(
+        convertPackageCommandLines(command, manager),
+        'bash',
+        meta,
+        options,
+      )
+      return {
+        manager,
+        value: highlighted.value,
+        ...(highlighted.highlightedHtml === undefined
+          ? {}
+          : { highlightedHtml: highlighted.highlightedHtml }),
+      }
+    }),
+  )
+  return {
+    _tag: 'PackageInstall',
+    source,
+    sourceLanguage,
+    defaultManager: 'npm',
+    commands,
+    ...(meta === undefined ? {} : { meta }),
+  }
+}
+
 const normalizeBlock = async (
   node: RootContent | MdastBlockContent | Record<string, unknown>,
   slugger: GithubSlugger,
@@ -378,12 +453,33 @@ const normalizeBlock = async (
     case 'code': {
       const value = String(node.value)
       const language = typeof node.lang === 'string' ? node.lang : undefined
+      const packageLanguage = language?.toLowerCase()
+      if (packageLanguage === 'mermaid') return { _tag: 'Mermaid', value }
+      if (packageLanguage === 'npm' || packageLanguage === 'package-install')
+        return normalizePackageInstall(
+          value,
+          packageLanguage,
+          typeof node.meta === 'string' ? node.meta : undefined,
+          options,
+        )
       return normalizeCodeBlock(
         value,
         language,
         typeof node.meta === 'string' ? node.meta : undefined,
         options,
       )
+    }
+    case 'math': {
+      const value = String(node.value)
+      return {
+        _tag: 'MathBlock',
+        value,
+        html: katex.renderToString(value, {
+          displayMode: true,
+          output: 'htmlAndMathml',
+          throwOnError: false,
+        }),
+      }
     }
     case 'list':
       return {
@@ -432,6 +528,16 @@ const normalizeBlock = async (
           node as NodeWithPosition,
           filePath,
           'Fragments are not supported.',
+        )
+      }
+      if (node.name === 'DynamicCodeBlock') {
+        const attributes = attributesFromMdx(node as never, filePath)
+        const value = attributes.code ?? ''
+        return normalizeCodeBlock(
+          value,
+          attributes.lang ?? attributes.language,
+          attributes.meta,
+          options,
         )
       }
       return {
@@ -547,13 +653,25 @@ const normalizeFoldkitBlock = async (
         _tag: 'Paragraph',
         content: node.content.map(normalizeFoldkitInline),
       }
-    case 'CodeBlock':
+    case 'CodeBlock': {
+      const language = Option.getOrUndefined(node.maybeLanguage)
+      const packageLanguage = language?.toLowerCase()
+      if (packageLanguage === 'mermaid')
+        return { _tag: 'Mermaid', value: node.value }
+      if (packageLanguage === 'npm' || packageLanguage === 'package-install')
+        return normalizePackageInstall(
+          node.value,
+          packageLanguage,
+          Option.getOrUndefined(node.maybeMeta),
+          options,
+        )
       return normalizeCodeBlock(
         node.value,
-        Option.getOrUndefined(node.maybeLanguage),
+        language,
         Option.getOrUndefined(node.maybeMeta),
         options,
       )
+    }
     case 'List':
       return {
         _tag: 'List',
@@ -611,6 +729,14 @@ const blockText = (block: Block): string => {
       return inlineText(block.content)
     case 'CodeBlock':
       return block.value
+    case 'MathBlock':
+    case 'Mermaid':
+      return block.value
+    case 'PackageInstall':
+      return (
+        block.commands.find(command => command.manager === block.defaultManager)
+          ?.value ?? block.source
+      )
     case 'List':
       return block.items.flatMap(item => item.blocks.map(blockText)).join(' ')
     case 'Blockquote':
@@ -706,6 +832,105 @@ const finishCompiledPage = (
   }
 }
 
+const enrichImage = async (
+  inline: Inline,
+  filePath: string | undefined,
+): Promise<Inline> => {
+  if (inline._tag === 'Image' && filePath !== undefined) {
+    if (/^(?:[a-z]+:|\/|#)/iu.test(inline.url)) return inline
+    try {
+      const cleanUrl = decodeURIComponent(inline.url.split(/[?#]/u)[0] ?? '')
+      const dimensions = imageSize(
+        await fs.readFile(path.resolve(path.dirname(filePath), cleanUrl)),
+      )
+      return {
+        ...inline,
+        ...(dimensions.width === undefined ? {} : { width: dimensions.width }),
+        ...(dimensions.height === undefined
+          ? {}
+          : { height: dimensions.height }),
+      }
+    } catch {
+      return inline
+    }
+  }
+  if (
+    inline._tag === 'Emphasis' ||
+    inline._tag === 'Strong' ||
+    inline._tag === 'Strikethrough' ||
+    inline._tag === 'Link' ||
+    inline._tag === 'InlineComponent'
+  )
+    return {
+      ...inline,
+      content: await Promise.all(
+        inline.content.map(child => enrichImage(child, filePath)),
+      ),
+    }
+  return inline
+}
+
+const enrichBlockImages = async (
+  block: Block,
+  filePath: string | undefined,
+): Promise<Block> => {
+  if (block._tag === 'Heading' || block._tag === 'Paragraph')
+    return {
+      ...block,
+      content: await Promise.all(
+        block.content.map(inline => enrichImage(inline, filePath)),
+      ),
+    }
+  if (block._tag === 'List')
+    return {
+      ...block,
+      items: await Promise.all(
+        block.items.map(async item => ({
+          ...item,
+          blocks: await Promise.all(
+            item.blocks.map(child => enrichBlockImages(child, filePath)),
+          ),
+        })),
+      ),
+    }
+  if (block._tag === 'Blockquote' || block._tag === 'BlockComponent')
+    return {
+      ...block,
+      blocks: await Promise.all(
+        block.blocks.map(child => enrichBlockImages(child, filePath)),
+      ),
+    }
+  if (block._tag === 'Table')
+    return {
+      ...block,
+      header: {
+        ...block.header,
+        cells: await Promise.all(
+          block.header.cells.map(async cell => ({
+            ...cell,
+            content: await Promise.all(
+              cell.content.map(inline => enrichImage(inline, filePath)),
+            ),
+          })),
+        ),
+      },
+      rows: await Promise.all(
+        block.rows.map(async row => ({
+          ...row,
+          cells: await Promise.all(
+            row.cells.map(async cell => ({
+              ...cell,
+              content: await Promise.all(
+                cell.content.map(inline => enrichImage(inline, filePath)),
+              ),
+            })),
+          ),
+        })),
+      ),
+    }
+  return block
+}
+
 const compileDeterministicMdx = async (
   source: string,
   root: Root,
@@ -718,7 +943,9 @@ const compileDeterministicMdx = async (
   )
   return finishCompiledPage(
     source,
-    blocks,
+    await Promise.all(
+      blocks.map(block => enrichBlockImages(block, options.filePath)),
+    ),
     frontmatterFromRoot(root, options.filePath),
     options.filePath,
   )
@@ -741,7 +968,9 @@ const compileFoldkitMarkdown = async (
   )
   return finishCompiledPage(
     source,
-    blocks,
+    await Promise.all(
+      blocks.map(block => enrichBlockImages(block, options.filePath)),
+    ),
     frontmatterFromRoot(root, options.filePath),
     options.filePath,
   )
@@ -754,12 +983,21 @@ const isTaskListExtensionError = (error: unknown): boolean =>
 const withoutTaskListMarkers = (source: string): string =>
   source.replace(/^(\s*(?:[-+*]|\d+[.)])\s+)\[[ xX]\](?=\s)/gmu, '$1')
 
+const needsDeterministicMarkdownExtensions = (root: Root): boolean =>
+  root.children.some(node => {
+    if (node.type === 'math') return true
+    return node.type === 'code' && node.lang?.toLowerCase() === 'mermaid'
+  })
+
 export const compile = async (
   source: string,
   options: CompileOptions = {},
 ): Promise<CompiledPageType> => {
   const root = processor.parse(source) as Root
   if (!options.filePath?.toLowerCase().endsWith('.md'))
+    return compileDeterministicMdx(source, root, options)
+
+  if (needsDeterministicMarkdownExtensions(root))
     return compileDeterministicMdx(source, root, options)
 
   try {

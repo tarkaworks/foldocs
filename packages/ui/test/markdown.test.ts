@@ -9,6 +9,59 @@ import { islandsFor } from '@foldkit/markdown'
 import { type MdxComponents, renderMarkdown } from '../src/markdown.js'
 
 describe('custom MDX components', () => {
+  it('renders package-install commands with a shared selected manager', () => {
+    const rendered = renderMarkdown(
+      {
+        blocks: [
+          {
+            _tag: 'PackageInstall',
+            source: 'foldocs foldkit effect',
+            sourceLanguage: 'package-install',
+            defaultManager: 'npm',
+            commands: [
+              {
+                manager: 'npm',
+                value: 'npm install foldocs foldkit effect',
+              },
+              {
+                manager: 'pnpm',
+                value: 'pnpm add foldocs foldkit effect',
+              },
+              {
+                manager: 'yarn',
+                value: 'yarn add foldocs foldkit effect',
+              },
+              {
+                manager: 'bun',
+                value: 'bun add foldocs foldkit effect',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        packageManager: 'pnpm',
+      },
+      h,
+    )
+
+    expect(rendered).not.toBeNull()
+    if (rendered === null) return
+    expect(Option.isSome(Scene.find(rendered, '.fd-package-install'))).toBe(
+      true,
+    )
+    const active = Scene.find(rendered, '.fd-package-install-trigger-active')
+    expect(Option.isSome(active)).toBe(true)
+    if (Option.isSome(active))
+      expect(Scene.textContent(active.value)).toBe('pnpm')
+    expect(Scene.textContent(rendered)).toContain(
+      'pnpm add foldocs foldkit effect',
+    )
+    expect(Scene.textContent(rendered)).not.toContain(
+      'npm install foldocs foldkit effect',
+    )
+  })
+
   it('renders the Fumadocs-compatible default component set', () => {
     const paragraph = (value: string): Block => ({
       _tag: 'Paragraph' as const,
@@ -126,6 +179,54 @@ describe('custom MDX components', () => {
     expect(Option.isSome(Scene.find(rendered, '[data-occurrence="1"]'))).toBe(
       true,
     )
+  })
+
+  it('renders math, Mermaid, inline TOC, and type tables', () => {
+    const rendered = renderMarkdown(
+      {
+        blocks: [
+          { _tag: 'MathBlock', value: 'x^2', html: '<span>x²</span>' },
+          { _tag: 'Mermaid', value: 'flowchart LR\nA --> B' },
+          {
+            _tag: 'BlockComponent',
+            name: 'InlineTOC',
+            attributes: {},
+            blocks: [],
+          },
+          {
+            _tag: 'BlockComponent',
+            name: 'TypeTable',
+            attributes: {},
+            blocks: [
+              {
+                _tag: 'BlockComponent',
+                name: 'TypeTableItem',
+                attributes: {
+                  name: 'title',
+                  type: 'string',
+                  description: 'Page title',
+                },
+                blocks: [],
+              },
+            ],
+          },
+        ],
+      },
+      { toc: [{ id: 'usage', title: 'Usage', depth: 2 }] },
+      h,
+    )
+
+    expect(rendered).not.toBeNull()
+    if (rendered === null) return
+    for (const selector of [
+      '.fd-math-display',
+      '.fd-mermaid',
+      '.fd-inline-toc',
+      '.fd-type-table',
+    ])
+      expect(Option.isSome(Scene.find(rendered, selector))).toBe(true)
+    expect(Scene.textContent(rendered)).toContain('Usage')
+    expect(Scene.textContent(rendered)).toContain('Page title')
   })
 
   it('renders registered inline and block components', () => {

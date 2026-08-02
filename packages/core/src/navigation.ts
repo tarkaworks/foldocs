@@ -228,6 +228,28 @@ export const flattenNavigation = (
         : [],
   )
 
+/** Returns the ancestor folder labels for a page URL in display order. */
+export const navigationContextForUrl = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+  ancestors: ReadonlyArray<string> = [],
+): ReadonlyArray<string> | undefined => {
+  for (const node of nodes) {
+    if (node._tag === 'Separator') continue
+    if (node._tag === 'Page') {
+      if (node.url === currentUrl) return ancestors
+      continue
+    }
+    if (node.index?.url === currentUrl) return ancestors
+    const nested = navigationContextForUrl(node.children, currentUrl, [
+      ...ancestors,
+      node.label,
+    ])
+    if (nested !== undefined) return nested
+  }
+  return undefined
+}
+
 export interface NavigationTab {
   readonly title: string
   readonly description?: string
@@ -236,13 +258,40 @@ export interface NavigationTab {
   readonly current: boolean
 }
 
-const containsUrl = (node: NavigationNode, currentUrl: string): boolean =>
+/** Returns whether a page or folder contains the canonical URL. */
+export const navigationContainsUrl = (
+  node: NavigationNode,
+  currentUrl: string,
+): boolean =>
   node._tag === 'Page'
     ? node.url === currentUrl
     : node._tag === 'Folder'
       ? node.index?.url === currentUrl ||
-        node.children.some(child => containsUrl(child, currentUrl))
+        node.children.some(child => navigationContainsUrl(child, currentUrl))
       : false
+
+/** Returns the sidebar ancestor-folder keys for the canonical URL. */
+export const navigationFolderKeysForUrl = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+  parentKey = '',
+): ReadonlyArray<string> => {
+  for (const node of nodes) {
+    if (node._tag !== 'Folder' || !navigationContainsUrl(node, currentUrl))
+      continue
+
+    if (node.root)
+      return navigationFolderKeysForUrl(node.children, currentUrl, parentKey)
+
+    // The folder row represents its index, so that folder is not an ancestor
+    // and remains explicitly collapsible while its index page is active.
+    if (node.index?.url === currentUrl) return []
+
+    const key = `${parentKey}/${node.segment}`
+    return [key, ...navigationFolderKeysForUrl(node.children, currentUrl, key)]
+  }
+  return []
+}
 
 const collectRootFolders = (
   nodes: ReadonlyArray<NavigationNode>,
@@ -260,7 +309,7 @@ const activeRootFolder = (
     if (node._tag !== 'Folder') continue
     const nested = activeRootFolder(node.children, currentUrl)
     if (nested !== undefined) return nested
-    if (node.root && containsUrl(node, currentUrl)) return node
+    if (node.root && navigationContainsUrl(node, currentUrl)) return node
   }
   return undefined
 }

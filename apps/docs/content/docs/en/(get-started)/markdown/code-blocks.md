@@ -24,6 +24,33 @@ use Twoslash where hover types materially help readers.
 If highlighting fails for an unknown grammar, Foldocs falls back to an escaped
 plain code block rather than failing the entire document build.
 
+## Package manager commands
+
+Write one npm command with the `package-install` language. Foldocs generates
+synchronized npm, pnpm, Yarn, and Bun tabs, highlights every command with Shiki,
+and remembers the reader's selection across pages.
+
+````md
+```package-install
+foldocs foldkit effect
+```
+````
+
+```package-install
+foldocs foldkit effect
+```
+
+Use an `npm` fence when the source contains complete npm or npx commands. Foldocs
+converts every line, including development dependency flags and package runner
+commands.
+
+````md
+```npm
+npm install @foldocs/twoslash -D
+npx create-foldocs my-docs
+```
+````
+
 ## Copy behavior
 
 The copy button always uses the original source, not highlighted HTML. Its label

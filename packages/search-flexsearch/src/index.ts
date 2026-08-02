@@ -50,7 +50,12 @@ export const createFlexSearchClient = (
     })
   }
 
-  const run = async (query: string, limit: number, locale?: string) => {
+  const run = async (
+    query: string,
+    limit: number,
+    locale?: string,
+    tags: ReadonlyArray<string> = [],
+  ) => {
     const fields = await index.searchAsync(query, {
       limit,
       enrich: true,
@@ -64,6 +69,7 @@ export const createFlexSearchClient = (
         if (seen.has(id)) continue
         const document = index.get(id)
         if (document == null) continue
+        if (!tags.every(tag => document.tags.includes(tag))) continue
         seen.add(id)
         results.push({
           id,
@@ -84,7 +90,12 @@ export const createFlexSearchClient = (
         ? Effect.succeed([])
         : Effect.tryPromise({
             try: () =>
-              run(query, searchOptions.limit ?? 12, searchOptions.locale),
+              run(
+                query,
+                searchOptions.limit ?? 12,
+                searchOptions.locale,
+                searchOptions.tags,
+              ),
             catch: cause => new SearchError('flexsearch', cause),
           }),
   }

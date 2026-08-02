@@ -6,6 +6,9 @@ import {
   buildNavigation,
   findPageByUrl,
   flattenNavigation,
+  navigationContainsUrl,
+  navigationContextForUrl,
+  navigationFolderKeysForUrl,
   navigationForUrl,
   navigationTabsForUrl,
 } from '../src/index.js'
@@ -161,6 +164,26 @@ describe('navigation', () => {
       previous: { frontmatter: { title: 'Home' } },
       next: { frontmatter: { title: 'Configuration' } },
     })
+  })
+
+  it('derives page context from ancestor folders', () => {
+    const tree = buildNavigation(pages, {
+      guides: { title: 'Guides' },
+    })
+
+    expect(navigationContextForUrl(tree, '/docs/guides/configuration')).toEqual(
+      ['Guides'],
+    )
+    expect(navigationContextForUrl(tree, '/docs/missing')).toBe(undefined)
+    expect(
+      tree.some(node =>
+        navigationContainsUrl(node, '/docs/guides/configuration'),
+      ),
+    ).toBe(true)
+    expect(
+      navigationFolderKeysForUrl(tree, '/docs/guides/configuration'),
+    ).toEqual(['/guides'])
+    expect(navigationFolderKeysForUrl(tree, '/docs/missing')).toEqual([])
   })
 
   it('scopes navigation and pagination to active root folders', () => {

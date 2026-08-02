@@ -22,6 +22,16 @@ export default defineConfig({
 The language selects a Shiki grammar. Metadata can describe a title, emphasized
 lines, or Twoslash behavior when the compiler highlighter is configured.
 
+## Package installation
+
+Use a `package-install` fence to turn one package list or npm command into
+synchronized npm, pnpm, Yarn, and Bun tabs. The selected package manager is
+shared across every installation block and persisted locally.
+
+```package-install
+foldocs foldkit effect
+```
+
 ## Accessibility
 
 Keep the original source as text in the DOM. Highlighting spans are decorative,

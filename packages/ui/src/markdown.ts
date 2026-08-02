@@ -5,10 +5,12 @@ import type {
   Inline,
   InlineComponent,
   Document as MdxDocument,
+  PackageManager,
   TableRow,
 } from 'foldocs-mdx'
 
 import * as FoldkitMarkdown from '@foldkit/markdown'
+import type { TocItem } from '@foldocs/content'
 
 import { icons, navigationIconSvg } from './icons.js'
 
@@ -41,6 +43,13 @@ export interface MarkdownViewOptions<Message> {
   readonly copiedLabel?: string
   readonly copyAriaLabel?: string
   readonly copiedAriaLabel?: string
+  /** Selected package manager shared by every package-install block. */
+  readonly packageManager?: PackageManager
+  readonly selectPackageManager?: (manager: PackageManager) => Message
+  /** Current page headings used by the built-in InlineTOC component. */
+  readonly toc?: ReadonlyArray<TocItem>
+  readonly selectToc?: (id: string) => Message
+  readonly openImage?: (url: string, alt: string) => Message
 }
 
 const externalUrl = (url: string): boolean => /^(?:https?:)?\/\//iu.test(url)
@@ -51,12 +60,22 @@ export const renderMarkdown = <Message>(
   h: HtmlBuilder<Message>,
 ): Html => {
   const islandOccurrenceCounts = new Map<string, number>()
+  let packageInstallOccurrence = 0
   const renderInline = (inline: Inline): Html | string => {
     switch (inline._tag) {
       case 'Text':
         return FoldkitMarkdown.defaultViews.Text(inline)
       case 'InlineCode':
         return h.code([h.Class('fd-inline-code')], [inline.value])
+      case 'InlineMath':
+        return h.span(
+          [
+            h.Class('fd-math fd-math-inline'),
+            h.DataAttribute('source', inline.value),
+            h.InnerHTML(inline.html),
+          ],
+          [],
+        )
       case 'HardBreak':
         return FoldkitMarkdown.defaultViews.HardBreak(inline)
       case 'Emphasis':
@@ -87,12 +106,47 @@ export const renderMarkdown = <Message>(
           inline.content.map(renderInline),
         )
       case 'Image':
-        return h.img([
-          h.Src(inline.url),
-          h.Alt(inline.alt),
-          h.Class('fd-prose-image'),
-          ...(inline.title === undefined ? [] : [h.Title(inline.title)]),
-        ])
+        return options.openImage === undefined
+          ? h.img([
+              h.Src(inline.url),
+              h.Alt(inline.alt),
+              h.Class('fd-prose-image'),
+              h.Attribute('loading', 'lazy'),
+              h.Attribute('decoding', 'async'),
+              ...(inline.width === undefined
+                ? []
+                : [h.Attribute('width', String(inline.width))]),
+              ...(inline.height === undefined
+                ? []
+                : [h.Attribute('height', String(inline.height))]),
+              ...(inline.title === undefined ? [] : [h.Title(inline.title)]),
+            ])
+          : h.button(
+              [
+                h.Type('button'),
+                h.Class('fd-image-zoom-trigger'),
+                h.OnClick(options.openImage(inline.url, inline.alt)),
+                h.AriaLabel(inline.alt || 'Open image preview'),
+              ],
+              [
+                h.img([
+                  h.Src(inline.url),
+                  h.Alt(inline.alt),
+                  h.Class('fd-prose-image'),
+                  h.Attribute('loading', 'lazy'),
+                  h.Attribute('decoding', 'async'),
+                  ...(inline.width === undefined
+                    ? []
+                    : [h.Attribute('width', String(inline.width))]),
+                  ...(inline.height === undefined
+                    ? []
+                    : [h.Attribute('height', String(inline.height))]),
+                  ...(inline.title === undefined
+                    ? []
+                    : [h.Title(inline.title)]),
+                ]),
+              ],
+            )
       case 'InlineComponent': {
         const content = inline.content.map(renderInline)
         const component = options.components?.inline?.[inline.name]
@@ -120,6 +174,46 @@ export const renderMarkdown = <Message>(
           : h.td([], cell.content.map(renderInline)),
       ),
     )
+
+  const codeCopyButton = (value: string): Html | undefined =>
+    options.copyCode === undefined
+      ? undefined
+      : h.button(
+          [
+            h.Type('button'),
+            h.Class('fd-code-copy'),
+            h.OnClick(options.copyCode(value)),
+            h.AriaLabel(
+              options.copiedCode === value
+                ? (options.copiedAriaLabel ?? 'Code copied')
+                : (options.copyAriaLabel ?? 'Copy code'),
+            ),
+          ],
+          [
+            h.span(
+              [
+                h.Class('fd-icon'),
+                h.InnerHTML(
+                  options.copiedCode === value ? icons.check : icons.copy,
+                ),
+              ],
+              [],
+            ),
+            h.span(
+              [],
+              [
+                options.copiedCode === value
+                  ? (options.copiedLabel ?? 'Copied')
+                  : (options.copyLabel ?? 'Copy'),
+              ],
+            ),
+          ],
+        )
+
+  const codeBody = (value: string, highlightedHtml?: string): Html =>
+    highlightedHtml === undefined
+      ? h.pre([], [h.code([], [value])])
+      : h.div([h.Class('fd-shiki'), h.InnerHTML(highlightedHtml)], [])
 
   const renderBlock = (block: Block): Html => {
     switch (block._tag) {
@@ -168,7 +262,8 @@ export const renderMarkdown = <Message>(
       }
       case 'Paragraph':
         return h.p([h.Class('fd-paragraph')], block.content.map(renderInline))
-      case 'CodeBlock':
+      case 'CodeBlock': {
+        const copyButton = codeCopyButton(block.value)
         return h.div(
           [h.Class('fd-code-block')],
           [
@@ -179,52 +274,95 @@ export const renderMarkdown = <Message>(
                   [h.Class('fd-code-language')],
                   [block.language ?? 'text'],
                 ),
-                ...(options.copyCode === undefined
-                  ? []
-                  : [
-                      h.button(
-                        [
-                          h.Class('fd-code-copy'),
-                          h.OnClick(options.copyCode(block.value)),
-                          h.AriaLabel(
-                            options.copiedCode === block.value
-                              ? (options.copiedAriaLabel ?? 'Code copied')
-                              : (options.copyAriaLabel ?? 'Copy code'),
-                          ),
-                        ],
-                        [
-                          h.span(
-                            [
-                              h.Class('fd-icon'),
-                              h.InnerHTML(
-                                options.copiedCode === block.value
-                                  ? icons.check
-                                  : icons.copy,
-                              ),
-                            ],
-                            [],
-                          ),
-                          h.span(
-                            [],
-                            [
-                              options.copiedCode === block.value
-                                ? (options.copiedLabel ?? 'Copied')
-                                : (options.copyLabel ?? 'Copy'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ]),
+                ...(copyButton === undefined ? [] : [copyButton]),
               ],
             ),
-            block.highlightedHtml === undefined
-              ? h.pre([], [h.code([], [block.value])])
-              : h.div(
-                  [h.Class('fd-shiki'), h.InnerHTML(block.highlightedHtml)],
-                  [],
-                ),
+            codeBody(block.value, block.highlightedHtml),
           ],
         )
+      }
+      case 'MathBlock':
+        return h.div(
+          [
+            h.Class('fd-math fd-math-display'),
+            h.DataAttribute('source', block.value),
+            h.InnerHTML(block.html),
+          ],
+          [],
+        )
+      case 'Mermaid':
+        return h.div(
+          [
+            h.Class('fd-mermaid'),
+            h.DataAttribute('source', encodeURIComponent(block.value)),
+            h.DataAttribute('rendered', 'false'),
+          ],
+          [h.pre([h.Class('fd-mermaid-source')], [h.code([], [block.value])])],
+        )
+      case 'PackageInstall': {
+        const selected =
+          block.commands.find(
+            command => command.manager === options.packageManager,
+          ) ??
+          block.commands.find(
+            command => command.manager === block.defaultManager,
+          ) ??
+          block.commands[0]
+        if (selected === undefined) return h.empty
+        const group = `fd-package-install-${String(packageInstallOccurrence++)}`
+        const copyButton = codeCopyButton(selected.value)
+        return h.div(
+          [
+            h.Class('fd-code-block fd-package-install'),
+            h.DataAttribute('component', 'PackageInstall'),
+            h.DataAttribute('package-manager', selected.manager),
+          ],
+          [
+            h.div(
+              [h.Class('fd-code-toolbar fd-package-install-toolbar')],
+              [
+                h.div(
+                  [h.Class('fd-package-install-tabs'), h.Role('tablist')],
+                  block.commands.map(command => {
+                    const active = command.manager === selected.manager
+                    const triggerId = `${group}-${command.manager}-trigger`
+                    return h.button(
+                      [
+                        h.Id(triggerId),
+                        h.Type('button'),
+                        h.Class(
+                          `fd-package-install-trigger${active ? ' fd-package-install-trigger-active' : ''}`,
+                        ),
+                        h.Role('tab'),
+                        h.AriaSelected(active),
+                        h.AriaControls(`${group}-panel`),
+                        ...(options.selectPackageManager === undefined
+                          ? []
+                          : [
+                              h.OnClick(
+                                options.selectPackageManager(command.manager),
+                              ),
+                            ]),
+                      ],
+                      [command.manager],
+                    )
+                  }),
+                ),
+                ...(copyButton === undefined ? [] : [copyButton]),
+              ],
+            ),
+            h.section(
+              [
+                h.Id(`${group}-panel`),
+                h.Class('fd-package-install-panel'),
+                h.Role('tabpanel'),
+                h.AriaLabelledBy(`${group}-${selected.manager}-trigger`),
+              ],
+              [codeBody(selected.value, selected.highlightedHtml)],
+            ),
+          ],
+        )
+      }
       case 'List': {
         const items = block.items.map(item =>
           h.li(
@@ -337,6 +475,121 @@ export const renderMarkdown = <Message>(
         if (block.name === 'Cards') {
           return h.div([h.Class('fd-cards')], content)
         }
+        if (block.name === 'InlineTOC') {
+          const toc = options.toc ?? []
+          return h.nav(
+            [h.Class('fd-inline-toc'), h.AriaLabel('Table of contents')],
+            [
+              ...(block.attributes.title === 'false'
+                ? []
+                : [
+                    h.strong(
+                      [h.Class('fd-inline-toc-title')],
+                      [block.attributes.label ?? 'On this page'],
+                    ),
+                  ]),
+              h.ul(
+                [],
+                toc.map(item =>
+                  h.keyed('li')(
+                    item.id,
+                    [h.Class(`fd-inline-toc-depth-${String(item.depth)}`)],
+                    [
+                      h.a(
+                        [
+                          h.Href(`#${item.id}`),
+                          ...(options.selectToc === undefined
+                            ? []
+                            : [h.OnClick(options.selectToc(item.id))]),
+                        ],
+                        [item.title],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          )
+        }
+        if (block.name === 'TypeTable') {
+          const rows = block.blocks.flatMap(candidate =>
+            candidate._tag === 'BlockComponent' &&
+            candidate.name === 'TypeTableItem'
+              ? [candidate]
+              : [],
+          )
+          return h.div(
+            [h.Class('fd-type-table-wrap')],
+            [
+              h.table(
+                [h.Class('fd-type-table')],
+                [
+                  h.thead(
+                    [],
+                    [
+                      h.tr(
+                        [],
+                        ['Property', 'Type', 'Default', 'Description'].map(
+                          label => h.th([], [label]),
+                        ),
+                      ),
+                    ],
+                  ),
+                  h.tbody(
+                    [],
+                    rows.map((row, index) =>
+                      h.tr(
+                        [],
+                        [
+                          h.td(
+                            [],
+                            [
+                              h.code(
+                                [h.Class('fd-inline-code')],
+                                [
+                                  row.attributes.name ??
+                                    row.attributes.property ??
+                                    `item-${String(index + 1)}`,
+                                ],
+                              ),
+                            ],
+                          ),
+                          h.td(
+                            [],
+                            [
+                              h.code(
+                                [h.Class('fd-type-value')],
+                                [row.attributes.type ?? 'unknown'],
+                              ),
+                            ],
+                          ),
+                          h.td(
+                            [],
+                            [
+                              h.code(
+                                [h.Class('fd-type-default')],
+                                [row.attributes.default ?? '—'],
+                              ),
+                            ],
+                          ),
+                          h.td(
+                            [],
+                            [
+                              row.attributes.description ??
+                                content[index] ??
+                                '—',
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          )
+        }
+        if (block.name === 'TypeTableItem') return h.empty
         if (block.name === 'Card') {
           const href = block.attributes.href
           const cardIcon =

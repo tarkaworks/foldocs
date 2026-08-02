@@ -1,0 +1,5 @@
+{
+  "title": "Internationalization",
+  "defaultOpen": false,
+  "pages": ["index", "configuration", "routing"]
+}

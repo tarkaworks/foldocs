@@ -48,6 +48,8 @@ const inlineHtml = (
       return escapeHtml(inline.value)
     case 'InlineCode':
       return `<code>${escapeHtml(inline.value)}</code>`
+    case 'InlineMath':
+      return `<span class="math-inline">${inline.html}</span>`
     case 'HardBreak':
       return '<br/>'
     case 'Link':
@@ -78,6 +80,17 @@ const blockHtml = (
       return `<p>${block.content.map(child => inlineHtml(child, resolveAsset)).join('')}</p>`
     case 'CodeBlock':
       return `<pre><code${block.language === undefined ? '' : ` class="language-${escapeHtml(block.language)}"`}>${escapeHtml(block.value)}</code></pre>`
+    case 'MathBlock':
+      return `<div class="math-display">${block.html}</div>`
+    case 'Mermaid':
+      return `<pre><code class="language-mermaid">${escapeHtml(block.value)}</code></pre>`
+    case 'PackageInstall': {
+      const command =
+        block.commands.find(
+          candidate => candidate.manager === block.defaultManager,
+        )?.value ?? block.source
+      return `<pre><code class="language-bash">${escapeHtml(command)}</code></pre>`
+    }
     case 'Blockquote':
       return `<blockquote>${block.blocks.map(child => blockHtml(child, resolveAsset)).join('')}</blockquote>`
     case 'ThematicBreak':

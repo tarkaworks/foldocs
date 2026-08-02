@@ -154,4 +154,75 @@ const program = Effect.succeed(1)
     expect(code.highlightedHtml).toContain('data-line="1"')
     expect(code.highlightedHtml).toContain('data-line="2"')
   })
+
+  it('expands one package-install block into highlighted manager commands', async () => {
+    const page = await compile(
+      '# Install\n\n```package-install\nfoldocs foldkit effect\n```',
+      { filePath: 'install.md', highlight: false },
+    )
+    const install = page.document.blocks.find(
+      block => block._tag === 'PackageInstall',
+    )
+    expect(install?._tag).toBe('PackageInstall')
+    if (install?._tag !== 'PackageInstall') return
+    expect(install.defaultManager).toBe('npm')
+    expect(install.commands).toEqual([
+      {
+        manager: 'npm',
+        value: 'npm install foldocs foldkit effect',
+      },
+      {
+        manager: 'pnpm',
+        value: 'pnpm add foldocs foldkit effect',
+      },
+      {
+        manager: 'yarn',
+        value: 'yarn add foldocs foldkit effect',
+      },
+      {
+        manager: 'bun',
+        value: 'bun add foldocs foldkit effect',
+      },
+    ])
+    expect(page.plainText).toContain('npm install foldocs foldkit effect')
+    expect(page.plainText).not.toContain('pnpm add foldocs')
+  })
+
+  it('compiles math, Mermaid, dynamic code, and inline TOC components', async () => {
+    const page = await compile(
+      '# Advanced\n\nInline $x^2$.\n\n$$\nx + y\n$$\n\n```mermaid\nflowchart LR\nA --> B\n```\n\n<DynamicCodeBlock lang="ts" code="const value = 1" />\n\n<InlineTOC />',
+      { filePath: 'advanced.mdx', highlight: false },
+    )
+
+    expect(page.document.blocks.map(block => block._tag)).toEqual(
+      expect.arrayContaining(['MathBlock', 'Mermaid', 'CodeBlock']),
+    )
+    const paragraph = page.document.blocks.find(
+      block => block._tag === 'Paragraph',
+    )
+    expect(
+      paragraph?._tag === 'Paragraph'
+        ? paragraph.content.some(inline => inline._tag === 'InlineMath')
+        : false,
+    ).toBe(true)
+    expect(page.plainText).toContain('x + y')
+  })
+
+  it('converts npm fences line by line and preserves install flags', async () => {
+    const page = await compile(
+      '# Commands\n\n```npm\nnpm install foldocs -D\nnpx create-foldocs docs\n```',
+      { filePath: 'commands.mdx', highlight: false },
+    )
+    const install = page.document.blocks.find(
+      block => block._tag === 'PackageInstall',
+    )
+    expect(install?._tag).toBe('PackageInstall')
+    if (install?._tag !== 'PackageInstall') return
+    expect(
+      install.commands.find(command => command.manager === 'pnpm')?.value,
+    ).toBe('pnpm add foldocs -D\npnpm dlx create-foldocs docs')
+    expect(
+      install.commands.find(command => command.manager === 'bun')?.value,
+    ).toBe('bun add foldocs --dev\nbun x create-foldocs docs')
+  })
 })

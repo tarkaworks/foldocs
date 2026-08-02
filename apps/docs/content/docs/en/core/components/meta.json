@@ -1,0 +1,5 @@
+{
+  "title": "Headless components",
+  "defaultOpen": false,
+  "pages": ["index", "breadcrumbs", "links", "table-of-contents"]
+}

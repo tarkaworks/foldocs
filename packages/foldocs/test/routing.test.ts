@@ -51,6 +51,8 @@ const i18n = {
   enabled: true,
   defaultLocale: 'en',
   fallbackLocale: 'en',
+  parser: 'dir' as const,
+  hideLocale: 'never' as const,
   locales: [
     {
       locale: 'en',

@@ -27,7 +27,8 @@
     "foldkit": "^0.137.0",
     "foldocs-core": "workspace:*",
     "foldocs-mdx": "workspace:*",
-    "foldocs-ui": "workspace:*"
+    "foldocs-ui": "workspace:*",
+    "mermaid": "^11.12.0"
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.102",

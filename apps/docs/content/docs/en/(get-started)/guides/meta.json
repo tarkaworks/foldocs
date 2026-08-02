@@ -8,7 +8,10 @@
     "static-output",
     "access-control",
     "export-epub",
+    "export-pdf",
+    "rss",
     "import-obsidian",
-    "remote-content"
+    "remote-content",
+    "publishing-features"
   ]
 }

@@ -4,6 +4,11 @@ import { PageFrontmatter, TocItem } from '@foldocs/content'
 
 export type Text = Readonly<{ _tag: 'Text'; value: string }>
 export type InlineCode = Readonly<{ _tag: 'InlineCode'; value: string }>
+export type InlineMath = Readonly<{
+  _tag: 'InlineMath'
+  value: string
+  html: string
+}>
 export type HardBreak = Readonly<{ _tag: 'HardBreak' }>
 export type Emphasis = Readonly<{
   _tag: 'Emphasis'
@@ -28,6 +33,8 @@ export type Image = Readonly<{
   url: string
   alt: string
   title?: string
+  width?: number
+  height?: number
 }>
 export type InlineComponent = Readonly<{
   _tag: 'InlineComponent'
@@ -39,6 +46,7 @@ export type InlineComponent = Readonly<{
 export type Inline =
   | Text
   | InlineCode
+  | InlineMath
   | HardBreak
   | Emphasis
   | Strong
@@ -51,6 +59,7 @@ export const Inline: S.Codec<Inline, Inline> = S.suspend(() =>
   S.Union([
     Text,
     InlineCode,
+    InlineMath,
     HardBreak,
     Emphasis,
     Strong,
@@ -65,6 +74,11 @@ export const Text = S.Struct({ _tag: S.Literal('Text'), value: S.String })
 export const InlineCode = S.Struct({
   _tag: S.Literal('InlineCode'),
   value: S.String,
+})
+export const InlineMath = S.Struct({
+  _tag: S.Literal('InlineMath'),
+  value: S.String,
+  html: S.String,
 })
 export const HardBreak = S.Struct({ _tag: S.Literal('HardBreak') })
 export const Emphasis = S.Struct({
@@ -90,6 +104,8 @@ export const Image = S.Struct({
   url: S.String,
   alt: S.String,
   title: S.optionalKey(S.String),
+  width: S.optionalKey(S.Number),
+  height: S.optionalKey(S.Number),
 })
 export const InlineComponent = S.Struct({
   _tag: S.Literal('InlineComponent'),
@@ -114,6 +130,29 @@ export type CodeBlock = Readonly<{
   language?: string
   meta?: string
   highlightedHtml?: string
+}>
+export type MathBlock = Readonly<{
+  _tag: 'MathBlock'
+  value: string
+  html: string
+}>
+export type Mermaid = Readonly<{
+  _tag: 'Mermaid'
+  value: string
+}>
+export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun'
+export type PackageInstallCommand = Readonly<{
+  manager: PackageManager
+  value: string
+  highlightedHtml?: string
+}>
+export type PackageInstall = Readonly<{
+  _tag: 'PackageInstall'
+  source: string
+  sourceLanguage: 'npm' | 'package-install'
+  defaultManager: PackageManager
+  commands: ReadonlyArray<PackageInstallCommand>
+  meta?: string
 }>
 export type ListItem = Readonly<{
   _tag: 'ListItem'
@@ -156,6 +195,9 @@ export type Block =
   | Heading
   | Paragraph
   | CodeBlock
+  | MathBlock
+  | Mermaid
+  | PackageInstall
   | List
   | Blockquote
   | ThematicBreak
@@ -167,6 +209,9 @@ export const Block: S.Codec<Block, Block> = S.suspend(() =>
     Heading,
     Paragraph,
     CodeBlock,
+    MathBlock,
+    Mermaid,
+    PackageInstall,
     List,
     Blockquote,
     ThematicBreak,
@@ -191,6 +236,29 @@ export const CodeBlock = S.Struct({
   language: S.optionalKey(S.String),
   meta: S.optionalKey(S.String),
   highlightedHtml: S.optionalKey(S.String),
+})
+export const MathBlock = S.Struct({
+  _tag: S.Literal('MathBlock'),
+  value: S.String,
+  html: S.String,
+})
+export const Mermaid = S.Struct({
+  _tag: S.Literal('Mermaid'),
+  value: S.String,
+})
+export const PackageManager = S.Literals(['npm', 'pnpm', 'yarn', 'bun'])
+export const PackageInstallCommand = S.Struct({
+  manager: PackageManager,
+  value: S.String,
+  highlightedHtml: S.optionalKey(S.String),
+})
+export const PackageInstall = S.Struct({
+  _tag: S.Literal('PackageInstall'),
+  source: S.String,
+  sourceLanguage: S.Literals(['npm', 'package-install']),
+  defaultManager: PackageManager,
+  commands: S.Array(PackageInstallCommand),
+  meta: S.optionalKey(S.String),
 })
 export const ListItem = S.Struct({
   _tag: S.Literal('ListItem'),

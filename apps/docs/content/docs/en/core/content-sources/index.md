@@ -1,6 +1,7 @@
 ---
 title: Content sources
 description: Implement the small typed contract used by local files, remote MDX, and CMS adapters.
+index: true
 ---
 
 # Content sources
@@ -27,3 +28,6 @@ export const adapter = defineContentAdapter('release-notes', async () => files)
 
 Decode unknown records at the adapter boundary. The Vite integration then rejects
 unsafe paths, duplicate ownership, and content that cannot compile.
+
+Continue with [local files](/en/docs/core/content-sources/local-files) or
+[build a custom adapter](/en/docs/core/content-sources/custom-adapters).

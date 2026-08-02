@@ -1,0 +1,52 @@
+---
+title: Type table
+description: Document properties, types, defaults, and descriptions consistently.
+---
+
+# Type table
+
+Use `TypeTable` for a compact API reference. Each `TypeTableItem` becomes one
+row and remains part of the deterministic document tree used by static output,
+search, and Markdown serialization.
+
+## Example
+
+<TypeTable>
+  <TypeTableItem
+    name="title"
+    type="string"
+    description="Displayed page title."
+  />
+  <TypeTableItem
+    name="draft"
+    type="boolean"
+    default="false"
+    description="Excludes the page from production output."
+  />
+</TypeTable>
+
+```mdx
+<TypeTable>
+  <TypeTableItem
+    name="title"
+    type="string"
+    description="Displayed page title."
+  />
+  <TypeTableItem
+    name="draft"
+    type="boolean"
+    default="false"
+    description="Excludes the page from production output."
+  />
+</TypeTable>
+```
+
+## Item properties
+
+| Property      | Type     | Description                             |
+| ------------- | -------- | --------------------------------------- |
+| `name`        | `string` | Property name.                          |
+| `property`    | `string` | Alias used when `name` is omitted.      |
+| `type`        | `string` | Displayed type expression.              |
+| `default`     | `string` | Displayed default value.                |
+| `description` | `string` | Human-readable behavior or constraints. |

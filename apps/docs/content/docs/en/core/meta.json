@@ -4,17 +4,20 @@
   "icon": "cuboid",
   "root": true,
   "pages": [
-    "---Introduction---",
+    "---Guide---",
     "index",
+    "search",
+    "---API References---",
     "page-tree",
-    "---Configuration---",
+    "page-conventions",
     "configuration",
     "manifests",
-    "content-sources",
-    "---Runtime---",
     "navigation",
     "internationalization",
-    "search",
-    "utilities"
+    "components",
+    "utilities",
+    "mdx",
+    "---Sources---",
+    "content-sources"
   ]
 }
