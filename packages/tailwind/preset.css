@@ -2,11 +2,6 @@
 @import '@fontsource-variable/jetbrains-mono';
 @import './theme.css';
 
-/*
- * The visual foundation mirrors the MIT-licensed Foldkit website.
- * See THIRD-PARTY-NOTICES.md for attribution.
- */
-
 * {
   box-sizing: border-box;
 }

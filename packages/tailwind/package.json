@@ -7,7 +7,6 @@
     "*.css"
   ],
   "files": [
-    "THIRD-PARTY-NOTICES.md",
     "preset.css",
     "theme.css"
   ],

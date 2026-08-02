@@ -5,37 +5,23 @@
 <h1 align="center">Foldocs</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/foldocs"><img src="https://img.shields.io/npm/v/foldocs" alt="npm version"></a>
+  <a href="https://github.com/tarkaworks/foldocs/actions/workflows/ci.yml"><img alt="CI status" src="https://shieldcn.dev/github/ci/tarkaworks/foldocs.svg?workflow=ci.yml&amp;branch=main&amp;size=xs&amp;variant=outline&amp;mode=light"></a>
+  <a href="https://www.npmjs.com/package/foldocs"><img alt="npm version" src="https://shieldcn.dev/npm/foldocs.svg?variant=outline&amp;size=xs&amp;mode=light"></a>
+  <a href="https://github.com/tarkaworks/foldocs/stargazers"><img alt="GitHub stars" src="https://shieldcn.dev/github/stars/tarkaworks/foldocs.svg?variant=outline&amp;size=xs&amp;mode=light"></a>
+  <a href="./LICENSE"><img alt="Apache 2.0 license" src="https://shieldcn.dev/badge/license-MIT.svg?size=xs&amp;variant=outline&amp;mode=light"></a>
 </p>
-
-<h3 align="center">The documentation framework for Foldkit.</h3>
-
 <p align="center">
-  <a href="https://foldocs.vercel.app"><strong>Documentation</strong></a> ·
-  <a href="#get-started"><strong>Get Started</strong></a> ·
-  <a href="https://github.com/Tarkaworks/foldocs"><strong>GitHub</strong></a> ·
-  <a href="https://x.com/Tarkaworks"><strong>X</strong></a>
+  <a href="https://github.com/tarkaworks"><img alt="Made by TarkaWorks" src="https://shieldcn.dev/badge/Made_by-TarkaWorks-000000.svg?size=xs"></a>
+  <a href="https://x.com/tarkaworks"><img alt="Follow TarkaWorks on Twitter" src="https://shieldcn.dev/x/follow/tarkaworks.svg?size=xs&amp;variant=branded"></a>
+  <a href="https://github.com/tarkaworks/foldocs/issues"><img alt="Join the community on GitHub" src="https://shieldcn.dev/badge/Join_the_community-GitHub.svg?logo=github&variant=branded&size=xs"></a>
 </p>
 
-<p align="center">
-  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/Tarkaworks/foldocs"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"></a>
-</p>
-
----
-
-Foldocs is a complete documentation framework built with
-[Foldkit](https://foldkit.dev/) and [Effect](https://effect.website/). It turns a
-directory of Markdown and MDX files into a fast, searchable, multilingual
-documentation site without making you assemble the layout, content pipeline,
-search, or static rendering yourself.
-
-The generated project is a normal Foldkit application that you own. Write
-documents, adjust one typed configuration file, and deploy the prerendered
-output anywhere that serves static assets.
+[Foldocs](https://foldocs.vercel.app/) is a framework for building documentation websites with
+[Foldkit](https://foldkit.dev/) and [Effect](https://effect.website/).
 
 ## Get Started
 
-Create a complete Foldocs application with one command:
+Create a Foldocs application and start the development server:
 
 ```bash
 pnpm create foldocs@latest my-docs
@@ -43,203 +29,56 @@ cd my-docs
 pnpm dev
 ```
 
-Your site starts with a landing page, responsive documentation layout, local
-search, light and dark themes, internationalization, syntax highlighting,
-Markdown endpoints, LLM files, and static rendering already configured.
+Add `.md` or `.mdx` files to `content/docs`. Files become pages automatically,
+while `meta.json` controls their order and sidebar grouping. See the
+[documentation](https://foldocs.vercel.app/docs) for authoring, configuration,
+internationalization, search, and customization.
 
-## Write Documentation
+## Deployment
 
-Pages come directly from `content/docs`. Files become routes, `meta.json`
-controls navigation, and parenthesized directories organize content without
-appearing in the URL.
-
-```text
-content/docs/
-├── en/
-│   ├── meta.json
-│   ├── index.mdx
-│   └── (get-started)/
-│       ├── meta.json
-│       ├── installation.md
-│       └── guides/
-└── es/
-    └── ...
-```
-
-A page needs only frontmatter and content:
-
-```mdx
----
-title: Installation
-description: Create and run your first Foldocs site.
-icon: PackageOpen
----
-
-# Installation
-
-<Callout title="Ready out of the box">
-  Search, themes, static HTML, and Markdown output are already configured.
-</Callout>
-```
-
-Use separators for visible sidebar sections and directories for collapsible
-groups:
-
-```json
-{
-  "title": "Documentation",
-  "pages": [
-    "---Introduction---",
-    "index",
-    "installation",
-    "---Guides---",
-    "guides"
-  ]
-}
-```
-
-Pages and groups support Lucide icons by name. Projects can replace any icon
-with their own SVG through `foldocs.config.ts`.
-
-## Built for Documentation
-
-Foldocs ships as one integrated system:
-
-- **Foldkit-native runtime** — navigation, search, themes, menus, and page state
-  use a typed Model, Messages, update function, Commands, and Effect.
-- **Markdown and deterministic MDX** — `.md` uses the official
-  `@foldkit/markdown` parser; `.mdx` adds registered documentation components
-  without executing arbitrary content JavaScript.
-- **Complete documentation UI** — responsive navigation, nested sidebars,
-  tables of contents, breadcrumbs, page actions, pagination, mobile menus, and
-  accessible keyboard behavior are included.
-- **Static by default** — every route is emitted as finished HTML with its own
-  metadata, canonical URL, alternate languages, and matching Markdown file.
-- **Search without setup** — Orama provides local full-text search by default,
-  with a provider-neutral Effect interface for hosted search.
-- **Internationalization from the start** — locale routes, translated UI,
-  fallback content, localized search indexes, and alternate links share the
-  same content model.
-- **LLM-ready output** — pages expose Copy Markdown, View as Markdown, and
-  assistant shortcuts; builds emit `llms.txt` and `llms-full.txt`.
-- **Open typography** — Inter is used throughout the interface and JetBrains
-  Mono is used for code. Both are self-hosted from their Fontsource packages.
-
-## Configure the Site
-
-`foldocs.config.ts` is the typed source of truth for the content pipeline and
-site behavior:
-
-```ts
-import { defineConfig } from 'foldocs'
-
-export default defineConfig({
-  basePath: '/docs',
-  content: { dir: 'content/docs' },
-  markdown: true,
-  llms: true,
-  sitemap: true,
-  prerender: true,
-  search: { staticIndex: true },
-  i18n: {
-    defaultLocale: 'en',
-    fallbackLocale: 'en',
-    locales: [
-      { locale: 'en', name: 'English' },
-      { locale: 'es', name: 'Español' },
-    ],
-  },
-})
-```
-
-Choose the `docs`, `notebook`, `flux`, or `glass` layout preset, or run
-`foldocs customize all` to copy the layout, theme, and MDX component entry
-points into your application.
-
-## Static Output and Deployment
+Build the complete static site:
 
 ```bash
 pnpm build
 ```
 
-The build creates complete HTML for every landing and documentation route,
-plus localized search indexes, Markdown pages, `llms.txt`, `llms-full.txt`, and
-`sitemap.xml`. There is no production Node.js server and no SPA fallback
-requirement.
+The generated `dist` directory contains prerendered HTML, Markdown routes,
+localized search indexes, LLM files, and the sitemap. It can be deployed to any
+static hosting provider.
+
+### Cloudflare
 
 Generated projects include [Alchemy](https://alchemy.run/) configuration for
-Cloudflare Workers static assets:
+deploying the static site to Cloudflare:
 
 ```bash
 pnpm deploy
 ```
 
-The same `dist` directory can be deployed to any static hosting provider.
+<p>
+  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/Tarkaworks/foldocs"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"></a>
+</p>
 
-## Packages
+### Vercel
 
-The public package boundary stays intentionally small:
+The repository includes a [`vercel.json`](./vercel.json) that tells Vercel to
+run `pnpm build` and publish `apps/docs/dist`. This configuration makes the
+one-click deployment use the same fully static output without requiring a
+serverless runtime. For a generated Foldocs application, use its local `dist`
+directory as the output directory.
 
-| Package                 | Purpose                                                    |
-| ----------------------- | ---------------------------------------------------------- |
-| `foldocs`               | Foldkit documentation program and typed configuration      |
-| `foldocs-core`          | Content manifests, navigation, routes, and configuration   |
-| `foldocs-mdx`           | Foldkit Markdown enrichment and deterministic MDX compiler |
-| `foldocs-ui`            | Documentation layouts and component rendering              |
-| `@foldocs/vite`         | Content discovery, virtual modules, HMR, and static output |
-| `@foldocs/tailwind`     | Default theme, typography, layout, and prose styles        |
-| `@foldocs/content`      | Shared content contracts                                   |
-| `@foldocs/search`       | Provider-neutral Effect search interface                   |
-| `@foldocs/search-orama` | Default zero-configuration local search                    |
-| `@foldocs/language`     | Typed interface translations                               |
-| `@foldocs/twoslash`     | Compiler-powered information for TypeScript code blocks    |
-| `@foldocs/cli`          | Content validation and project customization               |
-| `create-foldocs`        | Prompt-free Foldocs application generator                  |
+<p>
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTarkaworks%2Ffoldocs"><img src="https://vercel.com/button" alt="Deploy with Vercel"></a>
+</p>
 
-See the [architecture guide](./docs/ARCHITECTURE.md) for the compiler, runtime,
-and package boundaries.
+## Community
 
-## Development
+The foldocs community lives on [GitHub](https://github.com/tarkaworks/foldocs), where you can [report bugs, request features, and share ideas](https://github.com/tarkaworks/foldocs/issues).
 
-```bash
-git clone https://github.com/Tarkaworks/foldocs.git
-cd foldocs
-pnpm install
-pnpm dev
-```
+## Contributing
 
-The documentation application in `apps/docs` uses the same public packages and
-template produced by `create-foldocs`.
-
-Run the complete quality gate before pushing:
-
-```bash
-pnpm check
-pnpm test:e2e
-```
-
-This checks formatting, Oxlint, unused files and dependencies, circular
-imports, repository scripts, release boundaries, builds, TypeScript, package
-tests, and browser behavior. The repository installs the same checks as a
-pre-push hook.
-
-## Releasing
-
-Foldocs uses [Tegami](https://tegami.fuma-nama.dev/) for release notes,
-versioning, and npm publication:
-
-```bash
-pnpm tegami
-```
-
-The publish workflow validates the complete repository before releasing the
-public packages. npm authentication uses GitHub Actions trusted publishing,
-so no long-lived npm token is stored in GitHub secrets.
+Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) to get the repo running locally and land a change, and use issues and discussions to collaborate. By participating, you agree to our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## License
 
-[MIT](./LICENSE) © 2026 Tarkaworks.
-
-The default stylesheet includes portions adapted from the MIT-licensed Foldkit
-website. Its required attribution is distributed with `@foldocs/tailwind` in
-[`THIRD-PARTY-NOTICES.md`](./packages/tailwind/THIRD-PARTY-NOTICES.md).
+Published under the [MIT](./LICENSE) license.
