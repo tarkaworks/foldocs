@@ -2,6 +2,11 @@
   "name": "@foldocs/language",
   "version": "0.1.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/language"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [

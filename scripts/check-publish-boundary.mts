@@ -26,6 +26,13 @@ interface PackageManifest {
   readonly publishConfig?: {
     readonly access?: string
   }
+  readonly repository?:
+    | string
+    | {
+        readonly directory?: string
+        readonly type?: string
+        readonly url?: string
+      }
   readonly dependencies?: Record<string, string>
   readonly optionalDependencies?: Record<string, string>
   readonly peerDependencies?: Record<string, string>
@@ -66,6 +73,15 @@ for (const manifest of manifests.values()) {
     }
     if (manifest.publishConfig?.access !== 'public') {
       errors.push(`${manifest.name} must set publishConfig.access to public`)
+    }
+    const repositoryUrl =
+      typeof manifest.repository === 'string'
+        ? manifest.repository
+        : manifest.repository?.url
+    if (repositoryUrl !== 'https://github.com/tarkaworks/foldocs') {
+      errors.push(
+        `${manifest.name} must set repository.url to https://github.com/tarkaworks/foldocs`,
+      )
     }
   } else {
     if (manifest.private !== true) {
