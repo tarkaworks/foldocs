@@ -1,0 +1,6 @@
+{
+  "title": "Guides",
+  "icon": "sparkles",
+  "defaultOpen": false,
+  "pages": ["index", "customize-ui", "static-output", "access-control"]
+}

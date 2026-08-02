@@ -7,6 +7,8 @@ export const PageFrontmatter = S.Struct({
   icon: S.optionalKey(S.String),
   label: S.optionalKey(S.String),
   order: S.optionalKey(S.Number),
+  /** Use an `index` page as its parent folder's linked sidebar row. */
+  index: S.optionalKey(S.Boolean),
   draft: S.optionalKey(S.Boolean),
   hidden: S.optionalKey(S.Boolean),
   keywords: S.optionalKey(S.Array(S.String)),

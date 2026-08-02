@@ -5,10 +5,11 @@ packages from the beginning. The default experience is opinionated, while the
 package graph avoids making every user install every provider.
 
 ```text
-Markdown / deterministic MDX
-          │
-          ▼
- foldocs-mdx ──────► typed document AST
+`.md` ─► @foldkit/markdown ─► Foldocs enrichment
+`.mdx` ────────────────► deterministic MDX adapter
+                                  │
+                                  ▼
+                    foldocs-mdx typed document AST
           │
           ▼
  @foldocs/vite ────► virtual:foldocs manifest ───► lazy page chunks
@@ -49,11 +50,17 @@ configured fallback locale while keeping the requested locale URL and search sco
 
 ## Content safety
 
-Foldocs supports Markdown, GFM, YAML frontmatter, directives, literal MDX
-attributes, and registered components. Arbitrary MDX JavaScript expressions, ESM,
-raw HTML, spread props, and unsafe URL schemes are rejected during compilation.
-Interactive behavior belongs in typed Foldkit models and messages rather than code
-executed from documentation files.
+For `.md`, `@foldkit/markdown` owns parsing, its typed document schema, URL safety,
+and Effect Schema validation for directive islands. Foldocs removes page
+frontmatter before that parse while preserving source line numbers, then enriches
+the official AST with stable heading IDs, highlighted code, table-of-contents data,
+search text, and the metadata needed by navigation and static output. GFM task
+lists are the one explicit Foldocs extension to the current official vocabulary.
+
+The `.mdx` path is a compatibility adapter for literal inline and block component
+syntax. Arbitrary JavaScript expressions, ESM, raw HTML, spread props, and unsafe
+URL schemes are rejected during compilation. Interactive behavior belongs in typed
+Foldkit models and messages rather than code executed from documentation files.
 
 Filesystem documents and build-time `ContentAdapter` sources enter the same compiler
 pipeline. Remote modules are exposed as separate Vite virtual modules, preserving

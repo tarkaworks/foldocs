@@ -1,3 +1,4 @@
+import * as FoldkitMarkdown from "@foldkit/markdown";
 import type {
   Block,
   BlockComponent,
@@ -6,7 +7,7 @@ import type {
   InlineComponent,
   TableRow,
 } from "foldocs-mdx";
-import { type Html, html } from "foldkit/html";
+import { type Html, type HtmlBuilder } from "foldkit/html";
 
 import { icons } from "./icons.js";
 
@@ -25,7 +26,11 @@ export interface MdxComponents {
   readonly block?: Readonly<Record<string, BlockComponentView>>;
 }
 
+export type MarkdownIslands = FoldkitMarkdown.Islands;
+
 export interface MarkdownViewOptions<Message> {
+  /** Typed directive views produced by @foldkit/markdown `islandsFor`. */
+  readonly islands?: MarkdownIslands;
   readonly components?: MdxComponents;
   readonly copiedCode?: string;
   readonly copyCode?: (value: string) => Message;
@@ -40,23 +45,32 @@ const externalUrl = (url: string): boolean => /^(?:https?:)?\/\//iu.test(url);
 export const renderMarkdown = <Message>(
   document: MdxDocument,
   options: MarkdownViewOptions<Message> = {},
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
-
+  const islandOccurrenceCounts = new Map<string, number>();
   const renderInline = (inline: Inline): Html | string => {
     switch (inline._tag) {
       case "Text":
-        return inline.value;
+        return FoldkitMarkdown.defaultViews.Text(inline);
       case "InlineCode":
         return h.code([h.Class("fd-inline-code")], [inline.value]);
       case "HardBreak":
-        return h.br([]);
+        return FoldkitMarkdown.defaultViews.HardBreak(inline);
       case "Emphasis":
-        return h.em([], inline.content.map(renderInline));
+        return FoldkitMarkdown.defaultViews.Emphasis(
+          { _tag: "Emphasis", content: [] },
+          inline.content.map(renderInline),
+        );
       case "Strong":
-        return h.strong([], inline.content.map(renderInline));
+        return FoldkitMarkdown.defaultViews.Strong(
+          { _tag: "Strong", content: [] },
+          inline.content.map(renderInline),
+        );
       case "Strikethrough":
-        return h.del([], inline.content.map(renderInline));
+        return FoldkitMarkdown.defaultViews.Strikethrough(
+          { _tag: "Strikethrough", content: [] },
+          inline.content.map(renderInline),
+        );
       case "Link":
         return h.a(
           [
@@ -260,6 +274,11 @@ export const renderMarkdown = <Message>(
         );
       case "BlockComponent": {
         const content = block.blocks.map(renderBlock);
+        const occurrenceIndex = islandOccurrenceCounts.get(block.name) ?? 0;
+        islandOccurrenceCounts.set(block.name, occurrenceIndex + 1);
+        const island = options.islands?.[block.name];
+        if (island !== undefined)
+          return island(block.attributes, content, occurrenceIndex);
         const component = options.components?.block?.[block.name];
         if (component !== undefined) return component(block, content);
         if (block.name === "Callout" || block.name === "Note") {

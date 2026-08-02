@@ -16,24 +16,26 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.97",
-    "effect": "4.0.0-beta.97",
-    "foldocs": "workspace:*",
-    "foldkit": "0.130.0"
+    "@effect/platform-browser": "4.0.0-beta.102",
+    "@foldkit/markdown": "0.2.1",
+    "effect": "4.0.0-beta.102",
+    "foldkit": "0.137.0",
+    "foldocs": "workspace:*"
   },
   "devDependencies": {
+    "@foldkit/devtools": "0.137.0",
+    "@foldkit/vite-plugin": "0.11.3",
     "@foldocs/asyncapi": "workspace:*",
     "@foldocs/cli": "workspace:*",
     "@foldocs/epub": "workspace:*",
     "@foldocs/language": "workspace:*",
     "@foldocs/obsidian": "workspace:*",
     "@foldocs/openapi": "workspace:*",
+    "@foldocs/python": "workspace:*",
     "@foldocs/tailwind": "workspace:*",
     "@foldocs/twoslash": "workspace:*",
     "@foldocs/typescript": "workspace:*",
-    "@foldocs/python": "workspace:*",
     "@foldocs/vite": "workspace:*",
-    "@foldkit/vite-plugin": "0.11.0",
     "@types/node": "26.1.1",
     "typescript": "6.0.3",
     "vite": "^8.0.16",

@@ -1,10 +1,12 @@
 {
   "title": "Características",
+  "icon": "sparkles",
   "description": "Primitivas de documentación para producción",
   "root": true,
   "pages": [
     "---Funciones principales---",
     "search",
+    "markdown-islands",
     "custom-components",
     "navigation-versioning",
     "layouts-customization",

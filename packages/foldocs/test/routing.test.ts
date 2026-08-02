@@ -71,6 +71,7 @@ describe("generated homepage routing", () => {
     const [model] = program.init(url("https://example.com/"));
 
     expect(model.page._tag).toBe("PageHome");
+    expect(model.isLandingHeaderVisible).toBe(false);
   });
 
   it("keeps a root document when basePath is /", () => {
@@ -120,6 +121,26 @@ describe("generated homepage routing", () => {
 
     expect(model.pathname).toBe("/en/docs");
     expect(model.page._tag).toBe("PageReady");
+  });
+
+  it("keeps the homepage visible while the first docs route loads", () => {
+    const manifest = [manifestEntry("/en/docs", "", "en", compiled)];
+    const program = createDocsProgram({
+      manifest,
+      site: { title: "Example docs" },
+      basePath: "/docs",
+      i18n,
+    });
+    const [home] = program.init(url("https://example.com/en"));
+    const [transitioning, commands] = program.update(
+      home,
+      program.routing.onUrlChange(url("https://example.com/en/docs")),
+    );
+
+    expect(home.page._tag).toBe("PageHome");
+    expect(transitioning.pathname).toBe("/en/docs");
+    expect(transitioning.page._tag).toBe("PageHome");
+    expect(commands).toHaveLength(2);
   });
 
   it("keeps the current document visible while the next route chunk loads", async () => {

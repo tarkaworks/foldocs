@@ -19,10 +19,10 @@
   },
   "dependencies": {
     "@foldocs/search": "workspace:*",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.102",
     "flexsearch": "^0.8.212"
   },
   "peerDependencies": {
-    "effect": "4.0.0-beta.97"
+    "effect": "4.0.0-beta.102"
   }
 }

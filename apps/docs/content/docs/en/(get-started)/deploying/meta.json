@@ -1,0 +1,6 @@
+{
+  "title": "Deploying",
+  "icon": "rocket",
+  "defaultOpen": false,
+  "pages": ["index", "static", "cloudflare", "vercel"]
+}

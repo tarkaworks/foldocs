@@ -55,6 +55,20 @@ test("prerendered homepage, localized docs, Markdown, and remote content agree",
     ),
   ).toEqual([]);
 
+  await page.getByRole("link", { name: /^Read the docs$/iu }).click();
+  await expect(page).toHaveURL(/\/en\/docs$/u);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Foldocs");
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __foldocsLoadingStates: ReadonlyArray<string>;
+          }
+        ).__foldocsLoadingStates,
+    ),
+  ).toEqual([]);
+
   await page.goto("/en/docs/getting-started");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Getting started",
@@ -126,6 +140,39 @@ test("prerendered homepage, localized docs, Markdown, and remote content agree",
   expect(errors).toEqual([]);
 });
 
+test("landing navigation follows the hero and the footer keeps its attribution", async ({
+  page,
+}) => {
+  const errors = expectNoRuntimeErrors(page);
+  await page.goto("/en");
+
+  const header = page.locator(".fd-landing-header");
+  await expect(header).toHaveClass(/fd-landing-header-hidden/u);
+  await expect(header).toHaveAttribute("aria-hidden", "true");
+
+  await page.evaluate(() => {
+    const hero = document.querySelector<HTMLElement>(".fd-hero");
+    if (hero === null) throw new Error("Landing hero was not rendered.");
+    window.scrollTo(0, hero.offsetTop + hero.offsetHeight + 1);
+  });
+  await expect(header).toHaveClass(/fd-landing-header-visible/u);
+  await expect(header).toHaveAttribute("aria-hidden", "false");
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(header).toHaveClass(/fd-landing-header-hidden/u);
+
+  const footer = page.locator(".fd-home-footer");
+  await expect(footer.locator(".fd-site-footer-left p")).toHaveCount(1);
+  await expect(footer).toContainText(
+    "Built by Aniket. The source code is available on GitHub.",
+  );
+  await expect(footer).toContainText("Copyright 2026 Tarka Works");
+  await expect(
+    footer.getByRole("link", { name: "Tarka Works on X" }),
+  ).toHaveAttribute("href", "https://x.com/tarkaworks");
+  expect(errors).toEqual([]);
+});
+
 test("search traps focus, resolves local results, and restores its trigger", async ({
   page,
 }) => {
@@ -134,15 +181,27 @@ test("search traps focus, resolves local results, and restores its trigger", asy
   const trigger = page.locator("#fd-search-trigger");
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Search documentation" });
+  const panel = dialog.locator(".fd-search-dialog");
   const input = dialog.getByRole("combobox");
-  const close = dialog.getByRole("button", { name: "Close search" });
   await expect(dialog).toBeVisible();
   await expect(input).toBeFocused();
+  await expect(panel).toHaveCSS("border-radius", "12px");
+  expect((await panel.boundingBox())?.width ?? Infinity).toBeLessThanOrEqual(
+    576,
+  );
 
   await page.keyboard.press("Shift+Tab");
-  await expect(close).toBeFocused();
-  await page.keyboard.press("Tab");
   await expect(input).toBeFocused();
+
+  const themeBeforeTyping = await page
+    .locator("html")
+    .evaluate((element) => element.classList.contains("dark"));
+  await input.press("d");
+  expect(
+    await page
+      .locator("html")
+      .evaluate((element) => element.classList.contains("dark")),
+  ).toBe(themeBeforeTyping);
 
   await input.fill("portable content");
   await expect(dialog.getByRole("option").first()).toBeVisible();
@@ -183,6 +242,17 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
   const light = page.getByRole("button", { name: "Light" });
   const dark = page.getByRole("button", { name: "Dark" });
 
+  const controlHeights = await Promise.all(
+    [
+      search,
+      page.locator(".fd-header .fd-language-trigger"),
+      page.locator(".fd-header .fd-theme-selector"),
+      page.locator('.fd-header .fd-social-link[aria-label="GitHub"]'),
+      page.locator('.fd-header .fd-social-link[aria-label="npm"]'),
+    ].map(async (control) => (await control.boundingBox())?.height),
+  );
+  expect(controlHeights).toEqual([36, 36, 36, 36, 36]);
+
   await expect(page.locator("html")).toHaveClass(/dark/u);
   await expect(root).toHaveCSS("background-color", "rgb(30, 28, 33)");
   await expect(root).not.toHaveClass(/(?:^|\s)(?:light|dark)(?:\s|$)/u);
@@ -218,6 +288,11 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
     ),
   ).not.toBe("color(srgb 1 1 1 / 0.5)");
 
+  await page.keyboard.press("d");
+  await expect(page.locator("html")).not.toHaveClass(/dark/u);
+  await page.keyboard.press("d");
+  await expect(page.locator("html")).toHaveClass(/dark/u);
+
   const languageSelector = page.locator(".fd-header .fd-language-selector");
   const languageTrigger = languageSelector.locator(".fd-language-trigger");
   const languageChevron = languageSelector.locator(".fd-language-chevron");
@@ -231,6 +306,14 @@ test("Foldkit theme colors and dropdown chevrons stay synchronized", async ({
   await expect(languageTrigger).toHaveAttribute("aria-expanded", "true");
   await expect(languageSelector).toHaveAttribute("data-open", "");
   await expect(page.getByRole("menu")).toBeFocused();
+  const portalFont = await page
+    .getByRole("menu")
+    .evaluate((element) => getComputedStyle(element).fontFamily);
+  const documentFont = await page
+    .locator("body")
+    .evaluate((element) => getComputedStyle(element).fontFamily);
+  expect(portalFont).toBe(documentFont);
+  expect(portalFont).toContain("ABC Favorit");
   await expect(languageChevron).toHaveCSS(
     "transform",
     "matrix(-1, 0, 0, -1, 0, 0)",
@@ -255,21 +338,102 @@ test("Fumadocs-style sections, folders, page actions, and pager work together", 
   const errors = expectNoRuntimeErrors(page);
   await page.goto("/en/docs/getting-started");
 
-  await expect(page.locator(".fd-sidebar-section-label")).toHaveText(
+  await expect(page.locator(".fd-sidebar-section-label")).toHaveText([
     "Introduction",
-  );
+    "Writing",
+    "Configuration",
+    "Integrations",
+  ]);
   await expect(page.locator(".fd-page-context")).toHaveCount(0);
-  const folder = page.getByRole("button", { name: "Manual installation" });
+  const documentationSelector = page.getByRole("button", {
+    name: "Select documentation",
+  });
+  await documentationSelector.click();
+  const documentationMenu = page.locator(".fd-layout-tabs-menu");
+  await expect(documentationMenu).toBeVisible();
+  await expect(documentationMenu).toBeFocused();
+  expect(
+    await documentationMenu.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await documentationMenu
+      .getByRole("menuitem")
+      .evaluateAll((items) =>
+        items.every(
+          (item) =>
+            item.scrollWidth <= item.clientWidth &&
+            getComputedStyle(item).textAlign === "left",
+        ),
+      ),
+  ).toBe(true);
+  expect(
+    await documentationMenu.evaluate(
+      (element) => getComputedStyle(element).fontFamily,
+    ),
+  ).toBe(
+    await page
+      .locator("body")
+      .evaluate((element) => getComputedStyle(element).fontFamily),
+  );
+  await page.mouse.click(600, 240);
+  await expect(documentationMenu).toHaveCount(0);
+  await expect(documentationSelector).toBeFocused();
+
+  const folderIndex = page.getByRole("link", {
+    name: "Manual installation",
+    exact: true,
+  });
+  const folderRow = folderIndex.locator("..");
+  const folder = folderRow.getByRole("button");
+  await expect(folderIndex).toHaveAttribute(
+    "href",
+    "/en/docs/manual-installation",
+  );
   await expect(folder.locator(".fd-sidebar-chevron")).toHaveClass(/fd-icon/u);
   await expect(folder).toBeEnabled();
   await expect(folder).toHaveAttribute("aria-expanded", "false");
+  await expect(folderIndex.locator(".fd-navigation-icon")).toBeVisible();
+  const folderPadding = await folderRow.evaluate(
+    (element) => getComputedStyle(element).paddingLeft,
+  );
+  const singleItem = page.locator(
+    '.fd-sidebar-link-root[href="/en/docs/getting-started"]',
+  );
+  const singleItemPadding = await singleItem.evaluate(
+    (element) => getComputedStyle(element).paddingLeft,
+  );
+  expect(folderPadding).toBe(singleItemPadding);
+  expect((await folderRow.boundingBox())?.x).toBe(
+    (await singleItem.boundingBox())?.x,
+  );
+  expect((await folderRow.boundingBox())?.width).toBe(
+    (await singleItem.boundingBox())?.width,
+  );
+  await folderRow.hover();
+  await expect(folderRow).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await folder.click();
   await expect(folder).toHaveAttribute("aria-expanded", "true");
+  const folderPanelId = await folder.getAttribute("aria-controls");
+  expect(folderPanelId).not.toBeNull();
+  const folderPanel = page.locator(`#${folderPanelId ?? "missing-panel"}`);
+  expect(
+    await folderPanel.evaluate(
+      (element) => getComputedStyle(element, "::before").width,
+    ),
+  ).toBe("1px");
 
   const pnpmPage = page.locator(
     '.fd-sidebar > nav a[href="/en/docs/manual-installation/pnpm"]',
   );
   await expect(pnpmPage).toBeVisible();
+  expect((await pnpmPage.boundingBox())?.x).toBe(
+    (await singleItem.boundingBox())?.x,
+  );
+  expect((await pnpmPage.boundingBox())?.width).toBe(
+    (await singleItem.boundingBox())?.width,
+  );
   await pnpmPage.click();
   await expect(page).toHaveURL(/\/en\/docs\/manual-installation\/pnpm$/u);
   await expect(page.locator(".fd-page-context")).toHaveText(
@@ -277,17 +441,31 @@ test("Fumadocs-style sections, folders, page actions, and pager work together", 
   );
   await expect(folder).toBeEnabled();
   await expect(folder).toHaveAttribute("aria-expanded", "true");
+  const folderPanelClip = folderPanel.locator("..");
+  const folderPanelMotion = folderPanelClip.locator("..");
   await folder.click();
   await expect(folder).toHaveAttribute("aria-expanded", "false");
-  await expect(pnpmPage).toBeHidden();
+  await expect(folderPanelClip).toHaveAttribute("aria-hidden", "true");
+  await expect
+    .poll(async () => (await folderPanelMotion.boundingBox())?.height ?? 0)
+    .toBe(0);
   await folder.click();
   await expect(folder).toHaveAttribute("aria-expanded", "true");
+  await expect(folderPanelClip).not.toHaveAttribute("aria-hidden", "true");
   await expect(pnpmPage).toBeVisible();
 
-  const open = page.locator(".fd-page-open > summary");
+  const open = page.getByRole("button", { name: "Open page options" });
   await open.click();
   const menu = page.locator(".fd-page-open-menu");
   await expect(menu).toBeVisible();
+  await expect(menu).toBeFocused();
+  expect(
+    await menu.evaluate((element) => getComputedStyle(element).fontFamily),
+  ).toBe(
+    await page
+      .locator("body")
+      .evaluate((element) => getComputedStyle(element).fontFamily),
+  );
   for (const externalIcon of await menu
     .locator(".fd-page-open-external")
     .all()) {
@@ -298,16 +476,31 @@ test("Fumadocs-style sections, folders, page actions, and pager work together", 
   }
   await expect(
     menu.getByRole("menuitem", { name: "View as Markdown" }),
-  ).toHaveAttribute("href", "/en/docs/manual-installation/pnpm.md");
+  ).toBeVisible();
   await expect(
     menu.getByRole("menuitem", { name: "Open in ChatGPT" }),
-  ).toHaveAttribute("href", /^https:\/\/chatgpt\.com\/\?q=/u);
+  ).toBeVisible();
   await expect(
     menu.getByRole("menuitem", { name: "Open in Claude" }),
-  ).toHaveAttribute("href", /^https:\/\/claude\.ai\/new\?q=/u);
+  ).toBeVisible();
   await expect(
     menu.getByRole("menuitem", { name: "Open in Grok" }),
-  ).toHaveAttribute("href", /^https:\/\/grok\.com\/\?q=/u);
+  ).toBeVisible();
+  await page.mouse.click(700, 240);
+  await expect(menu).toHaveCount(0);
+  await expect(open).toBeFocused();
+
+  const copyMarkdown = page.locator(".fd-page-actions > button");
+  await expect(copyMarkdown).toHaveAccessibleName("Copy page as Markdown");
+  const copyWidthBefore = (await copyMarkdown.boundingBox())?.width;
+  const copyIconBefore = await copyMarkdown.locator(".fd-icon").innerHTML();
+  await copyMarkdown.click();
+  await expect(copyMarkdown).toHaveText("Copy Markdown");
+  await expect(copyMarkdown).toHaveAttribute("aria-label", "Copied Markdown");
+  expect(await copyMarkdown.locator(".fd-icon").innerHTML()).not.toBe(
+    copyIconBefore,
+  );
+  expect((await copyMarkdown.boundingBox())?.width).toBe(copyWidthBefore);
 
   await expect(page.locator(".fd-pager-direction")).toHaveText([
     "Previous",
@@ -317,6 +510,14 @@ test("Fumadocs-style sections, folders, page actions, and pager work together", 
   await expect(
     page.locator(".fd-content-column > .fd-doc-footer"),
   ).toBeVisible();
+  const docsFooter = page.locator(".fd-content-column > .fd-doc-footer");
+  await expect(docsFooter).toContainText(
+    "Built by Aniket. The source code is available on GitHub.",
+  );
+  await expect(docsFooter).toContainText("Copyright 2026 Tarka Works");
+  await expect(
+    docsFooter.getByRole("link", { name: "Tarka Works on X" }),
+  ).toHaveAttribute("href", "https://x.com/tarkaworks");
   expect(errors).toEqual([]);
 });
 

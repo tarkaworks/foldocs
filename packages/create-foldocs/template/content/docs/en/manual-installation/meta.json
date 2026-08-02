@@ -1,5 +1,6 @@
 {
   "title": "Manual installation",
+  "icon": "package",
   "defaultOpen": false,
-  "pages": ["pnpm", "npm"]
+  "pages": ["index", "pnpm", "npm"]
 }

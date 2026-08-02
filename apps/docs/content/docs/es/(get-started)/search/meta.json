@@ -1,0 +1,6 @@
+{
+  "title": "Búsqueda",
+  "icon": "search",
+  "defaultOpen": false,
+  "pages": ["index", "indexing", "providers"]
+}

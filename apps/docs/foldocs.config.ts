@@ -58,6 +58,12 @@ export default defineConfig({
   landing: {
     sections: ["hero", "overview", "stack", "features", "ai", "proof", "cta"],
     command: "pnpm create foldocs@latest",
+    footer: {
+      author: "Aniket",
+      authorUrl: "https://github.com/Aniket-508",
+      copyright: "Copyright 2026 Tarka Works",
+      twitterUrl: "https://x.com/tarkaworks",
+    },
   },
   content: { dir: "content/docs", sources: [dogfoodRemoteSource] },
   llms: true,

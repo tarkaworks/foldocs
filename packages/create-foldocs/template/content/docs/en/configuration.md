@@ -8,6 +8,11 @@ order: 3
 
 Edit `foldocs.config.ts` to change the site identity and content paths.
 
+:::Aside{type="tip"}
+This `.md` page is parsed by `@foldkit/markdown`. The `Aside` directive is
+validated against `src/markdown-islands.ts` during development and builds.
+:::
+
 ## Site metadata
 
 Set `site.baseUrl` to the production origin so canonical URLs, social image URLs,
@@ -24,6 +29,10 @@ documentation shell. Add `githubUrl`, `discordUrl`, `xUrl`, or `npmUrl` to expos
 the corresponding header and mobile-navigation links. With i18n and the default
 `basePath: "/docs"`, `/` redirects to a locale landing page such as `/en`; setting
 `basePath: "/"` makes each locale's root Markdown document its homepage instead.
+
+Set `landing.footer.author`, `authorUrl`, `copyright`, and `twitterUrl` to use the
+same attribution footer on the landing page and every documentation page. The
+source-code sentence links to `site.githubUrl`.
 
 ## Internationalization
 
@@ -61,8 +70,11 @@ with the virtual manifest instead.
 
 ## Frontmatter
 
-Use `order`, `label`, `hidden`, `draft`, `tags`, `keywords`, and `socialImage` to
-control page metadata.
+Use `order`, `label`, `icon`, `index`, `hidden`, `draft`, `tags`, `keywords`, and
+`socialImage` to control page metadata. Set `index: true` on a folder's index
+page to link the collapsible folder row to it. `icon` accepts a built-in Lucide name,
+including `book-open`, `file-text`, `package`, `rocket`, `settings`, and
+`sparkles`.
 
 ## Sidebar structure
 
@@ -86,9 +98,33 @@ become collapsible sections and use their own metadata:
 ```json
 {
   "title": "Manual installation",
+  "icon": "package",
   "pages": ["pnpm", "npm"],
   "defaultOpen": false
 }
+```
+
+Pages can set the same icon in frontmatter:
+
+```yaml
+---
+title: Deploy
+icon: rocket
+---
+```
+
+To replace a built-in name or add a project icon, register trusted SVG markup
+in `site.icons`. The same name then works in page frontmatter and `meta.json`:
+
+```ts
+export default defineConfig({
+  site: {
+    title: "My docs",
+    icons: {
+      rocket: '<svg viewBox="0 0 24 24" aria-hidden="true">...</svg>',
+    },
+  },
+});
 ```
 
 Directories wrapped in parentheses are route groups. For example,
@@ -101,7 +137,19 @@ layout tab. Only the active root's pages appear in the sidebar and pager. Use
 normal folders such as `v1` and `v2` for partial versioning, or route groups such
 as `(guides)` and `(api)` for isolated sections without extra URL segments.
 
-## Custom MDX components
+## Markdown islands and deterministic MDX
+
+Plain `.md` pages use the official `@foldkit/markdown` parser. Define directive
+attribute schemas in `src/markdown-islands.ts`, pass them through
+`markdownOptions.islands`, and pair them with views using the official
+`islandsFor` helper. The generated entry passes those views to
+`createDocsProgram({ islands })`. This keeps standard Markdown typed from build
+to render while Foldocs adds frontmatter, heading links, syntax highlighting,
+navigation, and search text.
+
+Use `.mdx` only when a page needs inline JSX-like component syntax. Foldocs MDX
+accepts registered components with literal string attributes; it never executes
+JavaScript expressions or module code.
 
 Register presentational Foldkit renderers in `src/mdx-components.ts` and pass the
 registry to `createDocsProgram`. Component attributes are literal strings and

@@ -1,0 +1,6 @@
+{
+  "title": "Internationalization",
+  "icon": "languages",
+  "defaultOpen": false,
+  "pages": ["index", "routing", "translations"]
+}

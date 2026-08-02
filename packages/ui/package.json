@@ -26,16 +26,18 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@foldkit/markdown": "0.2.1",
+    "@foldkit/ui": "0.137.0",
     "@foldocs/content": "workspace:*",
     "@foldocs/search": "workspace:*",
-    "@foldkit/ui": "0.130.0",
-    "effect": "4.0.0-beta.97",
+    "effect": "4.0.0-beta.102",
+    "foldkit": "0.137.0",
     "foldocs-core": "workspace:*",
     "foldocs-mdx": "workspace:*",
-    "foldkit": "0.130.0"
+    "lucide": "0.547.0"
   },
   "peerDependencies": {
-    "effect": "4.0.0-beta.97",
-    "foldkit": "^0.130.0"
+    "effect": "4.0.0-beta.102",
+    "foldkit": "^0.137.0"
   }
 }

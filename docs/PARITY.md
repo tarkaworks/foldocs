@@ -4,43 +4,43 @@ Foldocs follows Fumadocs' product shape and monorepo separation, but targets
 Foldkit exclusively and uses Effect as its runtime. This document is the release checklist; “partial”
 is used where the core exists but Fumadocs still has a broader surface.
 
-| Capability                     | Status       | Foldocs implementation                                                             |
-| ------------------------------ | ------------ | ---------------------------------------------------------------------------------- |
-| One-command app creation       | Implemented  | `pnpm create foldocs <dir>` creates one opinionated Foldkit app                    |
-| Markdown and MDX files         | Implemented  | GFM, YAML, directives, literal MDX components, Shiki                               |
-| Filesystem routing             | Implemented  | Nested files and folder `index` pages from locale content trees                    |
-| Typed content validation       | Implemented  | Effect Schema frontmatter, metadata, AST, and compiled pages                       |
-| Page tree and sidebar          | Implemented  | Generated folders, roots, labels, ordering, drafts, and hidden pages               |
-| Generated homepage             | Implemented  | Locale landing routes with default-locale redirects                                |
-| Documentation UI               | Implemented  | Foldkit-style fixed shell, responsive TOC, full-screen mobile nav, pager/footer    |
-| Theme support                  | Implemented  | Flash-free Light/System/Dark selector, OS synchronization, and persistence         |
-| Code presentation              | Implemented  | Shiki, line numbers, language labels, and clipboard copy feedback                  |
-| Local search                   | Implemented  | Lazy per-locale Orama index and optional FlexSearch package                        |
-| Hosted search clients          | Implemented  | Separate Algolia, Orama Cloud, Mixedbread, Typesense, and Trieve adapters          |
-| LLM output                     | Implemented  | Root compatibility files plus per-locale `llms.txt` and `llms-full.txt`            |
-| Per-page Markdown URLs         | Implemented  | `<page>.md` assets, dev serving, content negotiation, copy/view page actions       |
-| SEO output                     | Implemented  | Per-route metadata/social images, canonical, sitemap, alternates, Open Graph       |
-| Content validation             | Implemented  | `foldocs check` validates locale routes, fallback pages, links, and anchors        |
-| HMR                            | Implemented  | Page and virtual-manifest invalidation in the Vite plugin                          |
-| Custom MDX components          | Implemented  | Public typed renderer registry shared by runtime, prerenderer, and generated app   |
-| Search UX                      | Implemented  | Combobox/listbox semantics, loading states, live results, arrows, Enter/Escape     |
-| Internationalization           | Implemented  | Locale trees/routes, switcher, UI strings, search, fallback, Markdown, LLM, SEO    |
-| Language packs                 | Implemented  | Typed Spanish and Simplified/Traditional Chinese UI translation presets            |
-| Versioned documentation        | Implemented  | Localized root-folder tabs isolate version trees, sidebars, and pagination         |
-| Hosted search ingestion        | Implemented  | Static corpus loader plus Algolia, Orama Cloud, Typesense, Trieve, Mixedbread sync |
-| Static export/prerender        | Implemented  | Directory HTML plus flash-free current-route preload and Foldkit DOM adoption      |
-| OpenAPI/API reference          | Implemented  | Separate generator emits operation MDX, schemas, samples, responses, and roots     |
-| CMS/remote content sources     | Implemented  | Lazy virtual MDX plus HTTP, Sanity, BaseHub, and custom build-time adapters        |
-| Multiple layout presets        | Implemented  | Docs, notebook, flux, and glass compositions share one accessible Foldkit shell    |
-| AsyncAPI reference             | Implemented  | Separate 2.x/3.x generator emits messages, payloads, bindings, examples, and roots |
-| TypeScript/Python docgen       | Implemented  | Compiler declarations and safe Python AST extraction generate managed MDX roots    |
-| Twoslash                       | Implemented  | Explicit code fences receive build-time type hovers and diagnostics through Shiki  |
-| EPUB export                    | Implemented  | EPUB 3 package, navigation, spine, XHTML, embedded assets, metadata, styles, CLI   |
-| Obsidian/content adapters      | Implemented  | Managed wiki-link/embed migration plus remote MDX, BaseHub, and Sanity adapters    |
-| Content attachments            | Implemented  | Local assets are served in dev and emitted per locale with fallback inheritance    |
-| UI customization CLI           | Implemented  | `foldocs customize` copies theme, layout, and typed MDX component source           |
-| Framework compatibility layers | Out of scope | Foldkit, Effect, and Vite are intentional fixed choices                            |
-| Arbitrary MDX JavaScript       | Out of scope | Rejected for deterministic, indexable, typed Foldkit content                       |
+| Capability                     | Status       | Foldocs implementation                                                               |
+| ------------------------------ | ------------ | ------------------------------------------------------------------------------------ |
+| One-command app creation       | Implemented  | `pnpm create foldocs <dir>` creates one opinionated Foldkit app                      |
+| Markdown and MDX files         | Implemented  | Official Foldkit Markdown core, typed islands, Foldocs enrichment, deterministic MDX |
+| Filesystem routing             | Implemented  | Nested files and folder `index` pages from locale content trees                      |
+| Typed content validation       | Implemented  | Effect Schema frontmatter, metadata, AST, and compiled pages                         |
+| Page tree and sidebar          | Implemented  | Generated folders, roots, labels, ordering, drafts, and hidden pages                 |
+| Generated homepage             | Implemented  | Locale landing routes with default-locale redirects                                  |
+| Documentation UI               | Implemented  | Foldkit-style fixed shell, responsive TOC, full-screen mobile nav, pager/footer      |
+| Theme support                  | Implemented  | Flash-free Light/System/Dark selector, OS synchronization, and persistence           |
+| Code presentation              | Implemented  | Shiki, line numbers, language labels, and clipboard copy feedback                    |
+| Local search                   | Implemented  | Lazy per-locale Orama index and optional FlexSearch package                          |
+| Hosted search clients          | Implemented  | Separate Algolia, Orama Cloud, Mixedbread, Typesense, and Trieve adapters            |
+| LLM output                     | Implemented  | Root compatibility files plus per-locale `llms.txt` and `llms-full.txt`              |
+| Per-page Markdown URLs         | Implemented  | `<page>.md` assets, dev serving, content negotiation, copy/view page actions         |
+| SEO output                     | Implemented  | Per-route metadata/social images, canonical, sitemap, alternates, Open Graph         |
+| Content validation             | Implemented  | `foldocs check` validates locale routes, fallback pages, links, and anchors          |
+| HMR                            | Implemented  | Page and virtual-manifest invalidation in the Vite plugin                            |
+| Custom MDX components          | Implemented  | Public typed renderer registry shared by runtime, prerenderer, and generated app     |
+| Search UX                      | Implemented  | Combobox/listbox semantics, loading states, live results, arrows, Enter/Escape       |
+| Internationalization           | Implemented  | Locale trees/routes, switcher, UI strings, search, fallback, Markdown, LLM, SEO      |
+| Language packs                 | Implemented  | Typed Spanish and Simplified/Traditional Chinese UI translation presets              |
+| Versioned documentation        | Implemented  | Localized root-folder tabs isolate version trees, sidebars, and pagination           |
+| Hosted search ingestion        | Implemented  | Static corpus loader plus Algolia, Orama Cloud, Typesense, Trieve, Mixedbread sync   |
+| Static export/prerender        | Implemented  | Directory HTML plus flash-free current-route preload and Foldkit DOM adoption        |
+| OpenAPI/API reference          | Implemented  | Separate generator emits operation MDX, schemas, samples, responses, and roots       |
+| CMS/remote content sources     | Implemented  | Lazy virtual MDX plus HTTP, Sanity, BaseHub, and custom build-time adapters          |
+| Multiple layout presets        | Implemented  | Docs, notebook, flux, and glass compositions share one accessible Foldkit shell      |
+| AsyncAPI reference             | Implemented  | Separate 2.x/3.x generator emits messages, payloads, bindings, examples, and roots   |
+| TypeScript/Python docgen       | Implemented  | Compiler declarations and safe Python AST extraction generate managed MDX roots      |
+| Twoslash                       | Implemented  | Explicit code fences receive build-time type hovers and diagnostics through Shiki    |
+| EPUB export                    | Implemented  | EPUB 3 package, navigation, spine, XHTML, embedded assets, metadata, styles, CLI     |
+| Obsidian/content adapters      | Implemented  | Managed wiki-link/embed migration plus remote MDX, BaseHub, and Sanity adapters      |
+| Content attachments            | Implemented  | Local assets are served in dev and emitted per locale with fallback inheritance      |
+| UI customization CLI           | Implemented  | `foldocs customize` copies theme, layout, and typed MDX component source             |
+| Framework compatibility layers | Out of scope | Foldkit, Effect, and Vite are intentional fixed choices                              |
+| Arbitrary MDX JavaScript       | Out of scope | Rejected for deterministic, indexable, typed Foldkit content                         |
 
 “Implemented” means the capability is usable in the dogfood application and covered
 by build, test, or browser verification. It does not mean API stability before the

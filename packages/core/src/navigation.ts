@@ -3,6 +3,7 @@ import type { PageMetadata } from "@foldocs/content";
 export interface NavigationPage {
   readonly _tag: "Page";
   readonly label: string;
+  readonly icon?: string;
   readonly url: string;
   readonly page: PageMetadata;
 }
@@ -16,6 +17,8 @@ export interface NavigationFolder {
   readonly root: boolean;
   readonly description?: string;
   readonly icon?: string;
+  /** Optional page linked from the folder row instead of listed as a child. */
+  readonly index?: NavigationPage;
   readonly children: ReadonlyArray<NavigationNode>;
 }
 
@@ -134,11 +137,20 @@ const freezeFolder = (
       node: {
         _tag: "Page",
         label: page.frontmatter.label ?? page.frontmatter.title,
+        ...(page.frontmatter.icon === undefined
+          ? {}
+          : { icon: page.frontmatter.icon }),
         url: page.url,
         page,
       } satisfies NavigationPage,
     }));
-  const children = orderChildren([...pages, ...folders], meta?.pages);
+  const indexEntry = pages.find(
+    ({ key, node }) => key === "index" && node.page.frontmatter.index === true,
+  );
+  const children = orderChildren(
+    [...pages.filter((entry) => entry !== indexEntry), ...folders],
+    meta?.pages,
+  );
   return {
     _tag: "Folder",
     label: meta?.title ?? folder.label,
@@ -149,6 +161,7 @@ const freezeFolder = (
       ? {}
       : { description: meta.description }),
     ...(meta?.icon === undefined ? {} : { icon: meta.icon }),
+    ...(indexEntry === undefined ? {} : { index: indexEntry.node }),
     children,
   };
 };
@@ -209,7 +222,10 @@ export const flattenNavigation = (
     node._tag === "Page"
       ? [node]
       : node._tag === "Folder"
-        ? flattenNavigation(node.children)
+        ? [
+            ...(node.index === undefined ? [] : [node.index]),
+            ...flattenNavigation(node.children),
+          ]
         : [],
   );
 
@@ -225,7 +241,8 @@ const containsUrl = (node: NavigationNode, currentUrl: string): boolean =>
   node._tag === "Page"
     ? node.url === currentUrl
     : node._tag === "Folder"
-      ? node.children.some((child) => containsUrl(child, currentUrl))
+      ? node.index?.url === currentUrl ||
+        node.children.some((child) => containsUrl(child, currentUrl))
       : false;
 
 const collectRootFolders = (
@@ -256,7 +273,8 @@ const withoutRootFolders = (
     if (node._tag !== "Folder") return [node];
     if (node.root) return [];
     const children = withoutRootFolders(node.children);
-    return children.some((child) => child._tag !== "Separator")
+    return node.index !== undefined ||
+      children.some((child) => child._tag !== "Separator")
       ? [{ ...node, children }]
       : [];
   });
@@ -285,7 +303,7 @@ export const navigationTabsForUrl = (
   const current = activeRootFolder(nodes, currentUrl);
   if (current === undefined) return [];
   return collectRootFolders(nodes).flatMap((folder) => {
-    const url = flattenNavigation(folder.children)[0]?.url;
+    const url = folder.index?.url ?? flattenNavigation(folder.children)[0]?.url;
     if (url === undefined) return [];
     return [
       {

@@ -68,9 +68,7 @@ const customizationTemplates: Readonly<Record<Customization, string>> = {
 }
 `,
   "mdx-components": `import type { MdxComponents } from "foldocs";
-import { html } from "foldkit/html";
-
-const h = html();
+import { inertHtml as h } from "foldkit/html";
 
 /** Merge these project-owned renderers into the registry passed to createDocsProgram. */
 export const customMdxComponents: MdxComponents = {

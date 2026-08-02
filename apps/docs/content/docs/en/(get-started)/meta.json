@@ -1,12 +1,27 @@
 {
-  "title": "Get started",
-  "description": "Install and learn Foldocs",
+  "title": "Framework",
+  "icon": "book-open",
+  "description": "Build production documentation with Foldkit",
   "root": true,
   "pages": [
     "---Introduction---",
     "index",
     "getting-started",
-    "manual-installation"
+    "what-is-foldocs",
+    "comparisons",
+    "manual-installation",
+    "guides",
+    "---Writing---",
+    "page-conventions",
+    "markdown",
+    "---Configuration---",
+    "navigation",
+    "versioning",
+    "deploying",
+    "internationalization",
+    "search",
+    "---Integrations---",
+    "integrations"
   ],
   "defaultOpen": true
 }

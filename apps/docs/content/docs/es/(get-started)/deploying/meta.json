@@ -1,0 +1,6 @@
+{
+  "title": "Despliegue",
+  "icon": "rocket",
+  "defaultOpen": false,
+  "pages": ["index", "static", "cloudflare", "vercel"]
+}

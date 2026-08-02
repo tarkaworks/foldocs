@@ -91,7 +91,9 @@ description: Create and run your first Foldocs site.
 
 Use `meta.json` to control the sidebar. Separator entries create visible,
 non-collapsible groups; child directories become collapsible sections with
-their own title, order, and default-open state.
+their own title, order, default-open state, and optional Lucide icon. Pages can
+set the same `icon` field in frontmatter, and `site.icons` can replace a built-in
+name with project-owned SVG markup.
 
 ```json
 {
@@ -121,9 +123,13 @@ packages that every application must wire together.
 - **Documentation UI**: A responsive Foldkit-style header, sidebar, nested
   navigation, breadcrumbs, desktop and mobile tables of contents, previous and
   next links, footer, accessible search dialog, and three-way theme selector.
-- **Markdown and MDX**: GFM, frontmatter, directives, registered components,
+- **Official Foldkit Markdown core**: `.md` files are parsed and validated by
+  `@foldkit/markdown`, including Effect Schema-typed island directives. Foldocs
+  enriches that AST with frontmatter, heading IDs, navigation, search text,
   Shiki highlighting, code-copy controls, and optional Twoslash information.
-  Arbitrary MDX JavaScript is rejected so content stays deterministic.
+- **Deterministic MDX compatibility**: `.mdx` adds registered inline and block
+  components with literal attributes. Arbitrary MDX JavaScript is rejected so
+  content stays deterministic; GFM task lists remain a Foldocs extension.
 - **Static rendering**: Every landing and documentation route is emitted as
   complete HTML. The current page chunk is preloaded before Foldkit adopts the
   document, preventing a loading-page flash after refresh.
@@ -239,7 +245,7 @@ The monorepo keeps runtime, compilation, UI, providers, and generators separate:
 | ----------------------- | ------------------------------------------------------------ |
 | `foldocs`               | Foldkit documentation program and typed configuration        |
 | `foldocs-core`          | Site configuration, manifests, navigation, and route helpers |
-| `foldocs-mdx`           | Deterministic Markdown/MDX compiler and document AST         |
+| `foldocs-mdx`           | Foldkit Markdown enrichment and deterministic MDX compiler   |
 | `foldocs-ui`            | Documentation layouts and MDX component renderer             |
 | `@foldocs/vite`         | Content discovery, virtual modules, HMR, and static output   |
 | `@foldocs/tailwind`     | Foldkit-inspired theme, layout, and prose styles             |

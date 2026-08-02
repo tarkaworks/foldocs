@@ -1,0 +1,6 @@
+{
+  "title": "Integraciones",
+  "icon": "plug",
+  "defaultOpen": false,
+  "pages": ["index", "content-sources", "openapi", "asyncapi", "docgen", "llms"]
+}

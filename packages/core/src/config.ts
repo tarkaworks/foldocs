@@ -211,6 +211,8 @@ export const SiteConfig = S.Struct({
   socialImage: S.optionalKey(S.String),
   favicon: S.optionalKey(S.String),
   locale: S.optionalKey(S.String),
+  /** Custom SVG markup keyed by the icon names used in page frontmatter/meta.json. */
+  icons: S.optionalKey(S.Record(S.String, S.String)),
 });
 export type SiteConfig = typeof SiteConfig.Type;
 
@@ -228,11 +230,20 @@ export const LandingSection = S.Literals([
 ]);
 export type LandingSection = typeof LandingSection.Type;
 
+export const LandingFooterConfig = S.Struct({
+  author: S.optionalKey(S.String),
+  authorUrl: S.optionalKey(S.String),
+  copyright: S.optionalKey(S.String),
+  twitterUrl: S.optionalKey(S.String),
+});
+export type LandingFooterConfig = typeof LandingFooterConfig.Type;
+
 export const LandingConfig = S.Struct({
   sections: S.optionalKey(S.Array(LandingSection)),
   headline: S.optionalKey(S.String),
   description: S.optionalKey(S.String),
   command: S.optionalKey(S.String),
+  footer: S.optionalKey(LandingFooterConfig),
 });
 export type LandingConfig = typeof LandingConfig.Type;
 
@@ -251,6 +262,7 @@ export interface ResolvedLandingConfig {
   readonly headline?: string;
   readonly description?: string;
   readonly command: string;
+  readonly footer?: LandingFooterConfig;
 }
 
 export interface FoldocsConfig {
@@ -453,6 +465,7 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
         ? {}
         : { description: landing.description }),
       command: landing.command ?? "pnpm create foldocs@latest",
+      ...(landing.footer === undefined ? {} : { footer: landing.footer }),
     },
     llms: config.llms ?? true,
     markdown: config.markdown ?? true,

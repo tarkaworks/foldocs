@@ -30,24 +30,36 @@ import {
 } from "foldocs-mdx/ast";
 import {
   docsLayout,
+  DocsMenuMessage,
+  DocsMenuModel,
   headerLanguageMenuId,
+  initDocsMenu,
   initLanguageMenu,
+  initSearchDialog,
+  initSidebarDialog,
   landingLayout,
+  layoutTabsMenuId,
   LanguageMenuMessage,
   LanguageMenuModel,
+  pageOpenMenuId,
+  FoldocsDialogMessage,
+  FoldocsDialogModel,
   sidebarLanguageMenuId,
+  type MarkdownIslands,
   type MdxComponents,
 } from "foldocs-ui";
-import { Menu } from "@foldkit/ui";
+import { Dialog, Menu } from "@foldkit/ui";
 import { Effect, Option, Queue, Schema as S, Stream } from "effect";
-import { Command, Render, Subscription, type Runtime } from "foldkit";
+import { Command, Mount, Render, Subscription, type Runtime } from "foldkit";
 import * as Dom from "foldkit/dom";
-import { type Document, html } from "foldkit/html";
+import { type Document, type HtmlBuilder } from "foldkit/html";
 import { m } from "foldkit/message";
 import { UrlRequest, load, pushUrl } from "foldkit/navigation";
 import { Url, toString as urlToString } from "foldkit/url";
 
 const LanguageMenu = Menu.create<string>();
+const LayoutTabsMenu = Menu.create<string>();
+const PageOpenMenu = Menu.create<string>();
 
 export interface DocsProgramOptions {
   readonly manifest: PageManifest<CompiledPageType>;
@@ -62,6 +74,8 @@ export interface DocsProgramOptions {
   readonly basePath?: string;
   readonly search?: SearchClient;
   readonly markdown?: boolean;
+  /** Typed `.md` directive views produced by @foldkit/markdown `islandsFor`. */
+  readonly islands?: MarkdownIslands;
   /** Presentational Foldkit renderers for deterministic MDX component nodes. */
   readonly components?: MdxComponents;
   /** Per-locale JSON indexes emitted by the Foldocs Vite plugin. */
@@ -256,6 +270,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     activeTocId: S.String,
     mobileTocOpen: S.Boolean,
     narrowViewport: S.Boolean,
+    isLandingHeaderVisible: S.Boolean,
     collapsedSidebarGroups: S.Array(S.String),
     theme: S.Literals(["light", "dark"]),
     systemTheme: S.Literals(["light", "dark"]),
@@ -264,12 +279,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     copyMarkdownStatus: S.Literals(["idle", "loading", "copied", "error"]),
     headerLanguageMenu: LanguageMenuModel,
     sidebarLanguageMenu: LanguageMenuModel,
+    layoutTabsMenu: DocsMenuModel,
+    pageOpenMenu: DocsMenuModel,
+    searchDialog: FoldocsDialogModel,
+    sidebarDialog: FoldocsDialogModel,
   });
   type Model = typeof Model.Type;
 
   const CompletedNavigateInternal = m("CompletedNavigateInternal");
   const CompletedLoadExternal = m("CompletedLoadExternal");
+  const CompletedOpenExternalInNewTab = m("CompletedOpenExternalInNewTab");
   const ClickedLink = m("ClickedLink", { request: UrlRequest });
+  const ClickedOpenExternal = m("ClickedOpenExternal", { href: S.String });
   const ChangedUrl = m("ChangedUrl", { url: Url });
   const SucceededLoadPage = m("SucceededLoadPage", {
     pathname: S.String,
@@ -296,6 +317,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   const SelectedSearchResult = m("SelectedSearchResult", { url: S.String });
   const ChangedNarrowViewport = m("ChangedNarrowViewport", {
     narrow: S.Boolean,
+  });
+  const ChangedHeroVisibility = m("ChangedHeroVisibility", {
+    isVisible: S.Boolean,
   });
   const ToggledSidebar = m("ToggledSidebar");
   const ClosedSidebar = m("ClosedSidebar");
@@ -331,9 +355,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     SucceededLoadMarkdown,
     FailedLoadMarkdown,
   ]);
-  const CompletedFocusSearch = m("CompletedFocusSearch");
-  const CompletedFocusSidebar = m("CompletedFocusSidebar");
-  const CompletedRestoreDialogFocus = m("CompletedRestoreDialogFocus");
   const CompletedScrollSearchResult = m("CompletedScrollSearchResult");
   const PressedGlobalKey = m("PressedGlobalKey", {
     key: S.String,
@@ -346,11 +367,54 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   const GotSidebarLanguageMenuMessage = m("GotSidebarLanguageMenuMessage", {
     message: LanguageMenuMessage,
   });
+  const GotLayoutTabsMenuMessage = m("GotLayoutTabsMenuMessage", {
+    message: DocsMenuMessage,
+  });
+  const GotPageOpenMenuMessage = m("GotPageOpenMenuMessage", {
+    message: DocsMenuMessage,
+  });
+  const GotSearchDialogMessage = m("GotSearchDialogMessage", {
+    message: FoldocsDialogMessage,
+  });
+  const GotSidebarDialogMessage = m("GotSidebarDialogMessage", {
+    message: FoldocsDialogMessage,
+  });
+
+  const ObserveHeroVisibility = Mount.defineStream(
+    "ObserveHeroVisibility",
+    ChangedHeroVisibility,
+  )((element) =>
+    Stream.callback<typeof ChangedHeroVisibility.Type>((queue) =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => {
+            const observer = new IntersectionObserver(
+              (entries) => {
+                const entry = entries[0];
+                if (entry === undefined) return;
+                Queue.offerUnsafe(
+                  queue,
+                  ChangedHeroVisibility({ isVisible: entry.isIntersecting }),
+                );
+              },
+              { threshold: 0 },
+            );
+            observer.observe(element);
+            return observer;
+          }),
+          (observer) => Effect.sync(() => observer.disconnect()),
+        );
+        return yield* Effect.never;
+      }),
+    ),
+  );
 
   const Message = S.Union([
     CompletedNavigateInternal,
     CompletedLoadExternal,
+    CompletedOpenExternalInNewTab,
     ClickedLink,
+    ClickedOpenExternal,
     ChangedUrl,
     SucceededLoadPage,
     FailedLoadPage,
@@ -363,6 +427,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ToggledMobileToc,
     SelectedSearchResult,
     ChangedNarrowViewport,
+    ChangedHeroVisibility,
     ToggledSidebar,
     ClosedSidebar,
     ToggledSearch,
@@ -381,111 +446,93 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ClickedCopyMarkdown,
     SucceededLoadMarkdown,
     FailedLoadMarkdown,
-    CompletedFocusSearch,
-    CompletedFocusSidebar,
-    CompletedRestoreDialogFocus,
     CompletedScrollSearchResult,
     PressedGlobalKey,
     GotHeaderLanguageMenuMessage,
     GotSidebarLanguageMenuMessage,
+    GotLayoutTabsMenuMessage,
+    GotPageOpenMenuMessage,
+    GotSearchDialogMessage,
+    GotSidebarDialogMessage,
   ]);
   type Message = typeof Message.Type;
 
-  const NavigateInternal = Command.define(
-    "NavigateInternal",
-    { url: S.String },
-    CompletedNavigateInternal,
-  )(({ url }) => pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())));
-
-  const LoadExternal = Command.define(
-    "LoadExternal",
-    { href: S.String },
-    CompletedLoadExternal,
-  )(({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())));
-
-  const LoadPage = Command.define(
-    "LoadPage",
-    { pathname: S.String },
-    LoadPageResult,
-  )(({ pathname }) => {
-    const entry = findPageByUrl(manifest, pathname);
-    if (entry === undefined) {
-      return Effect.succeed(
-        FailedLoadPage({
-          pathname,
-          reason: `No document exists at ${pathname}.`,
-        }),
-      );
-    }
-    return Effect.tryPromise({
-      try: entry.load,
-      catch: messageFromError,
-    }).pipe(
-      Effect.map(({ default: page }) => SucceededLoadPage({ pathname, page })),
-      Effect.catch((reason) =>
-        Effect.succeed(FailedLoadPage({ pathname, reason })),
-      ),
-    );
+  const NavigateInternal = Command.define("NavigateInternal", {
+    args: { url: S.String },
+    messages: [CompletedNavigateInternal],
+    execute: ({ url }) =>
+      pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
   });
 
-  const Search = Command.define(
-    "Search",
-    { query: S.String, locale: S.String },
-    SearchResultMessage,
-  )(({ query, locale }) =>
-    searchClient.search(query, { limit: 12, locale }).pipe(
-      Effect.map((results) =>
-        SucceededSearch({ query, results: [...results] }),
-      ),
-      Effect.catch((error) =>
-        Effect.succeed(
-          FailedSearch({ query, reason: messageFromError(error) }),
+  const LoadExternal = Command.define("LoadExternal", {
+    args: { href: S.String },
+    messages: [CompletedLoadExternal],
+    execute: ({ href }) => load(href).pipe(Effect.as(CompletedLoadExternal())),
+  });
+
+  const OpenExternalInNewTab = Command.define("OpenExternalInNewTab", {
+    args: { href: S.String },
+    messages: [CompletedOpenExternalInNewTab],
+    execute: ({ href }) =>
+      Effect.sync(() => {
+        const opened = globalThis.open?.(href, "_blank", "noopener,noreferrer");
+        if (opened !== undefined && opened !== null) opened.opener = null;
+        return CompletedOpenExternalInNewTab();
+      }),
+  });
+
+  const LoadPage = Command.define("LoadPage", {
+    args: { pathname: S.String },
+    messages: [LoadPageResult],
+    execute: ({ pathname }) => {
+      const entry = findPageByUrl(manifest, pathname);
+      if (entry === undefined) {
+        return Effect.succeed(
+          FailedLoadPage({
+            pathname,
+            reason: `No document exists at ${pathname}.`,
+          }),
+        );
+      }
+      return Effect.tryPromise({
+        try: entry.load,
+        catch: messageFromError,
+      }).pipe(
+        Effect.map(({ default: page }) =>
+          SucceededLoadPage({ pathname, page }),
+        ),
+        Effect.catch((reason) =>
+          Effect.succeed(FailedLoadPage({ pathname, reason })),
+        ),
+      );
+    },
+  });
+
+  const Search = Command.define("Search", {
+    args: { query: S.String, locale: S.String },
+    messages: [SearchResultMessage],
+    execute: ({ query, locale }) =>
+      searchClient.search(query, { limit: 12, locale }).pipe(
+        Effect.map((results) =>
+          SucceededSearch({ query, results: [...results] }),
+        ),
+        Effect.catch((error) =>
+          Effect.succeed(
+            FailedSearch({ query, reason: messageFromError(error) }),
+          ),
         ),
       ),
-    ),
-  );
+  });
 
-  const FocusSearch = Command.define(
-    "FocusSearch",
-    CompletedFocusSearch,
-  )(
-    Dom.focus("#fd-search-input").pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusSearch()),
-    ),
-  );
-
-  const FocusSidebar = Command.define(
-    "FocusSidebar",
-    CompletedFocusSidebar,
-  )(
-    Dom.focus("#fd-sidebar a").pipe(
-      Effect.ignore,
-      Effect.as(CompletedFocusSidebar()),
-    ),
-  );
-
-  const RestoreDialogFocus = Command.define(
-    "RestoreDialogFocus",
-    { selector: S.String },
-    CompletedRestoreDialogFocus,
-  )(({ selector }) =>
-    Dom.focus(selector).pipe(
-      Effect.ignore,
-      Effect.as(CompletedRestoreDialogFocus()),
-    ),
-  );
-
-  const ScrollSearchResult = Command.define(
-    "ScrollSearchResult",
-    { index: S.Number },
-    CompletedScrollSearchResult,
-  )(({ index }) =>
-    Dom.scrollIntoView(`#fd-search-result-${index}`).pipe(
-      Effect.ignore,
-      Effect.as(CompletedScrollSearchResult()),
-    ),
-  );
+  const ScrollSearchResult = Command.define("ScrollSearchResult", {
+    args: { index: S.Number },
+    messages: [CompletedScrollSearchResult],
+    execute: ({ index }) =>
+      Dom.scrollIntoViewIfNotVisible(`#fd-search-result-${index}`, {
+        block: "nearest",
+        when: "Commit",
+      }).pipe(Effect.ignore, Effect.as(CompletedScrollSearchResult())),
+  });
 
   const applyTheme = (theme: "light" | "dark"): void => {
     const root = globalThis.document?.documentElement;
@@ -515,48 +562,44 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       : "system";
   };
 
-  const ReadTheme = Command.define(
-    "ReadTheme",
-    LoadedTheme,
-  )(
-    Effect.sync(() => {
+  const ReadTheme = Command.define("ReadTheme", {
+    messages: [LoadedTheme],
+    execute: Effect.sync(() => {
       const preference = readThemePreference();
       const systemTheme = preferredSystemTheme();
       const theme = resolveTheme(preference, systemTheme);
       applyTheme(theme);
       return LoadedTheme({ preference, systemTheme, theme });
     }),
-  );
+  });
 
-  const SaveTheme = Command.define(
-    "SaveTheme",
-    {
+  const SaveTheme = Command.define("SaveTheme", {
+    args: {
       preference: S.Literals(["light", "system", "dark"]),
       theme: S.Literals(["light", "dark"]),
     },
-    CompletedSaveTheme,
-  )(({ preference, theme }) =>
-    Effect.sync(() => {
-      applyTheme(theme);
-      try {
-        globalThis.localStorage?.setItem("foldocs-theme", preference);
-      } catch {
-        // Storage can be unavailable in private or embedded browsing contexts.
-      }
-      return CompletedSaveTheme();
-    }),
-  );
+    messages: [CompletedSaveTheme],
+    execute: ({ preference, theme }) =>
+      Effect.sync(() => {
+        applyTheme(theme);
+        try {
+          globalThis.localStorage?.setItem("foldocs-theme", preference);
+        } catch {
+          // Storage can be unavailable in private or embedded browsing contexts.
+        }
+        return CompletedSaveTheme();
+      }),
+  });
 
-  const ApplyTheme = Command.define(
-    "ApplyTheme",
-    { theme: S.Literals(["light", "dark"]) },
-    CompletedApplyTheme,
-  )(({ theme }) =>
-    Effect.sync(() => {
-      applyTheme(theme);
-      return CompletedApplyTheme();
-    }),
-  );
+  const ApplyTheme = Command.define("ApplyTheme", {
+    args: { theme: S.Literals(["light", "dark"]) },
+    messages: [CompletedApplyTheme],
+    execute: ({ theme }) =>
+      Effect.sync(() => {
+        applyTheme(theme);
+        return CompletedApplyTheme();
+      }),
+  });
 
   const alternatePathnames = (
     pathname: string,
@@ -580,146 +623,151 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     }));
   };
 
-  const ApplyLocaleMetadata = Command.define(
-    "ApplyLocaleMetadata",
-    { locale: S.String, pathname: S.String },
-    CompletedApplyLocaleMetadata,
-  )(({ locale, pathname }) =>
-    Effect.sync(() => {
-      const document = globalThis.document;
-      if (document === undefined) return CompletedApplyLocaleMetadata();
-      const definition = localeDefinition(i18n, locale);
-      document.documentElement.lang = definition.locale;
-      document.documentElement.dir = definition.dir;
-      const currentPage = findPageByUrl(manifest, pathname);
-      const pageTitle =
-        currentPage === undefined
-          ? options.site.title
-          : `${currentPage.frontmatter.title} | ${options.site.title}`;
-      const description =
-        currentPage?.frontmatter.description ?? options.site.description;
-      const keywords =
-        currentPage?.frontmatter.keywords ?? options.site.keywords;
-      const configuredImage =
-        currentPage?.frontmatter.socialImage ?? options.site.socialImage;
-      const socialImage =
-        configuredImage === undefined || options.site.baseUrl === undefined
-          ? configuredImage
-          : new URL(
-              configuredImage.replace(/^\//u, ""),
-              `${options.site.baseUrl.replace(/\/+$/u, "")}/`,
-            ).toString();
-      const syncMeta = (
-        selector: string,
-        attribute: "name" | "property",
-        key: string,
-        content: string | undefined,
-      ): void => {
-        const existing = document.head.querySelector<HTMLMetaElement>(selector);
-        if (content === undefined) {
-          existing?.remove();
-          return;
-        }
-        const meta = existing ?? document.createElement("meta");
-        meta.setAttribute(attribute, key);
-        meta.content = content;
-        meta.dataset.foldocsRoute = "true";
-        if (existing === null) document.head.append(meta);
-      };
-      document.title = pageTitle;
-      syncMeta('meta[name="description"]', "name", "description", description);
-      syncMeta(
-        'meta[property="og:description"]',
-        "property",
-        "og:description",
-        description,
-      );
-      syncMeta(
-        'meta[name="twitter:description"]',
-        "name",
-        "twitter:description",
-        description,
-      );
-      syncMeta(
-        'meta[name="keywords"]',
-        "name",
-        "keywords",
-        keywords?.join(", "),
-      );
-      syncMeta('meta[property="og:title"]', "property", "og:title", pageTitle);
-      syncMeta(
-        'meta[property="og:type"]',
-        "property",
-        "og:type",
-        currentPage === undefined ? "website" : "article",
-      );
-      syncMeta(
-        'meta[name="twitter:title"]',
-        "name",
-        "twitter:title",
-        pageTitle,
-      );
-      syncMeta(
-        'meta[name="twitter:card"]',
-        "name",
-        "twitter:card",
-        socialImage === undefined ? "summary" : "summary_large_image",
-      );
-      syncMeta(
-        'meta[property="og:image"]',
-        "property",
-        "og:image",
-        socialImage,
-      );
-      syncMeta(
-        'meta[name="twitter:image"]',
-        "name",
-        "twitter:image",
-        socialImage,
-      );
-      for (const selector of document.querySelectorAll(
-        "details.fd-language-selector[open]",
-      ))
-        selector.removeAttribute("open");
-      for (const element of document.head.querySelectorAll(
-        "link[data-foldocs-i18n]",
-      ))
-        element.remove();
-      if (i18n.enabled && options.site.baseUrl !== undefined) {
-        const absolute = (value: string): string =>
-          new URL(
-            value.replace(/^\//u, ""),
-            `${options.site.baseUrl!.replace(/\/+$/u, "")}/`,
-          ).toString();
-        for (const alternate of alternatePathnames(pathname)) {
-          const link = document.createElement("link");
-          link.rel = "alternate";
-          link.hreflang = alternate.locale;
-          link.href = absolute(alternate.pathname);
-          link.dataset.foldocsI18n = "true";
-          document.head.append(link);
-        }
-        const defaultAlternate = alternatePathnames(pathname).find(
-          (alternate) => alternate.locale === i18n.defaultLocale,
+  const ApplyLocaleMetadata = Command.define("ApplyLocaleMetadata", {
+    args: { pathname: S.String },
+    messages: [CompletedApplyLocaleMetadata],
+    execute: ({ pathname }) =>
+      Effect.sync(() => {
+        const document = globalThis.document;
+        if (document === undefined) return CompletedApplyLocaleMetadata();
+        const currentPage = findPageByUrl(manifest, pathname);
+        const pageTitle =
+          currentPage === undefined
+            ? options.site.title
+            : `${currentPage.frontmatter.title} | ${options.site.title}`;
+        const description =
+          currentPage?.frontmatter.description ?? options.site.description;
+        const keywords =
+          currentPage?.frontmatter.keywords ?? options.site.keywords;
+        const configuredImage =
+          currentPage?.frontmatter.socialImage ?? options.site.socialImage;
+        const socialImage =
+          configuredImage === undefined || options.site.baseUrl === undefined
+            ? configuredImage
+            : new URL(
+                configuredImage.replace(/^\//u, ""),
+                `${options.site.baseUrl.replace(/\/+$/u, "")}/`,
+              ).toString();
+        const syncMeta = (
+          selector: string,
+          attribute: "name" | "property",
+          key: string,
+          content: string | undefined,
+        ): void => {
+          const existing =
+            document.head.querySelector<HTMLMetaElement>(selector);
+          if (content === undefined) {
+            existing?.remove();
+            return;
+          }
+          const meta = existing ?? document.createElement("meta");
+          meta.setAttribute(attribute, key);
+          meta.content = content;
+          meta.dataset.foldocsRoute = "true";
+          if (existing === null) document.head.append(meta);
+        };
+        document.title = pageTitle;
+        syncMeta(
+          'meta[name="description"]',
+          "name",
+          "description",
+          description,
         );
-        if (defaultAlternate !== undefined) {
-          const link = document.createElement("link");
-          link.rel = "alternate";
-          link.hreflang = "x-default";
-          link.href = absolute(defaultAlternate.pathname);
-          link.dataset.foldocsI18n = "true";
-          document.head.append(link);
+        syncMeta(
+          'meta[property="og:description"]',
+          "property",
+          "og:description",
+          description,
+        );
+        syncMeta(
+          'meta[name="twitter:description"]',
+          "name",
+          "twitter:description",
+          description,
+        );
+        syncMeta(
+          'meta[name="keywords"]',
+          "name",
+          "keywords",
+          keywords?.join(", "),
+        );
+        syncMeta(
+          'meta[property="og:title"]',
+          "property",
+          "og:title",
+          pageTitle,
+        );
+        syncMeta(
+          'meta[property="og:type"]',
+          "property",
+          "og:type",
+          currentPage === undefined ? "website" : "article",
+        );
+        syncMeta(
+          'meta[name="twitter:title"]',
+          "name",
+          "twitter:title",
+          pageTitle,
+        );
+        syncMeta(
+          'meta[name="twitter:card"]',
+          "name",
+          "twitter:card",
+          socialImage === undefined ? "summary" : "summary_large_image",
+        );
+        syncMeta(
+          'meta[property="og:image"]',
+          "property",
+          "og:image",
+          socialImage,
+        );
+        syncMeta(
+          'meta[name="twitter:image"]',
+          "name",
+          "twitter:image",
+          socialImage,
+        );
+        for (const selector of document.querySelectorAll(
+          "details.fd-language-selector[open]",
+        ))
+          selector.removeAttribute("open");
+        for (const element of document.head.querySelectorAll(
+          "link[data-foldocs-i18n]",
+        ))
+          element.remove();
+        if (i18n.enabled && options.site.baseUrl !== undefined) {
+          const absolute = (value: string): string =>
+            new URL(
+              value.replace(/^\//u, ""),
+              `${options.site.baseUrl!.replace(/\/+$/u, "")}/`,
+            ).toString();
+          for (const alternate of alternatePathnames(pathname)) {
+            const link = document.createElement("link");
+            link.rel = "alternate";
+            link.hreflang = alternate.locale;
+            link.href = absolute(alternate.pathname);
+            link.dataset.foldocsI18n = "true";
+            document.head.append(link);
+          }
+          const defaultAlternate = alternatePathnames(pathname).find(
+            (alternate) => alternate.locale === i18n.defaultLocale,
+          );
+          if (defaultAlternate !== undefined) {
+            const link = document.createElement("link");
+            link.rel = "alternate";
+            link.hreflang = "x-default";
+            link.href = absolute(defaultAlternate.pathname);
+            link.dataset.foldocsI18n = "true";
+            document.head.append(link);
+          }
         }
-      }
-      return CompletedApplyLocaleMetadata();
-    }),
-  );
+        return CompletedApplyLocaleMetadata();
+      }),
+  });
 
-  const ReadSidebarGroups = Command.define(
-    "ReadSidebarGroups",
-    LoadedSidebarGroups,
-  )(
-    Effect.sync(() => {
+  const ReadSidebarGroups = Command.define("ReadSidebarGroups", {
+    messages: [LoadedSidebarGroups],
+    execute: Effect.sync(() => {
       try {
         const value = globalThis.localStorage?.getItem(
           "foldocs-sidebar-groups",
@@ -739,75 +787,72 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         return LoadedSidebarGroups({ groups: defaultCollapsedSidebarGroups });
       }
     }),
-  );
+  });
 
-  const SaveSidebarGroups = Command.define(
-    "SaveSidebarGroups",
-    { groups: S.Array(S.String) },
-    CompletedSaveSidebarGroups,
-  )(({ groups }) =>
-    Effect.sync(() => {
-      try {
-        globalThis.localStorage?.setItem(
-          "foldocs-sidebar-groups",
-          JSON.stringify(groups),
-        );
-      } catch {
-        // Storage can be unavailable in private or embedded browsing contexts.
-      }
-      return CompletedSaveSidebarGroups();
-    }),
-  );
-
-  const CopyText = Command.define(
-    "CopyText",
-    { value: S.String },
-    CompletedCopyText,
-  )(({ value }) =>
-    Effect.tryPromise({
-      try: async () => {
-        if (globalThis.navigator?.clipboard?.writeText !== undefined) {
-          await globalThis.navigator.clipboard.writeText(value);
-          return;
+  const SaveSidebarGroups = Command.define("SaveSidebarGroups", {
+    args: { groups: S.Array(S.String) },
+    messages: [CompletedSaveSidebarGroups],
+    execute: ({ groups }) =>
+      Effect.sync(() => {
+        try {
+          globalThis.localStorage?.setItem(
+            "foldocs-sidebar-groups",
+            JSON.stringify(groups),
+          );
+        } catch {
+          // Storage can be unavailable in private or embedded browsing contexts.
         }
-        const textarea = globalThis.document?.createElement("textarea");
-        if (textarea === undefined) return;
-        textarea.value = value;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        globalThis.document.body.append(textarea);
-        textarea.select();
-        globalThis.document.execCommand("copy");
-        textarea.remove();
-      },
-      catch: messageFromError,
-    }).pipe(
-      Effect.ignore,
-      Effect.andThen(Effect.sleep("2 seconds")),
-      Effect.as(CompletedCopyText({ value })),
-    ),
-  );
+        return CompletedSaveSidebarGroups();
+      }),
+  });
 
-  const LoadMarkdown = Command.define(
-    "LoadMarkdown",
-    { url: S.String },
-    LoadMarkdownResult,
-  )(({ url }) =>
-    Effect.tryPromise({
-      try: async () => {
-        const response = await globalThis.fetch(url, {
-          headers: { Accept: "text/markdown" },
-        });
-        if (!response.ok)
-          throw new Error(`Markdown request failed with ${response.status}.`);
-        return await response.text();
-      },
-      catch: messageFromError,
-    }).pipe(
-      Effect.map((markdown) => SucceededLoadMarkdown({ markdown })),
-      Effect.catch(() => Effect.succeed(FailedLoadMarkdown())),
-    ),
-  );
+  const CopyText = Command.define("CopyText", {
+    args: { value: S.String },
+    messages: [CompletedCopyText],
+    execute: ({ value }) =>
+      Effect.tryPromise({
+        try: async () => {
+          if (globalThis.navigator?.clipboard?.writeText !== undefined) {
+            await globalThis.navigator.clipboard.writeText(value);
+            return;
+          }
+          const textarea = globalThis.document?.createElement("textarea");
+          if (textarea === undefined) return;
+          textarea.value = value;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          globalThis.document.body.append(textarea);
+          textarea.select();
+          globalThis.document.execCommand("copy");
+          textarea.remove();
+        },
+        catch: messageFromError,
+      }).pipe(
+        Effect.ignore,
+        Effect.andThen(Effect.sleep("2 seconds")),
+        Effect.as(CompletedCopyText({ value })),
+      ),
+  });
+
+  const LoadMarkdown = Command.define("LoadMarkdown", {
+    args: { url: S.String },
+    messages: [LoadMarkdownResult],
+    execute: ({ url }) =>
+      Effect.tryPromise({
+        try: async () => {
+          const response = await globalThis.fetch(url, {
+            headers: { Accept: "text/markdown" },
+          });
+          if (!response.ok)
+            throw new Error(`Markdown request failed with ${response.status}.`);
+          return await response.text();
+        },
+        catch: messageFromError,
+      }).pipe(
+        Effect.map((markdown) => SucceededLoadMarkdown({ markdown })),
+        Effect.catch(() => Effect.succeed(FailedLoadMarkdown())),
+      ),
+  });
 
   const preloadedPageFor = (
     pathname: string,
@@ -889,6 +934,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         mobileTocOpen: false,
         narrowViewport:
           globalThis.matchMedia?.(narrowViewportQuery).matches ?? false,
+        isLandingHeaderVisible: false,
         collapsedSidebarGroups: [],
         theme,
         systemTheme,
@@ -897,19 +943,115 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         copyMarkdownStatus: "idle",
         headerLanguageMenu: initLanguageMenu(headerLanguageMenuId),
         sidebarLanguageMenu: initLanguageMenu(sidebarLanguageMenuId),
+        layoutTabsMenu: initDocsMenu(layoutTabsMenuId),
+        pageOpenMenu: initDocsMenu(pageOpenMenuId),
+        searchDialog: initSearchDialog(),
+        sidebarDialog: initSidebarDialog(),
       },
       [
         ...commands,
         ReadTheme(),
         ReadSidebarGroups(),
-        ApplyLocaleMetadata({ locale, pathname }),
+        ApplyLocaleMetadata({ pathname }),
       ],
     ];
   };
 
   type UpdateReturn = readonly [Model, ReadonlyArray<Command.Command<Message>>];
+  const mapSearchDialogCommands = (
+    commands: ReadonlyArray<Command.Command<Dialog.Message>>,
+  ): ReadonlyArray<Command.Command<Message>> =>
+    Command.mapMessages(commands, (message) =>
+      GotSearchDialogMessage({ message }),
+    );
+  const mapSidebarDialogCommands = (
+    commands: ReadonlyArray<Command.Command<Dialog.Message>>,
+  ): ReadonlyArray<Command.Command<Message>> =>
+    Command.mapMessages(commands, (message) =>
+      GotSidebarDialogMessage({ message }),
+    );
+  const closeSearch = (model: Model): UpdateReturn => {
+    const [searchDialog, commands] = Dialog.close(model.searchDialog);
+    return [
+      {
+        ...model,
+        searchDialog,
+        searchOpen: searchDialog.isOpen,
+        searchQuery: "",
+        searchResults: [],
+        searchError: "",
+        searchLoading: false,
+        activeSearchResultIndex: -1,
+      },
+      mapSearchDialogCommands(commands),
+    ];
+  };
+  const openSearch = (model: Model): UpdateReturn => {
+    const [searchDialog, searchCommands] = Dialog.open(model.searchDialog);
+    const [sidebarDialog, sidebarCommands] = Dialog.close(model.sidebarDialog);
+    return [
+      {
+        ...model,
+        searchDialog,
+        sidebarDialog,
+        searchOpen: searchDialog.isOpen,
+        sidebarOpen: sidebarDialog.isOpen,
+      },
+      [
+        ...mapSearchDialogCommands(searchCommands),
+        ...mapSidebarDialogCommands(sidebarCommands),
+      ],
+    ];
+  };
+  const closeSidebar = (model: Model): UpdateReturn => {
+    const [sidebarDialog, commands] = Dialog.close(model.sidebarDialog);
+    return [
+      { ...model, sidebarDialog, sidebarOpen: sidebarDialog.isOpen },
+      mapSidebarDialogCommands(commands),
+    ];
+  };
+  const openSidebar = (model: Model): UpdateReturn => {
+    const [sidebarDialog, commands] = Dialog.open(model.sidebarDialog);
+    return [
+      { ...model, sidebarDialog, sidebarOpen: sidebarDialog.isOpen },
+      mapSidebarDialogCommands(commands),
+    ];
+  };
   const update = (model: Model, message: Message): UpdateReturn => {
     switch (message._tag) {
+      case "GotSearchDialogMessage": {
+        const [searchDialog, commands] = Dialog.update(
+          model.searchDialog,
+          message.message,
+        );
+        return [
+          {
+            ...model,
+            searchDialog,
+            searchOpen: searchDialog.isOpen,
+            ...(searchDialog.isOpen
+              ? {}
+              : {
+                  searchQuery: "",
+                  searchResults: [],
+                  searchError: "",
+                  searchLoading: false,
+                  activeSearchResultIndex: -1,
+                }),
+          },
+          mapSearchDialogCommands(commands),
+        ];
+      }
+      case "GotSidebarDialogMessage": {
+        const [sidebarDialog, commands] = Dialog.update(
+          model.sidebarDialog,
+          message.message,
+        );
+        return [
+          { ...model, sidebarDialog, sidebarOpen: sidebarDialog.isOpen },
+          mapSidebarDialogCommands(commands),
+        ];
+      }
       case "GotHeaderLanguageMenuMessage": {
         const [headerLanguageMenu, commands, maybeOutMessage] =
           LanguageMenu.update(model.headerLanguageMenu, message.message);
@@ -944,6 +1086,40 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           ],
         });
       }
+      case "GotLayoutTabsMenuMessage": {
+        const [layoutTabsMenu, commands, maybeOutMessage] =
+          LayoutTabsMenu.update(model.layoutTabsMenu, message.message);
+        const nextModel = { ...model, layoutTabsMenu };
+        const mappedCommands = Command.mapMessages(commands, (childMessage) =>
+          GotLayoutTabsMenuMessage({ message: childMessage }),
+        );
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [nextModel, mappedCommands],
+          onSome: ({ value }): UpdateReturn => [
+            nextModel,
+            value === model.pathname
+              ? mappedCommands
+              : [...mappedCommands, NavigateInternal({ url: value })],
+          ],
+        });
+      }
+      case "GotPageOpenMenuMessage": {
+        const [pageOpenMenu, commands, maybeOutMessage] = PageOpenMenu.update(
+          model.pageOpenMenu,
+          message.message,
+        );
+        const nextModel = { ...model, pageOpenMenu };
+        const mappedCommands = Command.mapMessages(commands, (childMessage) =>
+          GotPageOpenMenuMessage({ message: childMessage }),
+        );
+        return Option.match(maybeOutMessage, {
+          onNone: (): UpdateReturn => [nextModel, mappedCommands],
+          onSome: ({ value }): UpdateReturn => [
+            nextModel,
+            [...mappedCommands, OpenExternalInNewTab({ href: value })],
+          ],
+        });
+      }
       case "ClickedLink":
         return message.request._tag === "Internal"
           ? [
@@ -951,15 +1127,24 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
               [NavigateInternal({ url: urlToString(message.request.url) })],
             ]
           : [model, [LoadExternal({ href: message.request.href })]];
+      case "ClickedOpenExternal":
+        return [model, [OpenExternalInNewTab({ href: message.href })]];
       case "ChangedUrl": {
         if (message.url.pathname === model.pathname) return [model, []];
         const [page, commands, locale, pathname] = pageRequest(
           message.url.pathname,
         );
         const transitionPage =
-          model.page._tag === "PageReady" && page._tag === "PageLoading"
+          page._tag === "PageLoading" &&
+          (model.page._tag === "PageReady" || model.page._tag === "PageHome")
             ? model.page
             : page;
+        const [searchDialog, searchDialogCommands] = Dialog.close(
+          model.searchDialog,
+        );
+        const [sidebarDialog, sidebarDialogCommands] = Dialog.close(
+          model.sidebarDialog,
+        );
         return [
           {
             ...model,
@@ -968,6 +1153,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             page: transitionPage,
             sidebarOpen: false,
             searchOpen: false,
+            searchDialog,
+            sidebarDialog,
             searchQuery: "",
             searchResults: [],
             searchError: "",
@@ -975,13 +1162,16 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             activeSearchResultIndex: -1,
             activeTocId: "",
             mobileTocOpen: false,
+            isLandingHeaderVisible:
+              page._tag === "PageHome" ? false : model.isLandingHeaderVisible,
             copiedText: "",
             copyMarkdownStatus: "idle",
           },
           [
             ...commands,
+            ...mapSearchDialogCommands(searchDialogCommands),
+            ...mapSidebarDialogCommands(sidebarDialogCommands),
             ApplyLocaleMetadata({
-              locale,
               pathname,
             }),
           ],
@@ -1071,7 +1261,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
                 },
                 [],
               ]
-            : [{ ...model, searchOpen: false }, []];
+            : closeSearch(model);
         }
         if (
           (message.key === "ArrowDown" || message.key === "ArrowUp") &&
@@ -1094,16 +1284,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         if (message.key === "Enter" && model.activeSearchResultIndex >= 0) {
           const result = model.searchResults[model.activeSearchResultIndex];
           if (result !== undefined) {
+            const [nextModel, commands] = closeSearch(model);
             return [
-              {
-                ...model,
-                searchOpen: false,
-                searchQuery: "",
-                searchResults: [],
-                searchLoading: false,
-                activeSearchResultIndex: -1,
-              },
-              [NavigateInternal({ url: result.url })],
+              nextModel,
+              [...commands, NavigateInternal({ url: result.url })],
             ];
           }
         }
@@ -1122,88 +1306,29 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         ];
       case "ToggledMobileToc":
         return [{ ...model, mobileTocOpen: message.open }, []];
-      case "SelectedSearchResult":
+      case "SelectedSearchResult": {
+        const [nextModel, commands] = closeSearch(model);
         return [
-          {
-            ...model,
-            searchOpen: false,
-            searchQuery: "",
-            searchResults: [],
-            searchError: "",
-            searchLoading: false,
-            activeSearchResultIndex: -1,
-          },
+          nextModel,
           message.url === model.pathname
-            ? []
-            : [NavigateInternal({ url: message.url })],
+            ? commands
+            : [...commands, NavigateInternal({ url: message.url })],
         ];
-      case "ChangedNarrowViewport":
-        return [
-          {
-            ...model,
-            narrowViewport: message.narrow,
-            sidebarOpen: false,
-          },
-          [],
-        ];
+      }
+      case "ChangedNarrowViewport": {
+        const [nextModel, commands] = closeSidebar(model);
+        return [{ ...nextModel, narrowViewport: message.narrow }, commands];
+      }
+      case "ChangedHeroVisibility":
+        return [{ ...model, isLandingHeaderVisible: !message.isVisible }, []];
       case "ToggledSidebar":
-        return model.sidebarOpen
-          ? [
-              { ...model, sidebarOpen: false },
-              [RestoreDialogFocus({ selector: "#fd-menu-trigger" })],
-            ]
-          : [{ ...model, sidebarOpen: true }, [FocusSidebar()]];
+        return model.sidebarOpen ? closeSidebar(model) : openSidebar(model);
       case "ClosedSidebar":
-        return [
-          { ...model, sidebarOpen: false },
-          model.narrowViewport && model.sidebarOpen
-            ? [RestoreDialogFocus({ selector: "#fd-menu-trigger" })]
-            : [],
-        ];
+        return closeSidebar(model);
       case "ToggledSearch":
-        return model.searchOpen
-          ? [
-              {
-                ...model,
-                searchOpen: false,
-                searchQuery: "",
-                searchResults: [],
-                searchLoading: false,
-                activeSearchResultIndex: -1,
-              },
-              [
-                RestoreDialogFocus({
-                  selector: model.narrowViewport
-                    ? "#fd-search-trigger-mobile"
-                    : "#fd-search-trigger",
-                }),
-              ],
-            ]
-          : [
-              { ...model, searchOpen: true, sidebarOpen: false },
-              [FocusSearch()],
-            ];
+        return model.searchOpen ? closeSearch(model) : openSearch(model);
       case "ClosedSearch":
-        return [
-          {
-            ...model,
-            searchOpen: false,
-            searchQuery: "",
-            searchResults: [],
-            searchError: "",
-            searchLoading: false,
-            activeSearchResultIndex: -1,
-          },
-          model.searchOpen
-            ? [
-                RestoreDialogFocus({
-                  selector: model.narrowViewport
-                    ? "#fd-search-trigger-mobile"
-                    : "#fd-search-trigger",
-                }),
-              ]
-            : [],
-        ];
+        return closeSearch(model);
       case "ToggledSidebarGroup": {
         const collapsedSidebarGroups = model.collapsedSidebarGroups.includes(
           message.key,
@@ -1271,21 +1396,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           message.key.toLowerCase() === "k" &&
           (message.metaKey || message.ctrlKey)
         ) {
-          return model.searchOpen
-            ? [
-                { ...model, searchOpen: false },
-                [
-                  RestoreDialogFocus({
-                    selector: model.narrowViewport
-                      ? "#fd-search-trigger-mobile"
-                      : "#fd-search-trigger",
-                  }),
-                ],
-              ]
-            : [
-                { ...model, searchOpen: true, sidebarOpen: false },
-                [FocusSearch()],
-              ];
+          return model.searchOpen ? closeSearch(model) : openSearch(model);
+        }
+        if (
+          message.key.toLowerCase() === "d" &&
+          !message.metaKey &&
+          !message.ctrlKey
+        ) {
+          const preference = model.theme === "dark" ? "light" : "dark";
+          return [
+            { ...model, themePreference: preference, theme: preference },
+            [SaveTheme({ preference, theme: preference })],
+          ];
         }
         if (message.key === "Escape" && model.searchOpen) {
           return model.searchQuery.length > 0
@@ -1300,44 +1422,32 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
                 },
                 [],
               ]
-            : [
-                { ...model, searchOpen: false },
-                [
-                  RestoreDialogFocus({
-                    selector: model.narrowViewport
-                      ? "#fd-search-trigger-mobile"
-                      : "#fd-search-trigger",
-                  }),
-                ],
-              ];
+            : closeSearch(model);
         }
         if (message.key === "Escape" && model.sidebarOpen) {
-          return [
-            { ...model, sidebarOpen: false },
-            [RestoreDialogFocus({ selector: "#fd-menu-trigger" })],
-          ];
+          return closeSidebar(model);
         }
         return [model, []];
       case "CompletedSaveTheme":
       case "CompletedApplyTheme":
       case "CompletedApplyLocaleMetadata":
       case "CompletedSaveSidebarGroups":
-      case "CompletedFocusSearch":
-      case "CompletedFocusSidebar":
-      case "CompletedRestoreDialogFocus":
       case "CompletedScrollSearchResult":
       case "CompletedNavigateInternal":
       case "CompletedLoadExternal":
+      case "CompletedOpenExternalInNewTab":
         return [model, []];
     }
   };
 
-  const pendingView = (model: Model): Document => {
-    const h = html<Message>();
+  const pendingView = (model: Model, h: HtmlBuilder<Message>): Document => {
     const failed = model.page._tag === "PageFailed";
-    const translations = localeDefinition(i18n, model.locale).ui;
+    const definition = localeDefinition(i18n, model.locale);
+    const translations = definition.ui;
     return {
       title: `${failed ? translations.documentNotFound : translations.loading} | ${options.site.title}`,
+      lang: definition.locale,
+      dir: definition.dir === "rtl" ? "Rtl" : "Ltr",
       body: h.div(
         [h.Class("fd-root")],
         [
@@ -1367,6 +1477,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
 
   const commonSearchOptions = (model: Model) => ({
     searchOpen: model.searchOpen,
+    searchDialog: model.searchDialog,
     searchQuery: model.searchQuery,
     searchResults: model.searchResults,
     searchLoading: model.searchLoading,
@@ -1387,7 +1498,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       } as const;
     });
 
-  const view = (model: Model): Document => {
+  const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+    const definition = localeDefinition(i18n, model.locale);
     if (model.page._tag === "PageHome") {
       const homeUrl = localeHomePath(i18n, model.locale);
       const canonical =
@@ -1396,35 +1508,45 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           : `${options.site.baseUrl.replace(/\/+$/u, "")}${homeUrl === "/" ? "" : homeUrl}`;
       return {
         title: options.site.title,
+        lang: definition.locale,
+        dir: definition.dir === "rtl" ? "Rtl" : "Ltr",
         ...(canonical === undefined ? {} : { canonical }),
         ...(canonical === undefined ? {} : { ogUrl: canonical }),
-        body: landingLayout<Message>({
-          site: options.site,
-          landing,
-          docsUrl: docsUrlFor(model.locale),
-          homeUrl,
-          locales: localeLinks(model),
-          currentLocale: model.locale,
-          headerLanguageMenu: model.headerLanguageMenu,
-          theme: model.theme,
-          themePreference: model.themePreference,
-          copiedText: model.copiedText,
-          ...commonSearchOptions(model),
-          actions: {
-            toggleSearch: ToggledSearch(),
-            closeSearch: ClosedSearch(),
-            updateSearch: (query) => ChangedSearch({ query }),
-            searchKeyDown: (key) => PressedSearchKey({ key }),
-            selectSearchResult: (url) => SelectedSearchResult({ url }),
-            selectTheme: (preference) => SelectedTheme({ preference }),
-            copyText: (value) => ClickedCopyText({ value }),
-            gotHeaderLanguageMenuMessage: (message) =>
-              GotHeaderLanguageMenuMessage({ message }),
+        body: landingLayout<Message>(
+          {
+            site: options.site,
+            landing,
+            docsUrl: docsUrlFor(model.locale),
+            homeUrl,
+            locales: localeLinks(model),
+            currentLocale: model.locale,
+            headerLanguageMenu: model.headerLanguageMenu,
+            theme: model.theme,
+            themePreference: model.themePreference,
+            headerVisible: model.isLandingHeaderVisible,
+            heroAttributes: [h.OnMount(ObserveHeroVisibility())],
+            copiedText: model.copiedText,
+            ...commonSearchOptions(model),
+            actions: {
+              toggleSearch: ToggledSearch(),
+              closeSearch: ClosedSearch(),
+              updateSearch: (query) => ChangedSearch({ query }),
+              searchKeyDown: (key) => PressedSearchKey({ key }),
+              selectSearchResult: (url) => SelectedSearchResult({ url }),
+              gotSearchDialogMessage: (message) =>
+                GotSearchDialogMessage({ message }),
+              selectTheme: (preference) => SelectedTheme({ preference }),
+              copyText: (value) => ClickedCopyText({ value }),
+              openExternal: (url) => ClickedOpenExternal({ href: url }),
+              gotHeaderLanguageMenuMessage: (message) =>
+                GotHeaderLanguageMenuMessage({ message }),
+            },
           },
-        }),
+          h,
+        ),
       };
     }
-    if (model.page._tag !== "PageReady") return pendingView(model);
+    if (model.page._tag !== "PageReady") return pendingView(model, h);
     const completeNavigation = navigationFor(model.locale);
     const navigation = navigationForUrl(completeNavigation, model.pathname);
     const adjacent = adjacentPages(manifest, model.pathname, navigation);
@@ -1439,66 +1561,86 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         : `${options.site.baseUrl.replace(/\/+$/u, "")}${model.pathname}`;
     return {
       title,
+      lang: definition.locale,
+      dir: definition.dir === "rtl" ? "Rtl" : "Ltr",
       ...(canonical === undefined ? {} : { canonical }),
       ...(canonical === undefined ? {} : { ogUrl: canonical }),
-      body: docsLayout<Message>({
-        site: options.site,
-        preset: options.layoutPreset ?? "docs",
-        navigation,
-        tabs: navigationTabsForUrl(completeNavigation, model.pathname),
-        currentUrl: model.pathname,
-        docsUrl: docsUrlFor(model.locale),
-        homeUrl: localeHomePath(i18n, model.locale),
-        locales: localeLinks(model),
-        currentLocale: model.locale,
-        headerLanguageMenu: model.headerLanguageMenu,
-        sidebarLanguageMenu: model.sidebarLanguageMenu,
-        markdownUrl,
-        markdownEnabled: options.markdown ?? true,
-        copyMarkdownStatus: model.copyMarkdownStatus,
-        page: model.page.page,
-        ...(adjacent.previous === undefined
-          ? {}
-          : { previous: adjacent.previous }),
-        ...(adjacent.next === undefined ? {} : { next: adjacent.next }),
-        sidebarOpen: model.sidebarOpen,
-        collapsedSidebarGroups: model.collapsedSidebarGroups,
-        ...commonSearchOptions(model),
-        activeTocId: model.activeTocId,
-        mobileTocOpen: model.mobileTocOpen,
-        narrowViewport: model.narrowViewport,
-        theme: model.theme,
-        themePreference: model.themePreference,
-        actions: {
-          toggleSidebar: ToggledSidebar(),
-          closeSidebar: ClosedSidebar(),
-          toggleSidebarGroup: (key) => ToggledSidebarGroup({ key }),
-          toggleSearch: ToggledSearch(),
-          closeSearch: ClosedSearch(),
-          updateSearch: (query) => ChangedSearch({ query }),
-          searchKeyDown: (key) => PressedSearchKey({ key }),
-          selectSearchResult: (url) => SelectedSearchResult({ url }),
-          setMobileTocOpen: (open) => ToggledMobileToc({ open }),
-          selectToc: (sectionId) => SelectedToc({ sectionId }),
-          selectTheme: (preference) => SelectedTheme({ preference }),
-          copyMarkdown: ClickedCopyMarkdown({ url: markdownUrl }),
-          gotHeaderLanguageMenuMessage: (message) =>
-            GotHeaderLanguageMenuMessage({ message }),
-          gotSidebarLanguageMenuMessage: (message) =>
-            GotSidebarLanguageMenuMessage({ message }),
-        },
-        markdown: {
-          ...(options.components === undefined
+      body: docsLayout<Message>(
+        {
+          site: options.site,
+          preset: options.layoutPreset ?? "docs",
+          navigation,
+          tabs: navigationTabsForUrl(completeNavigation, model.pathname),
+          currentUrl: model.pathname,
+          docsUrl: docsUrlFor(model.locale),
+          homeUrl: localeHomePath(i18n, model.locale),
+          locales: localeLinks(model),
+          currentLocale: model.locale,
+          headerLanguageMenu: model.headerLanguageMenu,
+          sidebarLanguageMenu: model.sidebarLanguageMenu,
+          layoutTabsMenu: model.layoutTabsMenu,
+          pageOpenMenu: model.pageOpenMenu,
+          markdownUrl,
+          markdownEnabled: options.markdown ?? true,
+          ...(landing.footer === undefined ? {} : { footer: landing.footer }),
+          copyMarkdownStatus: model.copyMarkdownStatus,
+          page: model.page.page,
+          ...(adjacent.previous === undefined
             ? {}
-            : { components: options.components }),
-          copiedCode: model.copiedText,
-          copyCode: (value) => ClickedCopyText({ value }),
-          copyLabel: localeDefinition(i18n, model.locale).ui.copy,
-          copiedLabel: localeDefinition(i18n, model.locale).ui.copied,
-          copyAriaLabel: localeDefinition(i18n, model.locale).ui.copyCode,
-          copiedAriaLabel: localeDefinition(i18n, model.locale).ui.codeCopied,
+            : { previous: adjacent.previous }),
+          ...(adjacent.next === undefined ? {} : { next: adjacent.next }),
+          sidebarOpen: model.sidebarOpen,
+          sidebarDialog: model.sidebarDialog,
+          collapsedSidebarGroups: model.collapsedSidebarGroups,
+          ...commonSearchOptions(model),
+          activeTocId: model.activeTocId,
+          mobileTocOpen: model.mobileTocOpen,
+          narrowViewport: model.narrowViewport,
+          theme: model.theme,
+          themePreference: model.themePreference,
+          actions: {
+            toggleSidebar: ToggledSidebar(),
+            closeSidebar: ClosedSidebar(),
+            toggleSidebarGroup: (key) => ToggledSidebarGroup({ key }),
+            toggleSearch: ToggledSearch(),
+            closeSearch: ClosedSearch(),
+            updateSearch: (query) => ChangedSearch({ query }),
+            searchKeyDown: (key) => PressedSearchKey({ key }),
+            selectSearchResult: (url) => SelectedSearchResult({ url }),
+            gotSearchDialogMessage: (message) =>
+              GotSearchDialogMessage({ message }),
+            gotSidebarDialogMessage: (message) =>
+              GotSidebarDialogMessage({ message }),
+            setMobileTocOpen: (open) => ToggledMobileToc({ open }),
+            selectToc: (sectionId) => SelectedToc({ sectionId }),
+            selectTheme: (preference) => SelectedTheme({ preference }),
+            copyMarkdown: ClickedCopyMarkdown({ url: markdownUrl }),
+            gotHeaderLanguageMenuMessage: (message) =>
+              GotHeaderLanguageMenuMessage({ message }),
+            gotSidebarLanguageMenuMessage: (message) =>
+              GotSidebarLanguageMenuMessage({ message }),
+            gotLayoutTabsMenuMessage: (message) =>
+              GotLayoutTabsMenuMessage({ message }),
+            gotPageOpenMenuMessage: (message) =>
+              GotPageOpenMenuMessage({ message }),
+          },
+          markdown: {
+            ...(options.islands === undefined
+              ? {}
+              : { islands: options.islands }),
+            ...(options.components === undefined
+              ? {}
+              : { components: options.components }),
+            copiedCode: model.copiedText,
+            copyCode: (value) => ClickedCopyText({ value }),
+            copyLabel: localeDefinition(i18n, model.locale).ui.copy,
+            copiedLabel: localeDefinition(i18n, model.locale).ui.copied,
+            copyAriaLabel: localeDefinition(i18n, model.locale).ui.copyCode,
+            copiedAriaLabel: localeDefinition(i18n, model.locale).ui.codeCopied,
+          },
         },
-      }),
+        h,
+      ),
     };
   };
 
@@ -1507,49 +1649,27 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       Stream.callback<typeof PressedGlobalKey.Type>((queue) =>
         Effect.acquireRelease(
           Effect.sync(() => {
+            const isEditableTarget = (event: KeyboardEvent): boolean => {
+              const target = event.target;
+              return (
+                target instanceof HTMLElement &&
+                (target.isContentEditable ||
+                  target.matches("input, textarea, select, [role='textbox']"))
+              );
+            };
             const onKeyDown = (event: KeyboardEvent) => {
-              if (event.key === "Tab") {
-                const dialog = globalThis.document?.querySelector<HTMLElement>(
-                  '[role="dialog"][aria-modal="true"]',
-                );
-                if (dialog === null || dialog === undefined) return;
-                const focusable = [
-                  ...dialog.querySelectorAll<HTMLElement>(
-                    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-                  ),
-                ].filter(
-                  (element) =>
-                    element.getAttribute("aria-hidden") !== "true" &&
-                    element.getClientRects().length > 0,
-                );
-                const first = focusable[0];
-                const last = focusable.at(-1);
-                if (first === undefined || last === undefined) {
-                  event.preventDefault();
-                  dialog.focus();
-                  return;
-                }
-                const active = globalThis.document?.activeElement;
-                if (
-                  event.shiftKey &&
-                  (active === first || !dialog.contains(active))
-                ) {
-                  event.preventDefault();
-                  last.focus();
-                } else if (
-                  !event.shiftKey &&
-                  (active === last || !dialog.contains(active))
-                ) {
-                  event.preventDefault();
-                  first.focus();
-                }
-                return;
-              }
               if (
                 event.key !== "Escape" &&
                 !(
                   event.key.toLowerCase() === "k" &&
                   (event.metaKey || event.ctrlKey)
+                ) &&
+                !(
+                  event.key.toLowerCase() === "d" &&
+                  !event.metaKey &&
+                  !event.ctrlKey &&
+                  !event.altKey &&
+                  !isEditableTarget(event)
                 )
               )
                 return;
@@ -1687,6 +1807,7 @@ export type { ContentAdapter, ContentFile } from "@foldocs/content";
 export type {
   FoldocsConfig,
   I18nConfig,
+  LandingFooterConfig,
   LocaleConfig,
   PageManifest,
   ResolvedI18nConfig,

@@ -101,7 +101,9 @@ operations:
     expect(files.map((file) => file.path)).toContain(
       "send-users-signed-up.mdx",
     );
-    expect(operation?.content).toContain("`SEND users/signed-up`");
-    await compile(operation?.content ?? "", { filePath: operation?.path });
+    expect(operation).toBeDefined();
+    if (!operation) throw new Error("Expected the generated operation page.");
+    expect(operation.content).toContain("`SEND users/signed-up`");
+    await compile(operation.content, { filePath: operation.path });
   });
 });

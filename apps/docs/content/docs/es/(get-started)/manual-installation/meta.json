@@ -1,5 +1,6 @@
 {
   "title": "Instalación manual",
+  "icon": "settings",
   "defaultOpen": false,
-  "pages": ["pnpm", "npm"]
+  "pages": ["index", "pnpm", "npm", "bun"]
 }

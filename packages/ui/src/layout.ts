@@ -4,6 +4,7 @@ import type {
   NavigationNode,
   NavigationTab,
   PageManifestEntry,
+  LandingFooterConfig,
   LayoutPreset,
   ResolvedLandingConfig,
   ResolvedUiTranslations,
@@ -11,24 +12,61 @@ import type {
 } from "foldocs-core";
 import { interpolateTranslation } from "foldocs-core";
 import type { CompiledPage } from "foldocs-mdx";
-import { Menu } from "@foldkit/ui";
+import { Button, Dialog, Disclosure, Menu } from "@foldkit/ui";
 import { Option } from "effect";
-import { childAttributes, type Html, html } from "foldkit/html";
+import {
+  type Attribute,
+  childAttributes,
+  type Html,
+  type HtmlBuilder,
+} from "foldkit/html";
 
 import { renderMarkdown, type MarkdownViewOptions } from "./markdown.js";
-import { foldocsLogoSvg, icons, type IconName } from "./icons.js";
+import {
+  foldocsLogoSvg,
+  icons,
+  navigationIconSvg,
+  type IconName,
+} from "./icons.js";
 
 export type ThemePreference = "light" | "system" | "dark";
 
 const LanguageMenu = Menu.create<string>();
+const LayoutTabsMenu = Menu.create<string>();
+const PageOpenMenu = Menu.create<string>();
 export const headerLanguageMenuId = "foldocs-header-language";
 export const sidebarLanguageMenuId = "foldocs-sidebar-language";
+export const layoutTabsMenuId = "foldocs-layout-tabs";
+export const pageOpenMenuId = "foldocs-page-open";
+export const searchDialogId = "foldocs-search";
+export const sidebarDialogId = "foldocs-sidebar-dialog";
 export const LanguageMenuModel = Menu.Model;
 export type LanguageMenuModel = Menu.Model;
 export const LanguageMenuMessage = Menu.Message;
 export type LanguageMenuMessage = Menu.Message;
 export const initLanguageMenu = (id: string): LanguageMenuModel =>
   Menu.init({ id });
+export const DocsMenuModel = Menu.Model;
+export type DocsMenuModel = Menu.Model;
+export const DocsMenuMessage = Menu.Message;
+export type DocsMenuMessage = Menu.Message;
+export const initDocsMenu = (id: string): DocsMenuModel => Menu.init({ id });
+export const FoldocsDialogModel = Dialog.Model;
+export type FoldocsDialogModel = Dialog.Model;
+export const FoldocsDialogMessage = Dialog.Message;
+export type FoldocsDialogMessage = Dialog.Message;
+export const initSearchDialog = (): FoldocsDialogModel =>
+  Dialog.init({
+    id: searchDialogId,
+    isAnimated: true,
+    focusSelector: "#fd-search-input",
+  });
+export const initSidebarDialog = (): FoldocsDialogModel =>
+  Dialog.init({
+    id: sidebarDialogId,
+    isAnimated: true,
+    focusSelector: "#fd-sidebar a[href]",
+  });
 
 interface SearchActions<Message> {
   readonly toggleSearch: Message;
@@ -36,6 +74,7 @@ interface SearchActions<Message> {
   readonly updateSearch: (query: string) => Message;
   readonly searchKeyDown: (key: string) => Message;
   readonly selectSearchResult: (url: string) => Message;
+  readonly gotSearchDialogMessage?: (message: FoldocsDialogMessage) => Message;
 }
 
 interface SearchOptions<Message> {
@@ -46,6 +85,7 @@ interface SearchOptions<Message> {
   readonly searchError: string;
   readonly activeSearchResultIndex: number;
   readonly translations: ResolvedUiTranslations;
+  readonly searchDialog?: FoldocsDialogModel;
   readonly actions: SearchActions<Message>;
 }
 
@@ -65,12 +105,15 @@ export interface DocsLayoutActions<Message> extends SearchActions<Message> {
   readonly selectToc: (id: string) => Message;
   readonly selectTheme: (preference: ThemePreference) => Message;
   readonly copyMarkdown: Message;
+  readonly gotSidebarDialogMessage?: (message: FoldocsDialogMessage) => Message;
   readonly gotHeaderLanguageMenuMessage?: (
     message: LanguageMenuMessage,
   ) => Message;
   readonly gotSidebarLanguageMenuMessage?: (
     message: LanguageMenuMessage,
   ) => Message;
+  readonly gotLayoutTabsMenuMessage?: (message: DocsMenuMessage) => Message;
+  readonly gotPageOpenMenuMessage?: (message: DocsMenuMessage) => Message;
 }
 
 export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
@@ -83,6 +126,7 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
   readonly previous?: PageManifestEntry<CompiledPage>;
   readonly next?: PageManifestEntry<CompiledPage>;
   readonly sidebarOpen: boolean;
+  readonly sidebarDialog?: FoldocsDialogModel;
   readonly collapsedSidebarGroups: ReadonlyArray<string>;
   readonly activeTocId: string;
   readonly mobileTocOpen: boolean;
@@ -95,8 +139,11 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
   readonly currentLocale: string;
   readonly headerLanguageMenu?: LanguageMenuModel;
   readonly sidebarLanguageMenu?: LanguageMenuModel;
+  readonly layoutTabsMenu?: DocsMenuModel;
+  readonly pageOpenMenu?: DocsMenuModel;
   readonly markdownUrl: string;
   readonly markdownEnabled: boolean;
+  readonly footer?: LandingFooterConfig;
   readonly copyMarkdownStatus: "idle" | "loading" | "copied" | "error";
   readonly actions: DocsLayoutActions<Message>;
   readonly markdown?: MarkdownViewOptions<Message>;
@@ -105,6 +152,7 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
 export interface LandingLayoutActions<Message> extends SearchActions<Message> {
   readonly selectTheme: (preference: ThemePreference) => Message;
   readonly copyText: (value: string) => Message;
+  readonly openExternal: (url: string) => Message;
   readonly gotHeaderLanguageMenuMessage?: (
     message: LanguageMenuMessage,
   ) => Message;
@@ -120,12 +168,17 @@ export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
   readonly headerLanguageMenu?: LanguageMenuModel;
   readonly theme: "light" | "dark";
   readonly themePreference: ThemePreference;
+  readonly headerVisible: boolean;
+  readonly heroAttributes?: ReadonlyArray<Attribute<Message>>;
   readonly copiedText: string;
   readonly actions: LandingLayoutActions<Message>;
 }
 
-const icon = <Message>(name: IconName, className?: string): Html => {
-  const h = html<Message>();
+const icon = <Message>(
+  name: IconName,
+  h: HtmlBuilder<Message>,
+  className?: string,
+): Html => {
   return h.span(
     [
       h.Class(`fd-icon${className === undefined ? "" : ` ${className}`}`),
@@ -135,12 +188,27 @@ const icon = <Message>(name: IconName, className?: string): Html => {
   );
 };
 
+const navigationIcon = <Message>(
+  name: string | undefined,
+  customIcons: Readonly<Record<string, string>> | undefined,
+  h: HtmlBuilder<Message>,
+): Html => {
+  if (name === undefined) return h.empty;
+  const svg = navigationIconSvg(name, customIcons);
+  return svg === undefined
+    ? h.empty
+    : h.span(
+        [h.Class("fd-navigation-icon"), h.AriaHidden(true), h.InnerHTML(svg)],
+        [],
+      );
+};
+
 const brandView = <Message>(
   site: SiteConfig,
+  h: HtmlBuilder<Message>,
   homeUrl = "/",
   homeLabel = "home",
 ): Html => {
-  const h = html<Message>();
   return h.a(
     [
       h.Class("fd-brand"),
@@ -168,8 +236,8 @@ const themeSelector = <Message>(
   preference: ThemePreference,
   selectTheme: (preference: ThemePreference) => Message,
   translations: ResolvedUiTranslations,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   const entries = [
     ["light", translations.lightTheme, "light"],
     ["system", translations.systemTheme, "system"],
@@ -182,22 +250,33 @@ const themeSelector = <Message>(
       h.AriaLabel(translations.colorTheme),
     ],
     entries.map(([value, label, iconName]) =>
-      h.button(
-        [
-          h.Class(value === preference ? "fd-theme-active" : ""),
-          h.OnClick(selectTheme(value)),
-          h.AriaLabel(label),
-          h.Title(label),
-          h.Attribute("aria-pressed", String(value === preference)),
-        ],
-        [icon<Message>(iconName)],
+      Button.view(
+        {
+          onClick: selectTheme(value),
+          toView: ({ button }) =>
+            h.button(
+              [
+                ...button,
+                h.Class(
+                  `fd-control fd-control-ghost fd-control-icon${value === preference ? " fd-theme-active" : ""}`,
+                ),
+                h.AriaLabel(label),
+                h.Title(label),
+                h.Attribute("aria-pressed", String(value === preference)),
+              ],
+              [icon(iconName, h)],
+            ),
+        },
+        h,
       ),
     ),
   );
 };
 
-const socialLinks = <Message>(site: SiteConfig): ReadonlyArray<Html> => {
-  const h = html<Message>();
+const socialLinks = <Message>(
+  site: SiteConfig,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => {
   const entries = [
     [site.githubUrl, "GitHub", "github"],
     [site.discordUrl, "Discord", "discord"],
@@ -210,7 +289,9 @@ const socialLinks = <Message>(site: SiteConfig): ReadonlyArray<Html> => {
       : [
           h.a(
             [
-              h.Class("fd-social-link"),
+              h.Class(
+                "fd-control fd-control-ghost fd-control-icon fd-social-link",
+              ),
               h.Href(href),
               h.Target("_blank"),
               h.Rel("noreferrer noopener"),
@@ -218,13 +299,98 @@ const socialLinks = <Message>(site: SiteConfig): ReadonlyArray<Html> => {
               h.Title(label),
             ],
             [
-              icon<Message>(
+              icon(
                 iconName,
+                h,
                 iconName === "npm" ? "fd-social-npm-icon" : "fd-social-icon",
               ),
             ],
           ),
         ],
+  );
+};
+
+const siteFooterView = <Message>(
+  site: SiteConfig,
+  footer: LandingFooterConfig | undefined,
+  className: string,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const author = footer?.author;
+  return h.footer(
+    [h.Class(`fd-site-footer ${className}`)],
+    [
+      h.div(
+        [h.Class("fd-site-footer-left")],
+        [
+          h.p(
+            [],
+            [
+              ...(author === undefined
+                ? ["Built with Foldocs. "]
+                : [
+                    "Built by ",
+                    footer?.authorUrl === undefined
+                      ? author
+                      : h.a(
+                          [
+                            h.Href(footer.authorUrl),
+                            h.Target("_blank"),
+                            h.Rel("noreferrer noopener"),
+                          ],
+                          [author],
+                        ),
+                    ". ",
+                  ]),
+              ...(site.githubUrl === undefined
+                ? []
+                : [
+                    "The source code is available on ",
+                    h.a(
+                      [
+                        h.Href(site.githubUrl),
+                        h.Target("_blank"),
+                        h.Rel("noreferrer noopener"),
+                      ],
+                      ["GitHub"],
+                    ),
+                    ".",
+                  ]),
+            ],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class("fd-site-footer-right")],
+        [
+          ...(footer?.copyright === undefined
+            ? []
+            : [
+                h.span(
+                  [h.Class("fd-site-footer-copyright")],
+                  [footer.copyright],
+                ),
+              ]),
+          ...(footer?.twitterUrl === undefined
+            ? []
+            : [
+                h.a(
+                  [
+                    h.Class(
+                      "fd-control fd-control-ghost fd-control-icon fd-footer-social-button",
+                    ),
+                    h.Href(footer.twitterUrl),
+                    h.Target("_blank"),
+                    h.Rel("noreferrer noopener"),
+                    h.AriaLabel("Tarka Works on X"),
+                    h.Title("Tarka Works on X"),
+                  ],
+                  [icon("x", h)],
+                ),
+              ]),
+        ],
+      ),
+    ],
   );
 };
 
@@ -235,9 +401,9 @@ const languageSelector = <Message>(
   slotId: string,
   menuId: string,
   toParentMessage: ((message: LanguageMenuMessage) => Message) | undefined,
+  h: HtmlBuilder<Message>,
   placement: "bottom-end" | "top-start" = "bottom-end",
 ): Html => {
-  const h = html<Message>();
   if (locales.length <= 1) return h.empty;
   const current = locales.find((locale) => locale.current) ?? locales[0]!;
   const localeForHref = (href: string): LocaleLink =>
@@ -245,9 +411,9 @@ const languageSelector = <Message>(
   const buttonContent = h.span(
     [h.Class("fd-language-trigger-content")],
     [
-      icon<Message>("globe"),
+      icon("globe", h),
       h.span([h.Class("fd-language-current")], [current.name]),
-      icon<Message>("chevron", "fd-language-chevron"),
+      icon("chevron", h, "fd-language-chevron"),
     ],
   );
 
@@ -264,7 +430,7 @@ const languageSelector = <Message>(
             h.AriaControls(`${menuId}-items`),
             h.AriaLabel(translations.selectLanguage),
             h.Title(translations.selectLanguage),
-            h.Class("fd-language-trigger"),
+            h.Class("fd-control fd-control-outline fd-language-trigger"),
           ],
           [buttonContent],
         ),
@@ -295,19 +461,24 @@ const languageSelector = <Message>(
             ],
             [
               h.span([], [locale.name]),
-              locale.current ? icon<Message>("check") : h.empty,
+              locale.current ? icon("check", h) : h.empty,
             ],
           ),
         };
       },
       buttonContent,
-      buttonClassName: "fd-language-trigger",
+      buttonClassName: "fd-control fd-control-outline fd-language-trigger",
       buttonAttributes: childAttributes([h.Title(translations.selectLanguage)]),
       itemsClassName: "fd-language-menu",
       backdropClassName: "fd-language-backdrop",
       className: "fd-language-selector",
       ariaLabel: translations.selectLanguage,
-      anchor: { placement, gap: 7, padding: 8 },
+      anchor: {
+        placement,
+        gap: 7,
+        padding: 8,
+        isPlacementLocked: true,
+      },
     },
     toParentMessage,
   });
@@ -317,26 +488,26 @@ const searchTrigger = <Message>(
   action: Message,
   expanded: boolean,
   translations: ResolvedUiTranslations,
+  h: HtmlBuilder<Message>,
   mobile = false,
 ): Html => {
-  const h = html<Message>();
   return h.button(
     [
       h.Class(
         mobile
-          ? "fd-search-trigger fd-search-trigger-mobile"
-          : "fd-search-trigger",
+          ? "fd-control fd-control-outline fd-search-trigger fd-search-trigger-mobile"
+          : "fd-control fd-control-outline fd-search-trigger",
       ),
       h.Id(mobile ? "fd-search-trigger-mobile" : "fd-search-trigger"),
-      h.OnClickFocus("#fd-search-keyboard-warmup", action),
+      h.OnClick(action),
       h.AriaExpanded(expanded),
       h.AriaHasPopup("dialog"),
       h.AriaLabel(translations.searchDocumentation),
     ],
     mobile
-      ? [icon<Message>("search")]
+      ? [icon("search", h)]
       : [
-          icon<Message>("search"),
+          icon("search", h),
           h.span([], [translations.search]),
           h.kbd([], ["⌘K"]),
         ],
@@ -354,14 +525,14 @@ const headerActions = <Message>(
   languageMenu: LanguageMenuModel | undefined,
   gotLanguageMenuMessage:
     ((message: LanguageMenuMessage) => Message) | undefined,
+  h: HtmlBuilder<Message>,
   mobileMenu?: Html,
 ): Html => {
-  const h = html<Message>();
   return h.div(
     [h.Class("fd-header-actions")],
     [
-      searchTrigger(searchAction, searchOpen, translations),
-      searchTrigger(searchAction, searchOpen, translations, true),
+      searchTrigger(searchAction, searchOpen, translations, h),
+      searchTrigger(searchAction, searchOpen, translations, h, true),
       languageSelector(
         locales,
         translations,
@@ -369,11 +540,12 @@ const headerActions = <Message>(
         "header-language-menu",
         headerLanguageMenuId,
         gotLanguageMenuMessage,
+        h,
       ),
-      themeSelector(preference, selectTheme, translations),
+      themeSelector(preference, selectTheme, translations, h),
       h.div(
         [h.Class("fd-social-links fd-social-links-header")],
-        socialLinks(site),
+        socialLinks(site, h),
       ),
       ...(mobileMenu === undefined ? [] : [mobileMenu]),
     ],
@@ -384,7 +556,8 @@ const nodeContainsUrl = (node: NavigationNode, currentUrl: string): boolean =>
   node._tag === "Page"
     ? node.url === currentUrl
     : node._tag === "Folder"
-      ? node.children.some((child) => nodeContainsUrl(child, currentUrl))
+      ? node.index?.url === currentUrl ||
+        node.children.some((child) => nodeContainsUrl(child, currentUrl))
       : false;
 
 const navigationContextForUrl = (
@@ -398,6 +571,7 @@ const navigationContextForUrl = (
       if (node.url === currentUrl) return ancestors;
       continue;
     }
+    if (node.index?.url === currentUrl) return [...ancestors, node.label];
     const nested = navigationContextForUrl(node.children, currentUrl, [
       ...ancestors,
       node.label,
@@ -413,10 +587,11 @@ const navigationView = <Message>(
   collapsedGroups: ReadonlyArray<string>,
   closeSidebar: Message,
   toggleGroup: (key: string) => Message,
+  customIcons: Readonly<Record<string, string>> | undefined,
+  h: HtmlBuilder<Message>,
   parentKey = "",
   depth = 0,
 ): ReadonlyArray<Html> => {
-  const h = html<Message>();
   return nodes.map((node) => {
     if (node._tag === "Separator") {
       return h.li(
@@ -435,10 +610,14 @@ const navigationView = <Message>(
               h.Class(
                 `fd-sidebar-link${depth === 0 ? " fd-sidebar-link-root" : ""}${active ? " fd-sidebar-link-active" : ""}`,
               ),
+              h.DataAttribute("depth", String(depth)),
               h.OnClick(closeSidebar),
               ...(active ? [h.AriaCurrent("page")] : []),
             ],
-            [node.label],
+            [
+              navigationIcon(node.icon, customIcons, h),
+              h.span([h.Class("fd-sidebar-item-label")], [node.label]),
+            ],
           ),
         ],
       );
@@ -449,42 +628,104 @@ const navigationView = <Message>(
     return h.li(
       [
         h.Class(
-          `fd-sidebar-folder${containsActive ? " fd-sidebar-folder-active" : ""}${collapsed ? " fd-sidebar-folder-collapsed" : ""}`,
+          `fd-sidebar-folder${depth === 0 ? " fd-sidebar-folder-root" : ""}${containsActive ? " fd-sidebar-folder-active" : ""}${collapsed ? " fd-sidebar-folder-collapsed" : ""}`,
         ),
       ],
       [
-        h.button(
-          [
-            h.Class("fd-sidebar-folder-label"),
-            h.OnClick(toggleGroup(key)),
-            h.AriaExpanded(!collapsed),
-          ],
-          [
-            h.span([], [node.label]),
-            icon<Message>("chevron", "fd-sidebar-chevron"),
-          ],
-        ),
-        ...(collapsed
-          ? []
-          : [
+        Disclosure.view(
+          {
+            id: `fd-sidebar-folder-${key.replace(/[^a-z0-9_-]+/giu, "-")}`,
+            isOpen: !collapsed,
+            onToggle: () => toggleGroup(key),
+            isDisabled: false,
+            toView: ({ button, panel, animatePanel }) =>
               h.div(
-                [h.Class("fd-sidebar-group-panel")],
+                [],
                 [
-                  h.ul(
-                    [],
-                    navigationView(
-                      node.children,
-                      currentUrl,
-                      collapsedGroups,
-                      closeSidebar,
-                      toggleGroup,
-                      key,
-                      depth + 1,
+                  node.index === undefined
+                    ? h.button(
+                        [
+                          ...button,
+                          h.Class("fd-sidebar-folder-label"),
+                          h.DataAttribute("depth", String(depth)),
+                        ],
+                        [
+                          h.span(
+                            [h.Class("fd-sidebar-item-content")],
+                            [
+                              navigationIcon(node.icon, customIcons, h),
+                              h.span(
+                                [h.Class("fd-sidebar-item-label")],
+                                [node.label],
+                              ),
+                            ],
+                          ),
+                          icon("chevron", h, "fd-sidebar-chevron"),
+                        ],
+                      )
+                    : h.div(
+                        [
+                          h.Class("fd-sidebar-folder-label"),
+                          h.DataAttribute("depth", String(depth)),
+                        ],
+                        [
+                          h.a(
+                            [
+                              h.Href(node.index.url),
+                              h.Class(
+                                "fd-sidebar-item-content fd-sidebar-folder-index",
+                              ),
+                              h.OnClick(closeSidebar),
+                              ...(node.index.url === currentUrl
+                                ? [h.AriaCurrent("page")]
+                                : []),
+                            ],
+                            [
+                              navigationIcon(node.icon, customIcons, h),
+                              h.span(
+                                [h.Class("fd-sidebar-item-label")],
+                                [node.label],
+                              ),
+                            ],
+                          ),
+                          h.button(
+                            [
+                              ...button,
+                              h.Class("fd-sidebar-folder-toggle"),
+                              h.AriaLabel(
+                                `${collapsed ? "Expand" : "Collapse"} ${node.label}`,
+                              ),
+                            ],
+                            [icon("chevron", h, "fd-sidebar-chevron")],
+                          ),
+                        ],
+                      ),
+                  animatePanel(
+                    h.div(
+                      [...panel, h.Class("fd-sidebar-group-panel")],
+                      [
+                        h.ul(
+                          [],
+                          navigationView(
+                            node.children,
+                            currentUrl,
+                            collapsedGroups,
+                            closeSidebar,
+                            toggleGroup,
+                            customIcons,
+                            h,
+                            key,
+                            depth + 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ]),
+          },
+          h,
+        ),
       ],
     );
   });
@@ -493,64 +734,111 @@ const navigationView = <Message>(
 const layoutTabsView = <Message>(
   tabs: ReadonlyArray<NavigationTab>,
   translations: ResolvedUiTranslations,
+  model: DocsMenuModel | undefined,
+  toParentMessage: ((message: DocsMenuMessage) => Message) | undefined,
+  customIcons: Readonly<Record<string, string>> | undefined,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   const current = tabs.find((tab) => tab.current);
   if (current === undefined) return h.empty;
-  return h.details(
-    [h.Class("fd-layout-tabs")],
+  const tabForUrl = (url: string): NavigationTab =>
+    tabs.find((tab) => tab.url === url) ?? current;
+  const buttonContent = h.span(
+    [h.Class("fd-layout-tabs-trigger-content")],
     [
-      h.summary(
+      navigationIcon(current.icon, customIcons, h),
+      h.span(
+        [h.Class("fd-layout-tab-current")],
         [
-          h.AriaLabel(translations.selectDocumentation),
-          h.Title(translations.selectDocumentation),
-        ],
-        [
-          h.span(
-            [h.Class("fd-layout-tab-current")],
-            [
-              h.strong([], [current.title]),
-              ...(current.description === undefined
-                ? []
-                : [h.span([], [current.description])]),
-            ],
-          ),
-          icon<Message>("chevron", "fd-layout-tabs-chevron"),
+          h.strong([], [current.title]),
+          ...(current.description === undefined
+            ? []
+            : [h.span([], [current.description])]),
         ],
       ),
-      h.div(
-        [h.Class("fd-layout-tabs-menu"), h.Role("listbox")],
-        tabs.map((tab) =>
-          h.a(
-            [
-              h.Href(tab.url),
-              h.Role("option"),
-              h.AriaSelected(tab.current),
-              h.Class(tab.current ? "fd-layout-tab-active" : ""),
-            ],
-            [
-              h.strong([], [tab.title]),
-              ...(tab.description === undefined
-                ? []
-                : [h.span([], [tab.description])]),
-              ...(tab.current ? [icon<Message>("check")] : []),
-            ],
-          ),
-        ),
-      ),
+      icon("chevron", h, "fd-layout-tabs-chevron"),
     ],
   );
+
+  if (model === undefined || toParentMessage === undefined) {
+    return h.div(
+      [h.Class("fd-layout-tabs")],
+      [
+        h.button(
+          [
+            h.Id(Menu.buttonId(layoutTabsMenuId)),
+            h.Type("button"),
+            h.AriaHasPopup("menu"),
+            h.AriaExpanded(false),
+            h.AriaControls(`${layoutTabsMenuId}-items`),
+            h.AriaLabel(translations.selectDocumentation),
+            h.Title(translations.selectDocumentation),
+          ],
+          [buttonContent],
+        ),
+      ],
+    );
+  }
+
+  return h.submodel({
+    slotId: "layout-tabs-menu",
+    model,
+    view: LayoutTabsMenu.view,
+    viewInputs: {
+      items: tabs.map((tab) => tab.url),
+      itemToSearchText: (url) => tabForUrl(url).title,
+      itemToConfig: (url, { isActive }) => {
+        const tab = tabForUrl(url);
+        return {
+          className: [
+            "fd-layout-tab-option",
+            ...(tab.current ? ["fd-layout-tab-active"] : []),
+            ...(isActive ? ["fd-layout-tab-option-active"] : []),
+          ].join(" "),
+          content: h.span(
+            [h.Class("fd-layout-tab-option-content")],
+            [
+              navigationIcon(tab.icon, customIcons, h),
+              h.span(
+                [h.Class("fd-layout-tab-copy")],
+                [
+                  h.strong([], [tab.title]),
+                  ...(tab.description === undefined
+                    ? []
+                    : [h.span([], [tab.description])]),
+                ],
+              ),
+              ...(tab.current ? [icon("check", h)] : []),
+            ],
+          ),
+        };
+      },
+      buttonContent,
+      itemsClassName: "fd-layout-tabs-menu",
+      backdropClassName: "fd-layout-tabs-backdrop",
+      className: "fd-layout-tabs",
+      ariaLabel: translations.selectDocumentation,
+      anchor: {
+        placement: "bottom-start",
+        gap: 6,
+        padding: 8,
+        isPlacementLocked: true,
+      },
+    },
+    toParentMessage,
+  });
 };
 
 const tocItemsView = <Message>(
   toc: ReadonlyArray<TocItem>,
   activeTocId: string,
   selectToc: (id: string) => Message,
+  h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
-  const h = html<Message>();
   return toc.map((item) => {
     const active = item.id === activeTocId;
-    return h.li(
+    return h.keyed("li")(
+      item.id,
       [h.Class(`fd-toc-depth-${item.depth}`)],
       [
         h.a(
@@ -572,8 +860,8 @@ const tocView = <Message>(
   activeTocId: string,
   selectToc: (id: string) => Message,
   translations: ResolvedUiTranslations,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   return h.aside(
     [h.Class("fd-toc-shell")],
     [
@@ -581,7 +869,7 @@ const tocView = <Message>(
         [h.Class("fd-toc"), h.AriaLabel(translations.onThisPage)],
         [
           h.div([h.Class("fd-toc-title")], [translations.onThisPage]),
-          h.ul([], tocItemsView(toc, activeTocId, selectToc)),
+          h.ul([], tocItemsView(toc, activeTocId, selectToc, h)),
         ],
       ),
     ],
@@ -595,8 +883,8 @@ const mobileTocView = <Message>(
   setOpen: (open: boolean) => Message,
   selectToc: (id: string) => Message,
   translations: ResolvedUiTranslations,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   if (toc.length === 0) return h.empty;
   const activeTitle =
     toc.find((item) => item.id === activeTocId)?.title ?? toc[0]?.title ?? "";
@@ -608,12 +896,12 @@ const mobileTocView = <Message>(
         [
           h.span([h.Class("fd-mobile-toc-label")], [translations.onThisPage]),
           h.span([h.Class("fd-mobile-toc-current")], [activeTitle]),
-          icon<Message>("chevron", "fd-mobile-toc-chevron"),
+          icon("chevron", h, "fd-mobile-toc-chevron"),
         ],
       ),
       h.nav(
         [h.AriaLabel(translations.tableOfContents)],
-        [h.ul([], tocItemsView(toc, activeTocId, selectToc))],
+        [h.ul([], tocItemsView(toc, activeTocId, selectToc, h))],
       ),
     ],
   );
@@ -621,157 +909,205 @@ const mobileTocView = <Message>(
 
 const searchResultId = (index: number): string => `fd-search-result-${index}`;
 
-const searchDialogView = <Message>(options: SearchOptions<Message>): Html => {
-  const h = html<Message>();
+const searchDialogView = <Message>(
+  options: SearchOptions<Message>,
+  h: HtmlBuilder<Message>,
+): Html => {
   const t = options.translations;
-  if (!options.searchOpen) return h.empty;
-  return h.div(
-    [h.Class("fd-search-layer")],
-    [
-      h.button(
-        [
-          h.Class("fd-search-backdrop"),
-          h.AriaLabel(t.closeSearch),
-          h.OnClick(options.actions.closeSearch),
-        ],
-        [],
-      ),
-      h.div(
-        [
-          h.Class("fd-search-dialog"),
-          h.Role("dialog"),
-          h.AriaModal(true),
-          h.AriaLabel(t.searchDocumentation),
-          h.Tabindex(-1),
-        ],
-        [
-          h.div(
-            [h.Class("fd-search-input-wrap")],
-            [
-              icon<Message>("search"),
-              h.input([
-                h.Id("fd-search-input"),
-                h.Class("fd-search-input"),
-                h.Type("text"),
-                h.Role("combobox"),
-                h.AriaExpanded(options.searchResults.length > 0),
-                h.AriaControls("fd-search-results"),
-                h.AriaHasPopup("listbox"),
-                h.AriaAutocomplete("list"),
-                h.AriaLabel(t.searchDocumentation),
-                ...(options.activeSearchResultIndex >= 0
-                  ? [
-                      h.AriaActiveDescendant(
-                        searchResultId(options.activeSearchResultIndex),
-                      ),
-                    ]
-                  : []),
-                h.Autocomplete("off"),
-                h.Value(options.searchQuery),
-                h.Placeholder(`${t.searchDocumentation}…`),
-                h.Autofocus(true),
-                h.OnInput(options.actions.updateSearch),
-                h.OnKeyDownPreventDefault((key) =>
-                  key === "ArrowDown" || key === "ArrowUp" || key === "Enter"
-                    ? Option.some(options.actions.searchKeyDown(key))
-                    : Option.none(),
+  if (
+    options.searchDialog === undefined ||
+    options.actions.gotSearchDialogMessage === undefined
+  )
+    return h.empty;
+  return h.submodel({
+    slotId: options.searchDialog.id,
+    model: options.searchDialog,
+    view: Dialog.view,
+    viewInputs: {
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        title,
+        description,
+        initialFocus,
+        isVisible,
+      }) =>
+        h.dialog(
+          [...dialog, h.Class("fd-search-layer")],
+          isVisible
+            ? [
+                h.div(
+                  [
+                    ...backdrop,
+                    h.Class("fd-search-backdrop"),
+                    h.AriaHidden(true),
+                  ],
+                  [],
                 ),
-              ]),
-              h.button(
-                [
-                  h.Class("fd-search-close"),
-                  h.OnClick(options.actions.closeSearch),
-                  h.AriaLabel(t.closeSearch),
-                ],
-                ["Esc"],
-              ),
-            ],
-          ),
-          h.div(
-            [
-              h.Id("fd-search-results"),
-              h.Class("fd-search-results"),
-              h.Role("listbox"),
-              h.AriaLabel(t.searchResults),
-            ],
-            [
-              ...(options.searchQuery.trim().length === 0
-                ? [h.p([h.Class("fd-search-empty")], [t.searchPrompt])]
-                : options.searchLoading && options.searchResults.length === 0
-                  ? [
-                      h.p(
-                        [h.Class("fd-search-empty"), h.AriaLive("polite")],
-                        [t.searching],
-                      ),
-                    ]
-                  : options.searchError.length > 0
-                    ? [
-                        h.p(
-                          [h.Class("fd-search-empty"), h.AriaLive("polite")],
-                          [t.searchUnavailable],
+                h.div(
+                  [h.Class("fd-search-positioner")],
+                  [
+                    h.div(
+                      [
+                        ...panel,
+                        h.Class("fd-search-dialog"),
+                        h.AriaLabel(t.searchDocumentation),
+                      ],
+                      [
+                        h.h2(
+                          [...title, h.Class("fd-sr-only")],
+                          [t.searchDocumentation],
                         ),
-                      ]
-                    : options.searchResults.length === 0
-                      ? [
-                          h.p(
-                            [h.Class("fd-search-empty"), h.AriaLive("polite")],
-                            [
-                              interpolateTranslation(t.noSearchResults, {
-                                query: options.searchQuery,
-                              }),
-                            ],
-                          ),
-                        ]
-                      : options.searchResults.map((result, index) =>
-                          h.a(
-                            [
-                              h.Id(searchResultId(index)),
-                              h.Href(result.url),
-                              h.Role("option"),
-                              h.AriaSelected(
-                                index === options.activeSearchResultIndex,
+                        h.p(
+                          [...description, h.Class("fd-sr-only")],
+                          [t.searchPrompt],
+                        ),
+                        h.div(
+                          [h.Class("fd-search-input-wrap")],
+                          [
+                            icon("search", h),
+                            h.input([
+                              ...initialFocus,
+                              h.Id("fd-search-input"),
+                              h.Class("fd-search-input"),
+                              h.Type("text"),
+                              h.Role("combobox"),
+                              h.AriaExpanded(options.searchResults.length > 0),
+                              h.AriaControls("fd-search-results"),
+                              h.AriaHasPopup("listbox"),
+                              h.AriaAutocomplete("list"),
+                              h.AriaLabel(t.searchDocumentation),
+                              ...(options.activeSearchResultIndex >= 0
+                                ? [
+                                    h.AriaActiveDescendant(
+                                      searchResultId(
+                                        options.activeSearchResultIndex,
+                                      ),
+                                    ),
+                                  ]
+                                : []),
+                              h.Autocomplete("off"),
+                              h.Value(options.searchQuery),
+                              h.Placeholder(`${t.searchDocumentation}…`),
+                              h.OnInput(options.actions.updateSearch),
+                              h.OnKeyDownPreventDefault((key) =>
+                                key === "ArrowDown" ||
+                                key === "ArrowUp" ||
+                                key === "Enter"
+                                  ? Option.some(
+                                      options.actions.searchKeyDown(key),
+                                    )
+                                  : Option.none(),
                               ),
-                              h.Tabindex(-1),
-                              h.OnClick(
-                                options.actions.selectSearchResult(result.url),
-                              ),
-                              h.Class(
-                                `fd-search-result${index === options.activeSearchResultIndex ? " fd-search-result-active" : ""}`,
-                              ),
-                            ],
-                            [
-                              h.strong([], [result.title]),
-                              h.span([], [result.excerpt]),
-                            ],
-                          ),
-                        )),
-            ],
-          ),
-          h.span(
-            [h.Class("fd-sr-only"), h.AriaLive("polite")],
-            options.searchResults.length > 0
-              ? [
-                  interpolateTranslation(t.searchResultsAvailable, {
-                    count: options.searchResults.length,
-                  }),
-                ]
-              : [],
-          ),
-        ],
-      ),
-    ],
-  );
-};
-
-const keyboardWarmup = <Message>(): Html => {
-  const h = html<Message>();
-  return h.input([
-    h.Id("fd-search-keyboard-warmup"),
-    h.Type("text"),
-    h.AriaHidden(true),
-    h.Tabindex(-1),
-    h.Class("fd-search-keyboard-warmup"),
-  ]);
+                            ]),
+                          ],
+                        ),
+                        h.div(
+                          [
+                            h.Id("fd-search-results"),
+                            h.Class("fd-search-results"),
+                            h.Role("listbox"),
+                            h.AriaLabel(t.searchResults),
+                          ],
+                          [
+                            ...(options.searchQuery.trim().length === 0
+                              ? [
+                                  h.p(
+                                    [h.Class("fd-search-empty")],
+                                    [t.searchPrompt],
+                                  ),
+                                ]
+                              : options.searchLoading &&
+                                  options.searchResults.length === 0
+                                ? [
+                                    h.p(
+                                      [
+                                        h.Class("fd-search-empty"),
+                                        h.AriaLive("polite"),
+                                      ],
+                                      [t.searching],
+                                    ),
+                                  ]
+                                : options.searchError.length > 0
+                                  ? [
+                                      h.p(
+                                        [
+                                          h.Class("fd-search-empty"),
+                                          h.AriaLive("polite"),
+                                        ],
+                                        [t.searchUnavailable],
+                                      ),
+                                    ]
+                                  : options.searchResults.length === 0
+                                    ? [
+                                        h.p(
+                                          [
+                                            h.Class("fd-search-empty"),
+                                            h.AriaLive("polite"),
+                                          ],
+                                          [
+                                            interpolateTranslation(
+                                              t.noSearchResults,
+                                              {
+                                                query: options.searchQuery,
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ]
+                                    : options.searchResults.map(
+                                        (result, index) =>
+                                          h.a(
+                                            [
+                                              h.Id(searchResultId(index)),
+                                              h.Href(result.url),
+                                              h.Role("option"),
+                                              h.AriaSelected(
+                                                index ===
+                                                  options.activeSearchResultIndex,
+                                              ),
+                                              h.Tabindex(-1),
+                                              h.OnClick(
+                                                options.actions.selectSearchResult(
+                                                  result.url,
+                                                ),
+                                              ),
+                                              h.Class(
+                                                `fd-search-result${index === options.activeSearchResultIndex ? " fd-search-result-active" : ""}`,
+                                              ),
+                                            ],
+                                            [
+                                              h.strong([], [result.title]),
+                                              h.span([], [result.excerpt]),
+                                            ],
+                                          ),
+                                      )),
+                          ],
+                        ),
+                        h.span(
+                          [h.Class("fd-sr-only"), h.AriaLive("polite")],
+                          options.searchResults.length > 0
+                            ? [
+                                interpolateTranslation(
+                                  t.searchResultsAvailable,
+                                  {
+                                    count: options.searchResults.length,
+                                  },
+                                ),
+                              ]
+                            : [],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ]
+            : [],
+        ),
+    },
+    toParentMessage: options.actions.gotSearchDialogMessage,
+  });
 };
 
 const markdownDocumentUrl = (site: SiteConfig, markdownUrl: string): string => {
@@ -788,98 +1124,142 @@ const markdownDocumentUrl = (site: SiteConfig, markdownUrl: string): string => {
 
 const pageActionsView = <Message>(
   options: DocsLayoutOptions<Message>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   const t = options.translations;
   if (!options.markdownEnabled) return h.empty;
   const sourceUrl = markdownDocumentUrl(options.site, options.markdownUrl);
   const prompt = interpolateTranslation(t.askAiAboutPage, { url: sourceUrl });
-  const aiLinks = [
+  const openItems = [
+    {
+      label: t.viewAsMarkdown,
+      href: options.markdownUrl,
+      kind: "markdown",
+    },
     {
       label: t.openInChatGPT,
       href: `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`,
+      kind: "external",
     },
     {
       label: t.openInClaude,
       href: `https://claude.ai/new?q=${encodeURIComponent(prompt)}`,
+      kind: "external",
     },
     {
       label: t.openInGrok,
       href: `https://grok.com/?q=${encodeURIComponent(prompt)}`,
+      kind: "external",
     },
-  ];
+  ] as const;
+  const itemForHref = (href: string) =>
+    openItems.find((item) => item.href === href) ?? openItems[0];
+  const copyAriaLabel =
+    options.copyMarkdownStatus === "copied"
+      ? t.copiedMarkdown
+      : options.copyMarkdownStatus === "loading"
+        ? t.loading
+        : options.copyMarkdownStatus === "error"
+          ? t.tryCopyAgain
+          : t.copyPageMarkdown;
+  const openButtonContent = h.span(
+    [h.Class("fd-page-open-trigger-content")],
+    [t.openPage, icon("chevron", h, "fd-page-open-chevron")],
+  );
+  const openMenu =
+    options.pageOpenMenu === undefined ||
+    options.actions.gotPageOpenMenuMessage === undefined
+      ? h.div(
+          [h.Class("fd-page-open")],
+          [
+            h.button(
+              [
+                h.Id(Menu.buttonId(pageOpenMenuId)),
+                h.Type("button"),
+                h.AriaHasPopup("menu"),
+                h.AriaExpanded(false),
+                h.AriaControls(`${pageOpenMenuId}-items`),
+                h.AriaLabel(t.openPageMenu),
+                h.Title(t.openPageMenu),
+              ],
+              [openButtonContent],
+            ),
+          ],
+        )
+      : h.submodel({
+          slotId: "page-open-menu",
+          model: options.pageOpenMenu,
+          view: PageOpenMenu.view,
+          viewInputs: {
+            items: openItems.map((item) => item.href),
+            itemToSearchText: (href) => itemForHref(href).label,
+            itemToConfig: (href, { isActive }) => {
+              const item = itemForHref(href);
+              return {
+                className: `fd-page-open-item${isActive ? " fd-page-open-item-active" : ""}`,
+                content: h.span(
+                  [h.Class("fd-page-open-item-content")],
+                  [
+                    ...(item.kind === "markdown" ? [icon("markdown", h)] : []),
+                    h.span([h.Class("fd-page-open-label")], [item.label]),
+                    ...(item.kind === "external"
+                      ? [icon("arrow", h, "fd-page-open-external")]
+                      : []),
+                  ],
+                ),
+              };
+            },
+            buttonContent: openButtonContent,
+            itemsClassName: "fd-page-open-menu",
+            backdropClassName: "fd-page-open-backdrop",
+            separatorClassName: "fd-page-open-separator",
+            itemGroupKey: (href) =>
+              itemForHref(href).kind === "markdown" ? "markdown" : "ai",
+            className: "fd-page-open",
+            ariaLabel: t.openPageMenu,
+            anchor: {
+              placement: "bottom-start",
+              gap: 6,
+              padding: 8,
+              isPlacementLocked: true,
+            },
+          },
+          toParentMessage: options.actions.gotPageOpenMenuMessage,
+        });
 
   return h.div(
     [h.Class("fd-page-actions")],
     [
-      h.button(
-        [
-          h.OnClick(options.actions.copyMarkdown),
-          h.Disabled(options.copyMarkdownStatus === "loading"),
-          h.AriaLabel(t.copyPageMarkdown),
-        ],
-        [
-          icon<Message>(
-            options.copyMarkdownStatus === "copied" ? "check" : "copy",
-          ),
-          options.copyMarkdownStatus === "loading"
-            ? t.loading
-            : options.copyMarkdownStatus === "copied"
-              ? t.copiedMarkdown
-              : options.copyMarkdownStatus === "error"
-                ? t.tryCopyAgain
-                : t.copyMarkdown,
-        ],
-      ),
-      h.details(
-        [h.Class("fd-page-open")],
-        [
-          h.summary(
-            [h.AriaLabel(t.openPageMenu), h.Title(t.openPageMenu)],
-            [t.openPage, icon<Message>("chevron", "fd-page-open-chevron")],
-          ),
-          h.div(
-            [h.Class("fd-page-open-menu"), h.Role("menu")],
-            [
-              h.a(
-                [
-                  h.Href(options.markdownUrl),
-                  h.Target("_blank"),
-                  h.Rel("noreferrer"),
-                  h.Role("menuitem"),
-                ],
-                [
-                  icon<Message>("markdown"),
-                  h.span([h.Class("fd-page-open-label")], [t.viewAsMarkdown]),
-                ],
-              ),
-              h.div([h.Class("fd-page-open-separator")], []),
-              ...aiLinks.map(({ label, href }) =>
-                h.a(
-                  [
-                    h.Href(href),
-                    h.Target("_blank"),
-                    h.Rel("noreferrer noopener"),
-                    h.Role("menuitem"),
-                  ],
-                  [
-                    h.span([h.Class("fd-page-open-label")], [label]),
-                    icon<Message>("arrow", "fd-page-open-external"),
-                  ],
+      Button.view(
+        {
+          onClick: options.actions.copyMarkdown,
+          toView: ({ button }) =>
+            h.button(
+              [
+                ...button,
+                h.Disabled(options.copyMarkdownStatus === "loading"),
+                h.AriaLabel(copyAriaLabel),
+              ],
+              [
+                icon(
+                  options.copyMarkdownStatus === "copied" ? "check" : "copy",
+                  h,
                 ),
-              ),
-            ],
-          ),
-        ],
+                t.copyMarkdown,
+              ],
+            ),
+        },
+        h,
       ),
+      openMenu,
     ],
   );
 };
 
 export const docsLayout = <Message>(
   options: DocsLayoutOptions<Message>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   const t = options.translations;
   const pageContext =
     navigationContextForUrl(options.navigation, options.currentUrl)?.filter(
@@ -892,16 +1272,25 @@ export const docsLayout = <Message>(
     options.narrowViewport && options.sidebarOpen
       ? [h.AriaHidden(true), h.Attribute("inert", "")]
       : [];
-  const mobileMenuButton = h.button(
-    [
-      h.Id("fd-menu-trigger"),
-      h.Class("fd-header-icon-button fd-menu-button"),
-      h.OnClick(options.actions.toggleSidebar),
-      h.AriaLabel(t.openNavigation),
-      h.AriaControls("fd-sidebar"),
-      h.AriaExpanded(options.sidebarOpen),
-    ],
-    [icon<Message>("menu")],
+  const mobileMenuButton = Button.view(
+    {
+      onClick: options.actions.toggleSidebar,
+      toView: ({ button }) =>
+        h.button(
+          [
+            ...button,
+            h.Id("fd-menu-trigger"),
+            h.Class(
+              "fd-control fd-control-ghost fd-control-icon fd-header-icon-button fd-menu-button",
+            ),
+            h.AriaLabel(t.openNavigation),
+            h.AriaControls("fd-sidebar"),
+            h.AriaExpanded(options.sidebarOpen),
+          ],
+          [icon("menu", h)],
+        ),
+    },
+    h,
   );
   const navItems = navigationView(
     options.navigation,
@@ -909,7 +1298,122 @@ export const docsLayout = <Message>(
     options.collapsedSidebarGroups,
     options.actions.closeSidebar,
     options.actions.toggleSidebarGroup,
+    options.site.icons,
+    h,
   );
+  const sidebarView = (): Html =>
+    h.aside(
+      [
+        h.Class(`fd-sidebar${options.sidebarOpen ? " fd-sidebar-open" : ""}`),
+        h.Id("fd-sidebar"),
+      ],
+      [
+        h.div(
+          [h.Class("fd-sidebar-mobile-header")],
+          [
+            brandView(options.site, h, options.homeUrl, t.home),
+            Button.view(
+              {
+                onClick: options.actions.closeSidebar,
+                toView: ({ button }) =>
+                  h.button(
+                    [
+                      ...button,
+                      h.Class(
+                        "fd-control fd-control-ghost fd-control-icon fd-header-icon-button",
+                      ),
+                      h.AriaLabel(t.closeNavigation),
+                    ],
+                    [icon("close", h)],
+                  ),
+              },
+              h,
+            ),
+          ],
+        ),
+        layoutTabsView(
+          options.tabs,
+          t,
+          options.layoutTabsMenu,
+          options.actions.gotLayoutTabsMenuMessage,
+          options.site.icons,
+          h,
+        ),
+        h.nav([h.AriaLabel(t.documentation)], [h.ul([], navItems)]),
+        h.div(
+          [h.Class("fd-sidebar-mobile-footer")],
+          [
+            themeSelector(
+              options.themePreference,
+              options.actions.selectTheme,
+              t,
+              h,
+            ),
+            languageSelector(
+              options.locales,
+              t,
+              options.sidebarLanguageMenu,
+              "sidebar-language-menu",
+              sidebarLanguageMenuId,
+              options.actions.gotSidebarLanguageMenuMessage,
+              h,
+              "top-start",
+            ),
+            h.div([h.Class("fd-social-links")], socialLinks(options.site, h)),
+          ],
+        ),
+      ],
+    );
+  const sidebar =
+    options.narrowViewport &&
+    options.sidebarDialog !== undefined &&
+    options.actions.gotSidebarDialogMessage !== undefined
+      ? h.submodel({
+          slotId: options.sidebarDialog.id,
+          model: options.sidebarDialog,
+          view: Dialog.view,
+          viewInputs: {
+            toView: ({
+              dialog,
+              backdrop,
+              panel,
+              title,
+              description,
+              isVisible,
+            }) =>
+              h.dialog(
+                [...dialog, h.Class("fd-sidebar-layer")],
+                isVisible
+                  ? [
+                      h.div(
+                        [
+                          ...backdrop,
+                          h.Class("fd-sidebar-backdrop"),
+                          h.AriaHidden(true),
+                        ],
+                        [],
+                      ),
+                      h.div(
+                        [...panel, h.Class("fd-sidebar-dialog-panel")],
+                        [
+                          h.h2(
+                            [...title, h.Class("fd-sr-only")],
+                            [t.documentationNavigation],
+                          ),
+                          h.p(
+                            [...description, h.Class("fd-sr-only")],
+                            [t.documentation],
+                          ),
+                          sidebarView(),
+                        ],
+                      ),
+                    ]
+                  : [],
+              ),
+          },
+          toParentMessage: options.actions.gotSidebarDialogMessage,
+        })
+      : sidebarView();
 
   return h.div(
     [
@@ -921,14 +1425,13 @@ export const docsLayout = <Message>(
         [h.Class("fd-skip-link"), h.Href("#main-content")],
         [t.skipToContent],
       ),
-      keyboardWarmup(),
       h.header(
         [h.Class("fd-header fd-docs-header"), ...backgroundDisabled],
         [
           h.div(
             [h.Class("fd-header-inner")],
             [
-              brandView(options.site, options.homeUrl, t.home),
+              brandView(options.site, h, options.homeUrl, t.home),
               headerActions(
                 options.site,
                 options.themePreference,
@@ -939,6 +1442,7 @@ export const docsLayout = <Message>(
                 t,
                 options.headerLanguageMenu,
                 options.actions.gotHeaderLanguageMenuMessage,
+                h,
                 mobileMenuButton,
               ),
             ],
@@ -959,64 +1463,11 @@ export const docsLayout = <Message>(
             options.actions.setMobileTocOpen,
             options.actions.selectToc,
             t,
+            h,
           ),
         ],
       ),
-      h.aside(
-        [
-          h.Class(`fd-sidebar${options.sidebarOpen ? " fd-sidebar-open" : ""}`),
-          h.Id("fd-sidebar"),
-          ...(options.narrowViewport && !options.sidebarOpen
-            ? [h.AriaHidden(true), h.Attribute("inert", "")]
-            : []),
-          ...(options.narrowViewport && options.sidebarOpen
-            ? [
-                h.Role("dialog"),
-                h.AriaModal(true),
-                h.AriaLabel(t.documentationNavigation),
-                h.Tabindex(-1),
-              ]
-            : []),
-        ],
-        [
-          h.div(
-            [h.Class("fd-sidebar-mobile-header")],
-            [
-              brandView(options.site, options.homeUrl, t.home),
-              h.button(
-                [
-                  h.Class("fd-header-icon-button"),
-                  h.OnClick(options.actions.closeSidebar),
-                  h.AriaLabel(t.closeNavigation),
-                ],
-                [icon<Message>("close")],
-              ),
-            ],
-          ),
-          layoutTabsView(options.tabs, t),
-          h.nav([h.AriaLabel(t.documentation)], [h.ul([], navItems)]),
-          h.div(
-            [h.Class("fd-sidebar-mobile-footer")],
-            [
-              themeSelector(
-                options.themePreference,
-                options.actions.selectTheme,
-                t,
-              ),
-              languageSelector(
-                options.locales,
-                t,
-                options.sidebarLanguageMenu,
-                "sidebar-language-menu",
-                sidebarLanguageMenuId,
-                options.actions.gotSidebarLanguageMenuMessage,
-                "top-start",
-              ),
-              h.div([h.Class("fd-social-links")], socialLinks(options.site)),
-            ],
-          ),
-        ],
-      ),
+      sidebar,
       h.div(
         [h.Class("fd-docs-body"), ...backgroundDisabled],
         [
@@ -1046,8 +1497,9 @@ export const docsLayout = <Message>(
                                 ...(index === 0
                                   ? []
                                   : [
-                                      icon<Message>(
+                                      icon(
                                         "chevronRight",
+                                        h,
                                         "fd-page-context-separator",
                                       ),
                                     ]),
@@ -1067,7 +1519,7 @@ export const docsLayout = <Message>(
                               [options.page.frontmatter.description],
                             ),
                           ]),
-                      pageActionsView(options),
+                      pageActionsView(options, h),
                       renderMarkdown(
                         {
                           blocks:
@@ -1078,6 +1530,7 @@ export const docsLayout = <Message>(
                               : options.page.document.blocks,
                         },
                         options.markdown,
+                        h,
                       ),
                       h.nav(
                         [h.Class("fd-pager"), h.AriaLabel(t.pagination)],
@@ -1099,10 +1552,7 @@ export const docsLayout = <Message>(
                                   h.span(
                                     [h.Class("fd-pager-title")],
                                     [
-                                      icon<Message>(
-                                        "chevronLeft",
-                                        "fd-pager-arrow",
-                                      ),
+                                      icon("chevronLeft", h, "fd-pager-arrow"),
                                       h.span(
                                         [],
                                         [options.previous.frontmatter.title],
@@ -1130,10 +1580,7 @@ export const docsLayout = <Message>(
                                         [],
                                         [options.next.frontmatter.title],
                                       ),
-                                      icon<Message>(
-                                        "chevronRight",
-                                        "fd-pager-arrow",
-                                      ),
+                                      icon("chevronRight", h, "fd-pager-arrow"),
                                     ],
                                   ),
                                 ],
@@ -1142,17 +1589,11 @@ export const docsLayout = <Message>(
                       ),
                     ],
                   ),
-                  h.footer(
-                    [h.Class("fd-doc-footer")],
-                    [
-                      h.div(
-                        [h.Class("fd-doc-footer-inner")],
-                        [
-                          h.span([], [t.builtWith]),
-                          h.a([h.Href(options.docsUrl)], [t.documentation]),
-                        ],
-                      ),
-                    ],
+                  siteFooterView<Message>(
+                    options.site,
+                    options.footer,
+                    "fd-doc-footer",
+                    h,
                   ),
                 ],
               ),
@@ -1161,20 +1602,21 @@ export const docsLayout = <Message>(
                 options.activeTocId,
                 options.actions.selectToc,
                 t,
+                h,
               ),
             ],
           ),
         ],
       ),
-      searchDialogView(options),
+      searchDialogView(options, h),
     ],
   );
 };
 
 export const landingLayout = <Message>(
   options: LandingLayoutOptions<Message>,
+  h: HtmlBuilder<Message>,
 ): Html => {
-  const h = html<Message>();
   const t = options.translations;
   const command = options.landing.command;
   const sectionGlyph = (value: string): Html =>
@@ -1190,13 +1632,13 @@ export const landingLayout = <Message>(
     h.article(
       [h.Class("fd-landing-card")],
       [
-        icon<Message>(iconName, "fd-landing-card-icon"),
+        icon<Message>(iconName, h, "fd-landing-card-icon"),
         h.h3([], [title]),
         h.p([], [description]),
       ],
     );
   const checkItem = (value: string): Html =>
-    h.li([], [icon<Message>("check"), h.span([], [value])]);
+    h.li([], [icon<Message>("check", h), h.span([], [value])]);
 
   return h.div(
     [h.Class("fd-root fd-landing-root")],
@@ -1206,12 +1648,17 @@ export const landingLayout = <Message>(
         [t.skipToContent],
       ),
       h.header(
-        [h.Class("fd-header fd-landing-header")],
+        [
+          h.Class(
+            `fd-header fd-landing-header ${options.headerVisible ? "fd-landing-header-visible" : "fd-landing-header-hidden"}`,
+          ),
+          h.AriaHidden(!options.headerVisible),
+        ],
         [
           h.div(
             [h.Class("fd-header-inner")],
             [
-              brandView(options.site, options.homeUrl, t.home),
+              brandView(options.site, h, options.homeUrl, t.home),
               h.nav(
                 [h.Class("fd-landing-nav"), h.AriaLabel(t.mainNavigation)],
                 [
@@ -1222,15 +1669,17 @@ export const landingLayout = <Message>(
                     "header-language-menu",
                     headerLanguageMenuId,
                     options.actions.gotHeaderLanguageMenuMessage,
+                    h,
                   ),
                   themeSelector(
                     options.themePreference,
                     options.actions.selectTheme,
                     t,
+                    h,
                   ),
                   h.a(
                     [h.Class("fd-dive-in"), h.Href(options.docsUrl)],
-                    [t.diveIn, icon<Message>("arrow")],
+                    [t.diveIn, icon<Message>("arrow", h)],
                   ),
                 ],
               ),
@@ -1244,14 +1693,17 @@ export const landingLayout = <Message>(
           ...(options.landing.sections.includes("hero")
             ? [
                 h.section(
-                  [h.Class("fd-landing-section fd-hero")],
+                  [
+                    h.Class("fd-landing-section fd-hero"),
+                    ...(options.heroAttributes ?? []),
+                  ],
                   [
                     h.div(
                       [h.Class("fd-landing-section-inner")],
                       [
                         h.div(
                           [h.Class("fd-hero-brand")],
-                          [brandView(options.site, options.homeUrl, t.home)],
+                          [brandView(options.site, h, options.homeUrl, t.home)],
                         ),
                         h.h1(
                           [],
@@ -1286,6 +1738,7 @@ export const landingLayout = <Message>(
                                   options.copiedText === command
                                     ? "check"
                                     : "copy",
+                                  h,
                                 ),
                                 options.copiedText === command
                                   ? t.copied
@@ -1302,7 +1755,7 @@ export const landingLayout = <Message>(
                                 h.Class("fd-button fd-button-primary"),
                                 h.Href(options.docsUrl),
                               ],
-                              [t.readTheDocs, icon<Message>("arrow")],
+                              [t.readTheDocs, icon<Message>("arrow", h)],
                             ),
                             ...(options.site.githubUrl === undefined
                               ? []
@@ -1314,7 +1767,10 @@ export const landingLayout = <Message>(
                                       h.Target("_blank"),
                                       h.Rel("noreferrer noopener"),
                                     ],
-                                    [icon<Message>("github"), t.viewOnGitHub],
+                                    [
+                                      icon<Message>("github", h),
+                                      t.viewOnGitHub,
+                                    ],
                                   ),
                                 ]),
                           ],
@@ -1488,7 +1944,7 @@ export const landingLayout = <Message>(
                             h.Class("fd-button fd-button-secondary"),
                             h.Href(options.docsUrl),
                           ],
-                          [t.exploreDocumentation, icon<Message>("arrow")],
+                          [t.exploreDocumentation, icon<Message>("arrow", h)],
                         ),
                       ],
                     ),
@@ -1569,7 +2025,7 @@ export const landingLayout = <Message>(
                                 h.Class("fd-button fd-button-primary"),
                                 h.Href(options.docsUrl),
                               ],
-                              [t.diveIn, icon<Message>("arrow")],
+                              [t.diveIn, icon<Message>("arrow", h)],
                             ),
                           ],
                         ),
@@ -1581,13 +2037,11 @@ export const landingLayout = <Message>(
             : []),
         ],
       ),
-      h.footer(
-        [h.Class("fd-home-footer")],
-        [
-          brandView(options.site, options.homeUrl, t.home),
-          h.span([], [t.builtWith]),
-          h.div([h.Class("fd-social-links")], socialLinks(options.site)),
-        ],
+      siteFooterView<Message>(
+        options.site,
+        options.landing.footer,
+        "fd-home-footer",
+        h,
       ),
     ],
   );

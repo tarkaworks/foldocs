@@ -98,6 +98,10 @@ export const scaffold = (
         path.join(directory, "env.example"),
         path.join(directory, ".env.example"),
       );
+      await fs.rename(
+        path.join(directory, "oxlintrc.json"),
+        path.join(directory, ".oxlintrc.json"),
+      );
       const packageFile = path.join(directory, "package.json");
       const packageJson = await fs.readFile(packageFile, "utf8");
       await fs.writeFile(

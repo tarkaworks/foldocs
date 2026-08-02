@@ -1,7 +1,5 @@
 import type { MdxComponents } from "foldocs";
-import { html } from "foldkit/html";
-
-const h = html();
+import { inertHtml as h } from "foldkit/html";
 
 /** Add project-owned renderers here, then use their names from Markdown or MDX. */
 export const mdxComponents: MdxComponents = {

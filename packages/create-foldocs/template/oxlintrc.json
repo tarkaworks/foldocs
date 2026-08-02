@@ -1,0 +1,23 @@
+{
+  "extends": ["./node_modules/@foldkit/oxlint-plugin/recommended.json"],
+  "plugins": ["typescript"],
+  "categories": {
+    "correctness": "off"
+  },
+  "rules": {
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    "**/*.d.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
+}

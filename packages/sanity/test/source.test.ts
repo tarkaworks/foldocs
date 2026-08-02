@@ -1,14 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createSanityContentSource } from "../src/index.js";
+import {
+  createSanityContentSource,
+  type SanityClientLike,
+} from "../src/index.js";
 
 describe("Sanity content source", () => {
   it("maps a GROQ result to virtual MDX files", async () => {
-    const fetch = vi.fn(async () => [
-      { slug: "intro", title: "Introduction", body: "Welcome" },
-    ]);
+    const fetchCalls = vi.fn();
+    const client: SanityClientLike = {
+      async fetch<Result>(
+        query: string,
+        params?: Readonly<Record<string, unknown>>,
+        options?: Readonly<Record<string, unknown>>,
+      ) {
+        fetchCalls(query, params, options);
+        return [
+          { slug: "intro", title: "Introduction", body: "Welcome" },
+        ] as unknown as Result;
+      },
+    };
     const source = createSanityContentSource({
-      client: { fetch },
+      client,
       query: '*[_type == "docs"]',
       map: (record: { slug: string; title: string; body: string }) => ({
         path: `${record.slug}.mdx`,
@@ -19,7 +32,7 @@ describe("Sanity content source", () => {
     expect(await source.load()).toEqual([
       expect.objectContaining({ path: "intro.mdx" }),
     ]);
-    expect(fetch).toHaveBeenCalledWith(
+    expect(fetchCalls).toHaveBeenCalledWith(
       '*[_type == "docs"]',
       undefined,
       undefined,

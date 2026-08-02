@@ -3,6 +3,12 @@ import {
   type PageFrontmatter as PageFrontmatterType,
   type TocItem as TocItemType,
 } from "@foldocs/content";
+import type * as FoldkitMarkdown from "@foldkit/markdown";
+import {
+  parseMarkdown,
+  type MarkdownPluginOptions,
+} from "@foldkit/markdown/vite";
+import { Option, Schema as S } from "effect";
 import GithubSlugger from "github-slugger";
 import type {
   BlockContent as MdastBlockContent,
@@ -32,8 +38,7 @@ import type {
   Table,
   TableRow,
 } from "./ast.js";
-import { CompiledPage, Document } from "./ast.js";
-import { Schema as S } from "effect";
+import { CompiledPage } from "./ast.js";
 
 const processor = unified()
   .use(remarkParse)
@@ -47,7 +52,14 @@ export interface CompileOptions {
   readonly filePath?: string;
   readonly highlight?: boolean;
   readonly highlightCode?: CodeHighlighter;
+  /**
+   * Official @foldkit/markdown parser options for `.md` documents. Island
+   * schemas validate directive names and attributes during compilation.
+   */
+  readonly markdown?: MarkdownPluginOptions;
 }
+
+export type { MarkdownPluginOptions } from "@foldkit/markdown/vite";
 
 export interface CodeHighlightInput {
   readonly value: string;
@@ -301,6 +313,44 @@ const withCodeLineNumbers = (highlightedHtml: string): string => {
   return numbered.replace("<pre ", `<pre data-line-digits="${digits}" `);
 };
 
+const normalizeCodeBlock = async (
+  value: string,
+  language: string | undefined,
+  meta: string | undefined,
+  options: CompileOptions,
+): Promise<Extract<Block, { _tag: "CodeBlock" }>> => {
+  let highlightedHtml: string | undefined;
+  if (options.highlight !== false) {
+    try {
+      const custom = await options.highlightCode?.({
+        value,
+        language: language ?? "text",
+        ...(meta === undefined ? {} : { meta }),
+        ...(options.filePath === undefined
+          ? {}
+          : { filePath: options.filePath }),
+      });
+      highlightedHtml = withCodeLineNumbers(
+        custom ??
+          (await codeToHtml(value, {
+            lang: language ?? "text",
+            themes: { light: "github-light", dark: "github-dark" },
+            defaultColor: false,
+          })),
+      );
+    } catch {
+      highlightedHtml = undefined;
+    }
+  }
+  return {
+    _tag: "CodeBlock",
+    value,
+    ...(language === undefined ? {} : { language }),
+    ...(meta === undefined ? {} : { meta }),
+    ...(highlightedHtml === undefined ? {} : { highlightedHtml }),
+  };
+};
+
 const normalizeBlock = async (
   node: RootContent | MdastBlockContent | Record<string, unknown>,
   slugger: GithubSlugger,
@@ -329,36 +379,12 @@ const normalizeBlock = async (
     case "code": {
       const value = String(node.value);
       const language = typeof node.lang === "string" ? node.lang : undefined;
-      let highlightedHtml: string | undefined;
-      if (options.highlight !== false) {
-        try {
-          const custom = await options.highlightCode?.({
-            value,
-            language: language ?? "text",
-            ...(typeof node.meta === "string" ? { meta: node.meta } : {}),
-            ...(options.filePath === undefined
-              ? {}
-              : { filePath: options.filePath }),
-          });
-          highlightedHtml = withCodeLineNumbers(
-            custom ??
-              (await codeToHtml(value, {
-                lang: language ?? "text",
-                themes: { light: "github-light", dark: "github-dark" },
-                defaultColor: false,
-              })),
-          );
-        } catch {
-          highlightedHtml = undefined;
-        }
-      }
-      return {
-        _tag: "CodeBlock",
+      return normalizeCodeBlock(
         value,
-        ...(language === undefined ? {} : { language }),
-        ...(typeof node.meta === "string" ? { meta: node.meta } : {}),
-        ...(highlightedHtml === undefined ? {} : { highlightedHtml }),
-      };
+        language,
+        typeof node.meta === "string" ? node.meta : undefined,
+        options,
+      );
     }
     case "list":
       return {
@@ -438,6 +464,147 @@ const normalizeBlock = async (
   }
 };
 
+/**
+ * Adapts the official @foldkit/markdown AST into Foldocs' enriched document
+ * shape. Foldkit remains the parser and validator; this layer only adds the
+ * heading ids, highlighted code, and component node names needed by the docs
+ * shell, search index, and deterministic MDX compatibility renderer.
+ */
+const normalizeFoldkitInline = (node: FoldkitMarkdown.Inline): Inline => {
+  switch (node._tag) {
+    case "Text":
+    case "InlineCode":
+      return { _tag: node._tag, value: node.value };
+    case "HardBreak":
+      return { _tag: "HardBreak" };
+    case "Emphasis":
+    case "Strong":
+    case "Strikethrough":
+      return {
+        _tag: node._tag,
+        content: node.content.map(normalizeFoldkitInline),
+      };
+    case "Link": {
+      const title = Option.getOrUndefined(node.maybeTitle);
+      return {
+        _tag: "Link",
+        url: node.url,
+        ...(title === undefined ? {} : { title }),
+        content: node.content.map(normalizeFoldkitInline),
+      };
+    }
+    case "Image": {
+      const title = Option.getOrUndefined(node.maybeTitle);
+      return {
+        _tag: "Image",
+        url: node.url,
+        alt: node.alt,
+        ...(title === undefined ? {} : { title }),
+      };
+    }
+  }
+};
+
+const foldkitAlignment = (
+  alignment: FoldkitMarkdown.Alignment,
+): "none" | "left" | "center" | "right" => {
+  switch (alignment) {
+    case "None":
+      return "none";
+    case "Left":
+      return "left";
+    case "Center":
+      return "center";
+    case "Right":
+      return "right";
+  }
+};
+
+const normalizeFoldkitTableRow = (row: FoldkitMarkdown.TableRow): TableRow => ({
+  _tag: "TableRow",
+  cells: row.cells.map((cell) => ({
+    _tag: "TableCell",
+    content: cell.content.map(normalizeFoldkitInline),
+  })),
+});
+
+const normalizeFoldkitBlock = async (
+  node: FoldkitMarkdown.Block,
+  slugger: GithubSlugger,
+  options: CompileOptions,
+): Promise<Block> => {
+  switch (node._tag) {
+    case "Heading": {
+      const content = node.content.map(normalizeFoldkitInline);
+      return {
+        _tag: "Heading",
+        id: slugger.slug(inlineText(content)),
+        level: node.level,
+        content,
+      };
+    }
+    case "Paragraph":
+      return {
+        _tag: "Paragraph",
+        content: node.content.map(normalizeFoldkitInline),
+      };
+    case "CodeBlock":
+      return normalizeCodeBlock(
+        node.value,
+        Option.getOrUndefined(node.maybeLanguage),
+        Option.getOrUndefined(node.maybeMeta),
+        options,
+      );
+    case "List":
+      return {
+        _tag: "List",
+        ordered: node.isOrdered,
+        ...(Option.isSome(node.maybeStartNumber)
+          ? { start: node.maybeStartNumber.value }
+          : {}),
+        items: await Promise.all(
+          node.items.map(async (item) => ({
+            _tag: "ListItem" as const,
+            blocks: await Promise.all(
+              item.blocks.map((block) =>
+                normalizeFoldkitBlock(block, slugger, options),
+              ),
+            ),
+          })),
+        ),
+      };
+    case "Blockquote":
+      return {
+        _tag: "Blockquote",
+        blocks: await Promise.all(
+          node.blocks.map((block) =>
+            normalizeFoldkitBlock(block, slugger, options),
+          ),
+        ),
+      };
+    case "ThematicBreak":
+      return { _tag: "ThematicBreak" };
+    case "Table":
+      return {
+        _tag: "Table",
+        alignments: node.alignments.map(foldkitAlignment),
+        header: normalizeFoldkitTableRow(node.headerRow),
+        rows: node.bodyRows.map(normalizeFoldkitTableRow),
+      };
+    case "Island":
+      return {
+        _tag: "BlockComponent",
+        name: node.name,
+        attributes: node.attributes,
+        blocks: await Promise.all(
+          node.blocks.map((block) =>
+            normalizeFoldkitBlock(block, slugger, options),
+          ),
+        ),
+      };
+  }
+};
+
 const blockText = (block: Block): string => {
   switch (block._tag) {
     case "Heading":
@@ -497,21 +664,26 @@ const resolveFrontmatter = (
   return decodePageFrontmatter({ ...raw, title });
 };
 
-export const compile = async (
+const markdownSourceWithoutFrontmatter = (
   source: string,
-  options: CompileOptions = {},
-): Promise<CompiledPageType> => {
-  const root = processor.parse(source) as Root;
-  const slugger = new GithubSlugger();
-  const contentNodes = root.children.filter((node) => node.type !== "yaml");
-  const blocks = await Promise.all(
-    contentNodes.map((node) => normalizeBlock(node, slugger, options)),
-  );
-  const frontmatter = resolveFrontmatter(
-    frontmatterFromRoot(root, options.filePath),
-    blocks,
-    options.filePath,
-  );
+  root: Root,
+): string => {
+  const first = root.children[0];
+  if (first?.type !== "yaml") return source;
+  const endOffset = first.position?.end.offset;
+  if (endOffset === undefined) return source;
+  // Preserve newlines so errors from @foldkit/markdown still point at the
+  // original source line while keeping page metadata outside its vocabulary.
+  return `${source.slice(0, endOffset).replace(/[^\r\n]/gu, " ")}${source.slice(endOffset)}`;
+};
+
+const finishCompiledPage = (
+  source: string,
+  blocks: ReadonlyArray<Block>,
+  rawFrontmatter: Readonly<Record<string, unknown>>,
+  filePath?: string,
+): CompiledPageType => {
+  const frontmatter = resolveFrontmatter(rawFrontmatter, blocks, filePath);
   const toc: TocItemType[] = blocks
     .filter(
       (block): block is Extract<Block, { _tag: "Heading" }> =>
@@ -535,6 +707,81 @@ export const compile = async (
       .filter(Boolean)
       .join("\n"),
   };
+};
+
+const compileDeterministicMdx = async (
+  source: string,
+  root: Root,
+  options: CompileOptions,
+): Promise<CompiledPageType> => {
+  const slugger = new GithubSlugger();
+  const contentNodes = root.children.filter((node) => node.type !== "yaml");
+  const blocks = await Promise.all(
+    contentNodes.map((node) => normalizeBlock(node, slugger, options)),
+  );
+  return finishCompiledPage(
+    source,
+    blocks,
+    frontmatterFromRoot(root, options.filePath),
+    options.filePath,
+  );
+};
+
+const compileFoldkitMarkdown = async (
+  source: string,
+  root: Root,
+  options: CompileOptions,
+): Promise<CompiledPageType> => {
+  const document = parseMarkdown(
+    markdownSourceWithoutFrontmatter(source, root),
+    options.markdown,
+  );
+  const slugger = new GithubSlugger();
+  const blocks = await Promise.all(
+    document.blocks.map((block) =>
+      normalizeFoldkitBlock(block, slugger, options),
+    ),
+  );
+  return finishCompiledPage(
+    source,
+    blocks,
+    frontmatterFromRoot(root, options.filePath),
+    options.filePath,
+  );
+};
+
+const isTaskListExtensionError = (error: unknown): boolean =>
+  error instanceof Error &&
+  error.message.includes('Unsupported markdown node "task list item"');
+
+const withoutTaskListMarkers = (source: string): string =>
+  source.replace(/^(\s*(?:[-+*]|\d+[.)])\s+)\[[ xX]\](?=\s)/gmu, "$1");
+
+export const compile = async (
+  source: string,
+  options: CompileOptions = {},
+): Promise<CompiledPageType> => {
+  const root = processor.parse(source) as Root;
+  if (!options.filePath?.toLowerCase().endsWith(".md"))
+    return compileDeterministicMdx(source, root, options);
+
+  try {
+    return await compileFoldkitMarkdown(source, root, options);
+  } catch (error) {
+    // Foldocs historically supported GFM task lists. Keep that one explicit
+    // extension while all standard `.md` pages use @foldkit/markdown as their
+    // parser and schema validator.
+    if (isTaskListExtensionError(error)) {
+      // Re-run the official validation with only checkbox markers removed so
+      // task-list pages cannot bypass URL, vocabulary, or island validation.
+      parseMarkdown(
+        withoutTaskListMarkers(markdownSourceWithoutFrontmatter(source, root)),
+        options.markdown,
+      );
+      return compileDeterministicMdx(source, root, options);
+    }
+    throw error;
+  }
 };
 
 export const decodeCompiledPage = S.decodeUnknownSync(CompiledPage);

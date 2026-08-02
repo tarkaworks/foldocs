@@ -255,7 +255,7 @@ export const generatePythonApiFiles = (
     "",
     description,
     "",
-    ...pages.flatMap(({ slug, file }, index) => [
+    ...pages.flatMap(({ slug }, index) => [
       `## [${declarations[index]!.name}](${baseUrl.length === 0 ? `./${slug}` : `${baseUrl}/${slug}`})`,
       "",
       declarations[index]!.description,

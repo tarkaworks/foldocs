@@ -15,8 +15,10 @@ import {
   docsLayout,
   landingLayout,
   type LocaleLink,
+  type MarkdownIslands,
   type MdxComponents,
 } from "foldocs-ui";
+import { type HtmlBuilder, inertHtml } from "foldkit/html";
 
 export interface PrerenderPage {
   readonly metadata: PageMetadata;
@@ -214,7 +216,12 @@ const collapsedNavigationGroups = (
     ];
   });
 
+// This is a serialization-only sentinel, not an application Message.
+// oxlint-disable-next-line foldkit/prefer-callable-message-constructor
 const staticMessage = { _tag: "FoldocsPrerender" } as const;
+// Prerendering deliberately discards event data during serialization. The
+// inert builder is therefore the correct detached builder at this boundary.
+const staticHtml = inertHtml as unknown as HtmlBuilder<typeof staticMessage>;
 
 const renderRouteBody = (
   config: ResolvedFoldocsConfig,
@@ -222,6 +229,7 @@ const renderRouteBody = (
   navigations: Readonly<Record<string, ReadonlyArray<NavigationNode>>>,
   route: PrerenderRoute,
   components?: MdxComponents,
+  islands?: MarkdownIslands,
 ): string => {
   const definition = localeDefinition(config.i18n, route.locale);
   const locales = localeLinksFor(config, pages, route);
@@ -245,23 +253,28 @@ const renderRouteBody = (
 
   if (route.page === undefined) {
     return serializeHtml(
-      landingLayout({
-        site: config.site,
-        landing: config.landing,
-        docsUrl,
-        homeUrl: localeHomePath(config.i18n, route.locale),
-        locales,
-        currentLocale: route.locale,
-        theme: "light",
-        themePreference: "system",
-        copiedText: "",
-        ...search,
-        actions: {
-          ...search.actions,
-          selectTheme: () => staticMessage,
-          copyText: () => staticMessage,
+      landingLayout(
+        {
+          site: config.site,
+          landing: config.landing,
+          docsUrl,
+          homeUrl: localeHomePath(config.i18n, route.locale),
+          locales,
+          currentLocale: route.locale,
+          theme: "light",
+          themePreference: "system",
+          headerVisible: false,
+          copiedText: "",
+          ...search,
+          actions: {
+            ...search.actions,
+            selectTheme: () => staticMessage,
+            copyText: () => staticMessage,
+            openExternal: () => staticMessage,
+          },
         },
-      }),
+        staticHtml,
+      ),
     );
   }
 
@@ -280,51 +293,58 @@ const renderRouteBody = (
       ? "/index.md"
       : `${route.page.metadata.url.replace(/\/+$/u, "")}.md`;
   return serializeHtml(
-    docsLayout({
-      site: config.site,
-      preset: config.layout.preset,
-      navigation,
-      tabs: navigationTabsForUrl(completeNavigation, route.page.metadata.url),
-      currentUrl: route.page.metadata.url,
-      page: route.page.compiled,
-      ...(adjacent.previous === undefined
-        ? {}
-        : { previous: adjacent.previous }),
-      ...(adjacent.next === undefined ? {} : { next: adjacent.next }),
-      sidebarOpen: false,
-      collapsedSidebarGroups: collapsedNavigationGroups(navigation),
-      activeTocId: "",
-      mobileTocOpen: false,
-      narrowViewport: false,
-      theme: "light",
-      themePreference: "system",
-      docsUrl,
-      homeUrl: localeHomePath(config.i18n, route.locale),
-      locales,
-      currentLocale: route.locale,
-      markdownUrl,
-      markdownEnabled: config.markdown,
-      copyMarkdownStatus: "idle",
-      ...search,
-      actions: {
-        ...search.actions,
-        toggleSidebar: staticMessage,
-        closeSidebar: staticMessage,
-        toggleSidebarGroup: () => staticMessage,
-        setMobileTocOpen: () => staticMessage,
-        selectToc: () => staticMessage,
-        selectTheme: () => staticMessage,
-        copyMarkdown: staticMessage,
+    docsLayout(
+      {
+        site: config.site,
+        preset: config.layout.preset,
+        navigation,
+        tabs: navigationTabsForUrl(completeNavigation, route.page.metadata.url),
+        currentUrl: route.page.metadata.url,
+        page: route.page.compiled,
+        ...(adjacent.previous === undefined
+          ? {}
+          : { previous: adjacent.previous }),
+        ...(adjacent.next === undefined ? {} : { next: adjacent.next }),
+        sidebarOpen: false,
+        collapsedSidebarGroups: collapsedNavigationGroups(navigation),
+        activeTocId: "",
+        mobileTocOpen: false,
+        narrowViewport: false,
+        theme: "light",
+        themePreference: "system",
+        docsUrl,
+        homeUrl: localeHomePath(config.i18n, route.locale),
+        locales,
+        currentLocale: route.locale,
+        markdownUrl,
+        markdownEnabled: config.markdown,
+        ...(config.landing.footer === undefined
+          ? {}
+          : { footer: config.landing.footer }),
+        copyMarkdownStatus: "idle",
+        ...search,
+        actions: {
+          ...search.actions,
+          toggleSidebar: staticMessage,
+          closeSidebar: staticMessage,
+          toggleSidebarGroup: () => staticMessage,
+          setMobileTocOpen: () => staticMessage,
+          selectToc: () => staticMessage,
+          selectTheme: () => staticMessage,
+          copyMarkdown: staticMessage,
+        },
+        markdown: {
+          ...(islands === undefined ? {} : { islands }),
+          ...(components === undefined ? {} : { components }),
+          copyCode: () => staticMessage,
+          copyLabel: definition.ui.copy,
+          copiedLabel: definition.ui.copied,
+          copyAriaLabel: definition.ui.copyCode,
+          copiedAriaLabel: definition.ui.codeCopied,
+        },
       },
-      markdown: {
-        ...(components === undefined ? {} : { components }),
-        copyCode: () => staticMessage,
-        copyLabel: definition.ui.copy,
-        copiedLabel: definition.ui.copied,
-        copyAriaLabel: definition.ui.copyCode,
-        copiedAriaLabel: definition.ui.codeCopied,
-      },
-    }),
+      staticHtml,
+    ),
   );
 };
 
@@ -357,6 +377,7 @@ export const prerenderRouteHtml = (
   navigations: Readonly<Record<string, ReadonlyArray<NavigationNode>>>,
   route: PrerenderRoute,
   components?: MdxComponents,
+  islands?: MarkdownIslands,
 ): string => {
   const definition = localeDefinition(config.i18n, route.locale);
   const contentPath =
@@ -423,7 +444,7 @@ export const prerenderRouteHtml = (
   const withHead = localized.replace("</head>", `    ${metadata}\n  </head>`);
   return replaceRoot(
     withHead,
-    renderRouteBody(config, pages, navigations, route, components),
+    renderRouteBody(config, pages, navigations, route, components, islands),
   );
 };
 

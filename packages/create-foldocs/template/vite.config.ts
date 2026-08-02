@@ -4,6 +4,10 @@ import { foldkit } from "@foldkit/vite-plugin";
 import { defineConfig } from "vite";
 
 import docs from "./foldocs.config.js";
+import {
+  markdownIslandDefinitions,
+  markdownIslands,
+} from "./src/markdown-islands.js";
 import { mdxComponents } from "./src/mdx-components.js";
 
 export default defineConfig({
@@ -11,9 +15,11 @@ export default defineConfig({
     foldocs({
       ...docs,
       components: mdxComponents,
+      islands: markdownIslands,
+      markdownOptions: { islands: markdownIslandDefinitions },
       highlightCode: createTwoslashHighlighter(),
     }),
-    foldkit(),
+    foldkit({ devToolsMcpPort: 9988 }),
   ],
   build: {
     rolldownOptions: {

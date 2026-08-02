@@ -1,8 +1,82 @@
+import { Schema as S } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { compile } from "../src/index.js";
 
 describe("compile", () => {
+  it("uses @foldkit/markdown for .md and validates typed islands", async () => {
+    const page = await compile(
+      `---
+title: Official Markdown
+---
+
+# Official Markdown
+
+:::Aside{type="tip"}
+This island is checked at build time.
+:::
+`,
+      {
+        filePath: "official.md",
+        highlight: false,
+        markdown: {
+          islands: {
+            Aside: S.Struct({ type: S.Literals(["tip", "warning"]) }),
+          },
+        },
+      },
+    );
+
+    expect(page.frontmatter.title).toBe("Official Markdown");
+    expect(page.document.blocks).toContainEqual(
+      expect.objectContaining({
+        _tag: "BlockComponent",
+        name: "Aside",
+        attributes: { type: "tip" },
+      }),
+    );
+
+    await expect(
+      compile('# Invalid\n\n::Aside{type="unknown"}', {
+        filePath: "invalid.md",
+        highlight: false,
+        markdown: {
+          islands: {
+            Aside: S.Struct({ type: S.Literals(["tip", "warning"]) }),
+          },
+        },
+      }),
+    ).rejects.toThrow(/Invalid attributes for island "Aside"/u);
+  });
+
+  it("keeps task lists as an explicit Foldocs Markdown extension", async () => {
+    const page = await compile("# Tasks\n\n- [x] Ship it\n- [ ] Document it", {
+      filePath: "tasks.md",
+      highlight: false,
+    });
+    const list = page.document.blocks.find((block) => block._tag === "List");
+    expect(list?._tag).toBe("List");
+    if (list?._tag !== "List") return;
+    expect(list.items.map((item) => item.checked)).toEqual([true, false]);
+
+    await expect(
+      compile("# Tasks\n\n- [x] Ship it\n\n::Unknown", {
+        filePath: "invalid-tasks.md",
+        highlight: false,
+        markdown: { islands: {} },
+      }),
+    ).rejects.toThrow(/Unknown island "Unknown"/u);
+  });
+
+  it("uses the official vocabulary errors for unsupported .md syntax", async () => {
+    await expect(
+      compile("# Links\n\nRead [the guide][guide].\n\n[guide]: /guide", {
+        filePath: "links.md",
+        highlight: false,
+      }),
+    ).rejects.toThrow(/Reference-style links are not supported/u);
+  });
+
   it("compiles frontmatter, GFM, code and deterministic MDX", async () => {
     const page = await compile(
       `---

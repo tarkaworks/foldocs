@@ -1,10 +1,12 @@
 {
   "title": "Features",
+  "icon": "sparkles",
   "description": "Production documentation primitives",
   "root": true,
   "pages": [
     "---Core features---",
     "search",
+    "markdown-islands",
     "custom-components",
     "navigation-versioning",
     "layouts-customization",

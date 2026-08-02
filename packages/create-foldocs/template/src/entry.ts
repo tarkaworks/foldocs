@@ -10,9 +10,11 @@ import {
   siteConfig,
 } from "virtual:foldocs";
 import { createDocsProgram, preloadDocsPage } from "foldocs";
+import { overlay } from "@foldkit/devtools";
 import { Runtime } from "foldkit";
 
 import { mdxComponents } from "./mdx-components.js";
+import { markdownIslands } from "./markdown-islands.js";
 
 const preloadedPage = await preloadDocsPage(
   manifest,
@@ -29,6 +31,7 @@ const program = createDocsProgram({
   navigations,
   site: siteConfig,
   markdown,
+  islands: markdownIslands,
   components: mdxComponents,
   searchIndexUrls,
   ...(preloadedPage === undefined ? {} : { preloadedPage }),
@@ -41,6 +44,7 @@ const application = Runtime.makeApplication({
   view: program.view,
   subscriptions: program.subscriptions,
   routing: program.routing,
+  devTools: { overlay, Message: program.Message },
   container: document.getElementById("root"),
 });
 

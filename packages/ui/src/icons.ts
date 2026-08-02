@@ -1,3 +1,23 @@
+import {
+  Blocks,
+  BookOpen,
+  CodeXml,
+  Database,
+  FileText,
+  Folder,
+  FolderOpen,
+  House,
+  Languages,
+  Package,
+  Plug,
+  Rocket,
+  Search,
+  Settings,
+  Sparkles,
+  Wrench,
+  type IconNode,
+} from "lucide";
+
 export const foldocsLogoSvg =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="currentColor" aria-hidden="true"><path d="M148.656 50.395c-.055-18.276-21.816-33.88-48.655-34.395-26.918.273-48.615 16.1-48.595 34.457-.008 9.88 6.315 18.623 16.361 24.564C57.6 81.174 51.08 90.084 51.02 100c.058 9.917 6.54 18.843 16.7 25.016-10.072 5.957-16.408 14.718-16.375 24.59C51.4 167.88 73.16 183.485 100 184c26.917-.273 48.614-16.1 48.594-34.457.008-9.88-6.315-18.623-16.362-24.564 10.169-6.153 16.688-15.063 16.748-24.979-.058-9.917-6.54-18.842-16.7-25.016 10.072-5.957 16.408-14.718 16.375-24.59"/></svg>';
 
@@ -49,3 +69,67 @@ export const icons = {
 } as const;
 
 export type IconName = keyof typeof icons;
+
+const lucideNavigationIcons: Readonly<Record<string, IconNode>> = {
+  blocks: Blocks,
+  "book-open": BookOpen,
+  code: CodeXml,
+  "code-xml": CodeXml,
+  database: Database,
+  file: FileText,
+  "file-text": FileText,
+  folder: Folder,
+  "folder-open": FolderOpen,
+  home: House,
+  languages: Languages,
+  package: Package,
+  plug: Plug,
+  rocket: Rocket,
+  search: Search,
+  settings: Settings,
+  sparkles: Sparkles,
+  wrench: Wrench,
+};
+
+const normalizedIconName = (name: string): string =>
+  name
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/gu, "$1-$2")
+    .replace(/[\s_]+/gu, "-")
+    .toLowerCase();
+
+const escapeAttribute = (value: unknown): string =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+
+const attributeName = (name: string): string =>
+  name.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
+
+const lucideSvg = (node: IconNode): string =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${node
+    .map(
+      ([tag, attributes]) =>
+        `<${tag} ${Object.entries(attributes)
+          .filter(([name]) => name !== "key")
+          .map(
+            ([name, value]) =>
+              `${attributeName(name)}="${escapeAttribute(value)}"`,
+          )
+          .join(" ")} />`,
+    )
+    .join("")}</svg>`;
+
+/** Resolve navigation icon names to tree-shaken Lucide SVGs or user SVG overrides. */
+export const navigationIconSvg = (
+  name: string,
+  customIcons: Readonly<Record<string, string>> | undefined,
+): string | undefined => {
+  const normalized = normalizedIconName(name);
+  const custom = customIcons?.[name] ?? customIcons?.[normalized];
+  if (custom !== undefined) return custom;
+  const node = lucideNavigationIcons[normalized];
+  return node === undefined ? undefined : lucideSvg(node);
+};

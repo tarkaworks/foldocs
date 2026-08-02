@@ -11,6 +11,8 @@
     "destroy": "alchemy destroy",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint src",
+    "test": "vitest run",
     "check": "foldocs check --locales en,es --fallback-locale en",
     "generate:api": "foldocs-openapi openapi.yaml content/docs/en/api /en/docs/api",
     "generate:events": "foldocs-asyncapi asyncapi.yaml content/docs/en/events /en/docs/events",
@@ -18,10 +20,11 @@
     "import:obsidian": "foldocs-obsidian vault content/docs/en/notes"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-beta.97",
-    "effect": "4.0.0-beta.97",
+    "@effect/platform-browser": "4.0.0-beta.102",
+    "@foldkit/markdown": "0.2.1",
+    "effect": "4.0.0-beta.102",
     "foldocs": "latest",
-    "foldkit": "0.130.0"
+    "foldkit": "0.137.0"
   },
   "devDependencies": {
     "@foldocs/asyncapi": "latest",
@@ -33,10 +36,16 @@
     "@foldocs/tailwind": "latest",
     "@foldocs/twoslash": "latest",
     "@foldocs/vite": "latest",
-    "@foldkit/vite-plugin": "0.11.0",
+    "@foldkit/devtools": "0.137.0",
+    "@foldkit/devtools-mcp": "0.14.0",
+    "@foldkit/oxlint-plugin": "0.5.0",
+    "@foldkit/vite-plugin": "0.11.3",
     "@types/node": "latest",
     "alchemy": "0.93.12",
+    "happy-dom": "^20.11.1",
+    "oxlint": "^1.76.0",
     "typescript": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "vitest": "^4.1.9"
   }
 }

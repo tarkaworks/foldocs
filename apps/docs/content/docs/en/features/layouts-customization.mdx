@@ -28,6 +28,42 @@ export default defineConfig({
 });
 ```
 
+## Sidebar icons
+
+Use an `icon` field in page frontmatter or a folder's `meta.json`. Foldocs ships
+a tree-shaken set of Lucide defaults such as `book-open`, `file-text`, `package`,
+`rocket`, `settings`, and `sparkles`.
+
+```yaml
+---
+title: Deploy
+icon: rocket
+---
+```
+
+```json
+{
+  "title": "Manual installation",
+  "icon": "package",
+  "defaultOpen": false,
+  "pages": ["pnpm", "npm"]
+}
+```
+
+Projects can override a built-in name or define a new one with trusted SVG
+markup in `site.icons`:
+
+```ts
+export default defineConfig({
+  site: {
+    title: "My docs",
+    icons: {
+      rocket: '<svg viewBox="0 0 24 24" aria-hidden="true">...</svg>',
+    },
+  },
+});
+```
+
 ## Own the customization source
 
 Run the component-level customization command to copy stable project files instead
@@ -60,5 +96,14 @@ landing: {
   headline: "Documentation that belongs to your product.",
   description: "Write Markdown. Ship a complete Foldkit site.",
   command: "pnpm create foldocs@latest my-docs",
+  footer: {
+    author: "Your team",
+    authorUrl: "https://github.com/your-team",
+    copyright: "Copyright 2026 Your Company",
+    twitterUrl: "https://x.com/your-team",
+  },
 }
 ```
+
+The footer configuration is shared by the landing page and every documentation
+page, so attribution, source, copyright, and social links stay consistent.

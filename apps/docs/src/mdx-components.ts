@@ -1,7 +1,5 @@
 import type { MdxComponents } from "foldocs";
-import { html } from "foldkit/html";
-
-const h = html();
+import { inertHtml as h } from "foldkit/html";
 
 /** Project-owned renderers for deterministic MDX elements. */
 export const mdxComponents: MdxComponents = {

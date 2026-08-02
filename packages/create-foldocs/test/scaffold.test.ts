@@ -58,6 +58,14 @@ describe("create-foldocs", () => {
       fs.stat(path.join(result.directory, "src/mdx-components.ts")),
     ).resolves.toBeDefined();
     await expect(
+      fs.stat(path.join(result.directory, "src/markdown-islands.ts")),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.readFile(path.join(result.directory, "vite.config.ts"), "utf8"),
+    ).resolves.toContain(
+      "markdownOptions: { islands: markdownIslandDefinitions }",
+    );
+    await expect(
       fs.stat(path.join(result.directory, "foldocs.config.ts")),
     ).resolves.toBeDefined();
     await expect(
@@ -87,6 +95,15 @@ describe("create-foldocs", () => {
         "utf8",
       ),
     ).resolves.toContain('"defaultOpen": false');
+    await expect(
+      fs.readFile(
+        path.join(
+          result.directory,
+          "content/docs/en/manual-installation/index.md",
+        ),
+        "utf8",
+      ),
+    ).resolves.toContain("index: true");
     await expect(
       fs.stat(path.join(result.directory, "public/theme-init.js")),
     ).resolves.toBeDefined();

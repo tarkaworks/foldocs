@@ -20,8 +20,13 @@ import {
   type NavigationNode,
   type ResolvedFoldocsConfig,
 } from "foldocs-core";
-import { compile, type CodeHighlighter, type CompiledPage } from "foldocs-mdx";
-import type { MdxComponents } from "foldocs-ui";
+import {
+  compile,
+  type CodeHighlighter,
+  type CompiledPage,
+  type MarkdownPluginOptions,
+} from "foldocs-mdx";
+import type { MarkdownIslands, MdxComponents } from "foldocs-ui";
 import type { HtmlTagDescriptor, Plugin, ResolvedConfig } from "vite";
 
 import {
@@ -66,6 +71,10 @@ interface DiscoveredPage {
 export interface FoldocsPluginOptions extends FoldocsConfig {
   /** Shared deterministic MDX renderers used for production route HTML. */
   readonly components?: MdxComponents;
+  /** Typed @foldkit/markdown island views used for production route HTML. */
+  readonly islands?: MarkdownIslands;
+  /** Official @foldkit/markdown options used to validate `.md` islands. */
+  readonly markdownOptions?: MarkdownPluginOptions;
   /** Optional compiler-aware build-time code highlighter such as @foldocs/twoslash. */
   readonly highlightCode?: CodeHighlighter;
 }
@@ -516,6 +525,9 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
       compile(source, {
         filePath: file,
         highlight,
+        ...(options.markdownOptions === undefined
+          ? {}
+          : { markdown: options.markdownOptions }),
         ...(options.highlightCode === undefined
           ? {}
           : { highlightCode: options.highlightCode }),
@@ -613,6 +625,9 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
               const compiled = await compile(file.source, {
                 filePath: virtualFile,
                 highlight,
+                ...(options.markdownOptions === undefined
+                  ? {}
+                  : { markdown: options.markdownOptions }),
                 ...(options.highlightCode === undefined
                   ? {}
                   : { highlightCode: options.highlightCode }),
@@ -1081,6 +1096,9 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
         const page = await compile(remote.source, {
           filePath: remote.filePath,
           highlight: true,
+          ...(options.markdownOptions === undefined
+            ? {}
+            : { markdown: options.markdownOptions }),
           ...(options.highlightCode === undefined
             ? {}
             : { highlightCode: options.highlightCode }),
@@ -1360,6 +1378,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
               navigations,
               route,
               options.components,
+              options.islands,
             ),
           );
         }),

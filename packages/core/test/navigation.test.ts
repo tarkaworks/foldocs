@@ -1,4 +1,3 @@
-import type { PageMetadata } from "@foldocs/content";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,13 +7,19 @@ import {
   flattenNavigation,
   navigationForUrl,
   navigationTabsForUrl,
+  type PageManifestEntry,
 } from "../src/index.js";
 
 const page = (
   slug: string,
   title: string,
-  options: { order?: number; hidden?: boolean } = {},
-): PageMetadata => ({
+  options: {
+    order?: number;
+    hidden?: boolean;
+    icon?: string;
+    index?: boolean;
+  } = {},
+): PageManifestEntry<undefined> => ({
   id: `${slug || "index"}.mdx`,
   slug,
   url: `/docs${slug.length === 0 ? "" : `/${slug}`}`,
@@ -22,6 +27,7 @@ const page = (
   frontmatter: { title, ...options },
   toc: [],
   plainText: title,
+  load: async () => ({ default: undefined }),
 });
 
 describe("navigation", () => {
@@ -49,7 +55,7 @@ describe("navigation", () => {
         id: "(get-started)/index.mdx",
       },
       {
-        ...page("getting-started", "Getting started"),
+        ...page("getting-started", "Getting started", { icon: "rocket" }),
         id: "(get-started)/getting-started.mdx",
       },
       {
@@ -61,6 +67,7 @@ describe("navigation", () => {
       "": { pages: ["(get-started)", "features"] },
       "(get-started)": {
         title: "Get started",
+        icon: "book-open",
         pages: ["index", "getting-started"],
         defaultOpen: true,
       },
@@ -71,10 +78,11 @@ describe("navigation", () => {
       {
         _tag: "Folder",
         label: "Get started",
+        icon: "book-open",
         defaultOpen: true,
         children: [
           { _tag: "Page", label: "Introduction" },
-          { _tag: "Page", label: "Getting started" },
+          { _tag: "Page", label: "Getting started", icon: "rocket" },
         ],
       },
       { _tag: "Folder", label: "Features", defaultOpen: false },
@@ -84,6 +92,10 @@ describe("navigation", () => {
   it("renders static separators separately from collapsible folders", () => {
     const grouped = [
       page("", "Overview"),
+      {
+        ...page("manual-installation", "Manual installation", { index: true }),
+        navigationPath: "manual-installation/index.md",
+      },
       page("manual-installation/pnpm", "pnpm"),
       page("configuration", "Configuration"),
     ];
@@ -100,7 +112,7 @@ describe("navigation", () => {
       "manual-installation": {
         title: "Manual installation",
         defaultOpen: false,
-        pages: ["pnpm"],
+        pages: ["index", "pnpm"],
       },
     });
 
@@ -111,6 +123,7 @@ describe("navigation", () => {
         _tag: "Folder",
         label: "Manual installation",
         defaultOpen: false,
+        index: { _tag: "Page", label: "Manual installation" },
         children: [{ _tag: "Page", label: "pnpm" }],
       },
       { _tag: "Separator", label: "Writing" },
@@ -118,6 +131,7 @@ describe("navigation", () => {
     ]);
     expect(flattenNavigation(tree).map((entry) => entry.label)).toEqual([
       "Overview",
+      "Manual installation",
       "pnpm",
       "Configuration",
     ]);

@@ -42,6 +42,7 @@ describe("route prerendering", () => {
         title: "Example",
         description: "Site description.",
         baseUrl: "https://example.com",
+        githubUrl: "https://github.com/example/docs",
       },
       i18n: {
         defaultLocale: "en",
@@ -49,6 +50,13 @@ describe("route prerendering", () => {
           { locale: "en", name: "English" },
           { locale: "es", name: "Español" },
         ],
+      },
+      landing: {
+        footer: {
+          author: "Aniket",
+          copyright: "Copyright 2026 Tarka Works",
+          twitterUrl: "https://x.com/tarkaworks",
+        },
       },
     });
     const page: PrerenderPage = {
@@ -89,6 +97,11 @@ describe("route prerendering", () => {
       'class="fd-root fd-layout-docs" data-layout="docs" id="root"',
     );
     expect(html).toContain("Available without JavaScript.");
+    expect(html).toContain("Built by ");
+    expect(html).toContain("Aniket");
+    expect(html).toContain("The source code is available on ");
+    expect(html).toContain("Copyright 2026 Tarka Works");
+    expect(html).toContain('href="https://x.com/tarkaworks"');
     expect(html).toContain('<script type="module" src="/app.js"></script>');
     expect(html.match(/name="description"/gu)).toHaveLength(1);
   });
