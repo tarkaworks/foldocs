@@ -1,0 +1,71 @@
+core:changelogs:
+  - content: "---\npackages:\n  \"@foldocs/cli\":\n    type: minor\n  \"@foldocs/content\":\n    type: minor\n  \"@foldocs/language\":\n    type: minor\n  \"@foldocs/search\":\n    type: minor\n  \"@foldocs/search-orama\":\n    type: minor\n  \"@foldocs/tailwind\":\n    type: minor\n  \"@foldocs/twoslash\":\n    type: minor\n  \"@foldocs/vite\":\n    type: minor\n  create-foldocs:\n    type: minor\n  foldocs:\n    type: minor\n  foldocs-core:\n    type: minor\n  foldocs-mdx:\n    type: minor\n  foldocs-ui:\n    type: minor\n---\n\n## Initial public release\n\nShip the Foldkit-native documentation framework, application generator, UI,\ncontent pipeline, local search, Vite integration, and authoring tools.\n"
+    filename: initial-release.md
+    v: 0.0.0
+core:packages:
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/cli
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:foldocs-core
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/content
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:create-foldocs
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:foldocs
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/language
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:foldocs-mdx
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/search
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/search-orama
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/tailwind
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/twoslash
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:foldocs-ui
+    updated: true
+  - changelogIds:
+      - initial-release.md
+    id: npm:@foldocs/vite
+    updated: true
+npm:packages:
+  - id: npm:@foldocs/cli
+  - id: npm:foldocs-core
+  - id: npm:@foldocs/content
+  - id: npm:create-foldocs
+  - id: npm:foldocs
+  - id: npm:@foldocs/language
+  - id: npm:foldocs-mdx
+  - id: npm:@foldocs/search
+  - id: npm:@foldocs/search-orama
+  - id: npm:@foldocs/tailwind
+  - id: npm:@foldocs/twoslash
+  - id: npm:foldocs-ui
+  - id: npm:@foldocs/vite
