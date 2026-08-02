@@ -26,6 +26,7 @@
     "npm:setup:dry-run": "fledgling add \"*\" --repo tarkaworks/foldocs --workflow publish.yml --dry-run",
     "npm:trust": "fledgling sync --repo tarkaworks/foldocs --workflow publish.yml",
     "release:check": "node scripts/check-publish-boundary.mts",
+    "release:verify-published": "node scripts/verify-published.mts",
     "pre-push": "pnpm check && pnpm test:e2e",
     "tegami": "node scripts/tegami.mts",
     "test": "turbo run test",

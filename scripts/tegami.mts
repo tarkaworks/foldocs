@@ -14,7 +14,7 @@ export const paper = tegami({
     }),
   ],
   npm: {
-    client: 'npm',
+    client: 'pnpm',
     updateLockFile: true,
     bumpDep: ({ dependent, kind }) => {
       if (dependent.manifest.private === true || kind === 'devDependencies') {

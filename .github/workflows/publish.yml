@@ -72,3 +72,6 @@ jobs:
         run: pnpm tegami ci
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Verify packages on npm
+        run: pnpm release:verify-published
