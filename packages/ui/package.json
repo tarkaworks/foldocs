@@ -31,7 +31,7 @@
     "@foldocs/content": "workspace:*",
     "@foldocs/search": "workspace:*",
     "effect": "4.0.0-beta.102",
-    "foldkit": "0.137.0",
+    "foldkit": "^0.137.0",
     "foldocs-core": "workspace:*",
     "foldocs-mdx": "workspace:*",
     "lucide": "0.547.0"
@@ -39,5 +39,8 @@
   "peerDependencies": {
     "effect": "4.0.0-beta.102",
     "foldkit": "^0.137.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

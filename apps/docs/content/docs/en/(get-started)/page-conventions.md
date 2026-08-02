@@ -37,3 +37,8 @@ collapsible sections.
   ]
 }
 ```
+
+## Folder index pages
+
+Set `index: true` on a folder's index page to make the folder label a link while
+retaining a separate disclosure button for its children.

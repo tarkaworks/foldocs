@@ -1,0 +1,21 @@
+{
+  "title": "Foldocs MDX",
+  "description": "Deterministic Markdown and MDX compilation",
+  "icon": "file-text",
+  "root": true,
+  "pages": [
+    "---Guide---",
+    "index",
+    "performance",
+    "compiler",
+    "---Authoring---",
+    "frontmatter",
+    "components",
+    "highlighting",
+    "---Reference---",
+    "markdown-files",
+    "mdx-files",
+    "ast",
+    "serialization"
+  ]
+}

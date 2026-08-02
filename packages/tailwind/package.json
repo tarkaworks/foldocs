@@ -13,5 +13,8 @@
   "exports": {
     "./preset.css": "./preset.css",
     "./theme.css": "./theme.css"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

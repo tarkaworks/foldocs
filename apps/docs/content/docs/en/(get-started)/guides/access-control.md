@@ -20,3 +20,14 @@ Never embed provider administration keys or private CMS credentials in the
 browser bundle. Remote content adapters run during builds; hosted search writers
 belong in CI or a trusted server process.
 :::
+
+## Test authorization
+
+Verify HTML, `.md`, search indexes, `llms.txt`, assets, and not-found responses
+through the protected origin. A public auxiliary route can reveal the same
+content as a protected page.
+
+## Cache policy
+
+Keep private responses out of shared public caches unless the edge platform
+keys its cache by authenticated policy state.

@@ -1,0 +1,34 @@
+---
+title: Tabs
+description: Show equivalent commands or implementations without duplicating a section.
+icon: blocks
+---
+
+# Tabs
+
+Tabs group equivalent content such as package-manager commands. They use native
+radio controls and CSS, so the selected panel works in prerendered HTML.
+
+## Example
+
+<Tabs>
+  <Tab title="pnpm">
+
+```bash
+pnpm create foldocs my-docs
+```
+
+  </Tab>
+  <Tab title="npm">
+
+```bash
+npm create foldocs@latest my-docs
+```
+
+  </Tab>
+</Tabs>
+
+## Authoring guidance
+
+Keep tab labels short and use the same ordering across pages. Do not hide
+different concepts behind tabs merely to reduce vertical length.

@@ -5,17 +5,24 @@
     "correctness": "off"
   },
   "rules": {
-    "typescript/no-unused-vars": [
+    "no-unused-vars": [
       "error",
       {
         "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
       }
-    ]
+    ],
+    "typescript/no-explicit-any": "error"
   },
   "ignorePatterns": [
     "**/dist/**",
     "**/node_modules/**",
+    "**/.alchemy/**",
+    "**/.turbo/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
     "**/*.d.ts",
     "**/vite.config.ts",
     "**/vitest.config.ts"

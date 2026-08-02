@@ -21,6 +21,11 @@
   --fd-accent-700: #416812;
   --fd-accent-800: #365610;
   --fd-accent-900: #253b0a;
+  --fd-info: #3b82f6;
+  --fd-warning: #d97706;
+  --fd-error: #dc2626;
+  --fd-success: #4d7a15;
+  --fd-idea: #7c3aed;
 }
 
 :root,

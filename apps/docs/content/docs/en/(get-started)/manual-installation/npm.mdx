@@ -5,10 +5,19 @@ description: Add Foldocs to an existing Foldkit workspace with npm.
 
 # Install with npm
 
+## Install runtime packages
+
 Install the framework and its Foldkit runtime:
 
 ```sh
 npm install foldocs foldkit effect
 ```
 
+## Configure Vite
+
 Then add the Foldocs Vite plugin and point it at your `content/docs` directory.
+
+## Verify the application
+
+Run `npm run dev`, open a nested documentation route, and confirm a production
+build emits that route as static HTML.

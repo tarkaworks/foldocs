@@ -1,10 +1,11 @@
 ---
-title: Foldocs
-description: Production documentation for Foldkit, powered by Effect.
+title: Quick Start
+description: Create a Foldocs application and start authoring documentation.
+icon: rocket
 order: 1
 ---
 
-# Foldocs
+# Quick Start
 
 <Badge>Foldkit native</Badge>
 
@@ -17,12 +18,22 @@ routes, navigation entries, search results, and LLM-readable output automaticall
   configured.
 </Callout>
 
+## Run the development server
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Add your first page
+
+Create `content/docs/en/concepts/effects.md`. It automatically becomes
+`/en/docs/concepts/effects` and joins navigation, search, static output, and the
+LLM corpus.
+
 ## Start writing
 
 <Cards>
-  <Card title="Getting started" href="/en/docs/getting-started">
-    Learn the file conventions and development workflow.
-  </Card>
   <Card title="Configuration" href="/en/docs/configuration">
     Configure branding, paths, search, and build output.
   </Card>
@@ -34,6 +45,7 @@ The generated site is a Foldkit application. Its model, messages, commands, page
 loading, navigation, and search are all typed and driven by Effect.
 
 ```ts
+import { createDocsProgram } from 'foldocs'
 import {
   basePath,
   i18n,
@@ -41,8 +53,7 @@ import {
   navigations,
   searchIndexUrls,
   siteConfig,
-} from "virtual:foldocs";
-import { createDocsProgram } from "foldocs";
+} from 'virtual:foldocs'
 
 export const program = createDocsProgram({
   manifest,
@@ -51,5 +62,5 @@ export const program = createDocsProgram({
   navigations,
   searchIndexUrls,
   site: siteConfig,
-});
+})
 ```

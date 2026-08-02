@@ -19,3 +19,14 @@ keep SPA fallback disabled; unknown routes should return a real 404.
 
 The generated project includes Alchemy for Cloudflare, while Vercel and other
 static hosts can publish `dist` directly.
+
+## Platform guides
+
+Use the Cloudflare guide for the generated Alchemy configuration, the Vercel
+guide for zero-function static deployment, or Static hosting for any CDN that
+supports directory index files.
+
+## Verify production output
+
+Open a nested route directly, request its sibling `.md` resource, and confirm an
+unknown route produces a real 404 before promoting a deployment.

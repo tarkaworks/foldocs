@@ -1,0 +1,13 @@
+{
+  "title": "Fuentes de contenido",
+  "icon": "files",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "local-markdown",
+    "remote-mdx",
+    "sanity",
+    "basehub",
+    "obsidian"
+  ]
+}

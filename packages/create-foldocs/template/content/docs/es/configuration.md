@@ -51,21 +51,3 @@ Registra renderizadores Foldkit en `src/mdx-components.ts` y pasa
 `components: mdxComponents` a `createDocsProgram`. Los nombres registrados se
 pueden usar directamente desde archivos MDX, por ejemplo
 `<Kbd>⌘K</Kbd>` o `<Aside type="tip">…</Aside>`.
-
-## OpenAPI
-
-Edita el archivo `openapi.yaml` incluido y ejecuta `pnpm generate:api`. El paquete
-separado `@foldocs/openapi` genera una raíz de referencia API en
-`content/docs/en/api`, con operaciones, parámetros, esquemas, ejemplos, muestras
-de peticiones, respuestas y navegación.
-
-## AsyncAPI
-
-Edita `asyncapi.yaml` y ejecuta `pnpm generate:events`. `@foldocs/asyncapi` genera
-páginas de canales y mensajes con payloads, ejemplos, bindings y navegación.
-
-## EPUB y Obsidian
-
-Ejecuta `pnpm export:epub` para crear un EPUB 3. Para migrar una bóveda de
-Obsidian, crea la carpeta `vault` y ejecuta `pnpm import:obsidian`; los enlaces
-wiki, embeds, comentarios y adjuntos se convierten en MDX administrado.

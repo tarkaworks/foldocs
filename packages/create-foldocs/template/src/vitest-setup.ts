@@ -1,3 +1,3 @@
-import { setup } from "foldkit/test/vitest";
+import { setup } from 'foldkit/test/vitest'
 
-setup();
+setup()

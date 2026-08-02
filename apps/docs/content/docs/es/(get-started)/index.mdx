@@ -1,10 +1,11 @@
 ---
-title: Foldocs
-description: Un framework de documentación para Foldkit con un runtime basado en Effect.
+title: Inicio rápido
+description: Crea una aplicación Foldocs y empieza a escribir documentación.
+icon: rocket
 order: 1
 ---
 
-# Foldocs
+# Inicio rápido
 
 <Badge>Nativo de Foldkit</Badge>
 
@@ -20,13 +21,24 @@ su URL, con acciones para copiarlo y abrirlo generadas automáticamente.
   es el framework de la aplicación y Effect impulsa el runtime.
 </Callout>
 
+## Instalación automática
+
+Crea una aplicación Foldocs completa con Foldkit, Effect, búsqueda local,
+salida estática, rutas Markdown y archivos para LLM ya configurados:
+
+```bash
+pnpm create foldocs mis-docs
+cd mis-docs
+pnpm dev
+```
+
 ## Qué incluye
 
 <Cards>
-  <Card title="Autoría" href="/es/docs/getting-started">
+  <Card title="Autoría" href="/es/docs/page-conventions">
     Markdown, componentes MDX, frontmatter, tablas, tareas y código resaltado.
   </Card>
-  <Card title="Búsqueda" href="/es/docs/features/search">
+  <Card title="Búsqueda" href="/es/docs/search">
     Búsqueda local con Orama y un contrato Effect independiente del proveedor.
   </Card>
 </Cards>
@@ -34,6 +46,7 @@ su URL, con acciones para copiarlo y abrirlo generadas automáticamente.
 ## Tipado de principio a fin
 
 ```ts
+import { createDocsProgram } from 'foldocs'
 import {
   basePath,
   i18n,
@@ -41,8 +54,7 @@ import {
   navigations,
   searchIndexUrls,
   siteConfig,
-} from "virtual:foldocs";
-import { createDocsProgram } from "foldocs";
+} from 'virtual:foldocs'
 
 const program = createDocsProgram({
   basePath,
@@ -51,5 +63,5 @@ const program = createDocsProgram({
   navigations,
   searchIndexUrls,
   site: siteConfig,
-});
+})
 ```

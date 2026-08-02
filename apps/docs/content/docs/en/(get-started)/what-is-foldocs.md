@@ -28,3 +28,8 @@ referenced by your pages. The deployed site does not require a Node.js server.
 Foldocs is intentionally opinionated about the application framework: Foldkit is
 the UI runtime and Effect powers commands, schemas, streams, and integrations.
 :::
+
+## Package boundaries
+
+Core owns configuration and navigation, MDX owns the portable document model,
+UI owns Foldkit views, and the CLI owns scaffolding and validation.

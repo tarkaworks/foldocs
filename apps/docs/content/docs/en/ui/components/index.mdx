@@ -1,0 +1,130 @@
+---
+title: Components
+description: Use a Fumadocs-compatible set of documentation components rendered by Foldkit.
+icon: blocks
+index: true
+---
+
+# Components
+
+Foldocs includes opinionated components for the patterns that appear repeatedly
+in product documentation. They compile into deterministic Foldkit HTML and use
+the active Foldocs theme without adding a React runtime.
+
+## Callouts
+
+Use `Callout` for information that must stand apart from the surrounding prose.
+The supported types are `info`, `warning`, `error`, `success`, and `idea`.
+
+<Callout type="info" title="Deterministic by default">
+  Component attributes and content are part of the typed document tree.
+</Callout>
+
+<Callout type="success" title="Production ready">
+  The same markup is emitted during prerendering and client navigation.
+</Callout>
+
+## Cards
+
+Cards present related destinations without replacing normal document links.
+Pass a Lucide icon name through `icon`, or override that name in `site.icons`.
+
+<Cards>
+  <Card
+    title="Foldocs UI"
+    description="Layouts, navigation, and default components."
+    icon="blocks"
+    href="/en/docs/ui"
+  />
+  <Card
+    title="Foldocs MDX"
+    description="Portable Markdown and MDX compilation."
+    icon="file-text"
+    href="/en/docs/mdx"
+  />
+</Cards>
+
+## Steps
+
+Wrap ordered procedures in `Steps` and `Step`. Foldocs supplies the counter,
+guide line, spacing, and responsive alignment.
+
+<Steps>
+  <Step>
+    ### Create the application
+
+    Run the scaffold command in an empty directory.
+
+  </Step>
+  <Step>
+    ### Write a page
+
+    Add a Markdown or MDX file under the locale content directory.
+
+  </Step>
+  <Step>
+    ### Build static output
+
+    Run the production build and deploy the generated `dist` directory.
+
+  </Step>
+</Steps>
+
+## Tabs
+
+Tabs are rendered with native radio controls and CSS, so they remain usable in
+prerendered output without client-side component state.
+
+<Tabs>
+  <Tab title="pnpm">
+
+```bash
+pnpm create foldocs my-docs
+```
+
+  </Tab>
+  <Tab title="npm">
+
+```bash
+npm create foldocs@latest my-docs
+```
+
+  </Tab>
+</Tabs>
+
+## Accordions
+
+Accordions use native disclosure semantics. They work with the keyboard before
+the application runtime starts and can be opened by default.
+
+<Accordions>
+  <Accordion title="Does this require React?">
+    No. The component is rendered with Foldkit and native HTML disclosure state.
+  </Accordion>
+  <Accordion title="Can I style it?" defaultOpen="true">
+    Yes. Override the public `fd-accordion` classes or generate owned theme
+    files.
+  </Accordion>
+</Accordions>
+
+## File trees
+
+Use `Files`, `Folder`, and `File` to explain generated project structure.
+
+<Files>
+  <Folder name="content" defaultOpen="true">
+    <Folder name="docs" defaultOpen="true">
+      <Folder name="en" defaultOpen="true">
+        <File name="index.mdx" />
+        <File name="getting-started.md" />
+      </Folder>
+    </Folder>
+  </Folder>
+  <File name="foldocs.config.ts" icon="settings" />
+</Files>
+
+## Component overrides
+
+Project-owned renderers take precedence over the defaults. Register a component
+under the same MDX name when a product needs custom markup or behavior; all
+unmodified components continue to use the Foldocs implementation.

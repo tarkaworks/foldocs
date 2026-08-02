@@ -1,0 +1,15 @@
+{
+  "title": "Foldocs CLI",
+  "description": "Scaffolding, validation, and customization",
+  "icon": "code-xml",
+  "root": true,
+  "pages": [
+    "---Overview---",
+    "index",
+    "create-foldocs",
+    "---Commands---",
+    "check",
+    "customize",
+    "continuous-integration"
+  ]
+}

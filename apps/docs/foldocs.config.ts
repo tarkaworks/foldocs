@@ -1,10 +1,11 @@
-import { defineConfig, defineContentAdapter } from "foldocs";
-import { spanish } from "@foldocs/language";
+import { defineConfig, defineContentAdapter } from 'foldocs'
 
-const dogfoodRemoteSource = defineContentAdapter("dogfood", async () => [
+import { spanish } from '@foldocs/language'
+
+const dogfoodRemoteSource = defineContentAdapter('dogfood', async () => [
   {
-    path: "features/remote-content.mdx",
-    locale: "en",
+    path: 'integrations/content/remote-adapter.mdx',
+    locale: 'en',
     source: `---
 title: Remote and CMS content
 description: Load typed Markdown and MDX from HTTP endpoints, Sanity, BaseHub, or custom build-time sources.
@@ -31,44 +32,43 @@ Every adapter returns a deterministic \`path\`, optional \`locale\`, and Markdow
 or MDX \`source\`. Provider SDKs and credentials remain build-time only.
 `,
   },
-]);
+])
 
 export default defineConfig({
   site: {
-    title: "Foldocs",
-    description: "A production documentation framework for Foldkit.",
-    baseUrl: "https://foldocs.vercel.app",
-    logoText: "Foldocs",
-    badge: "Beta",
+    title: 'Foldocs',
+    description: 'A production documentation framework for Foldkit.',
+    baseUrl: 'https://foldocs.vercel.app',
+    logoText: 'Foldocs',
     tagline:
-      "Beautiful, searchable, LLM-ready documentation for Foldkit, powered by Effect.",
-    githubUrl: "https://github.com/Aniket-508/foldocs",
-    npmUrl: "https://www.npmjs.com/package/foldocs",
-    keywords: ["Foldkit", "Effect", "documentation"],
-    favicon: "/favicon.svg",
-    locale: "en",
+      'Beautiful, searchable, LLM-ready documentation for Foldkit, powered by Effect.',
+    githubUrl: 'https://github.com/Aniket-508/foldocs',
+    npmUrl: 'https://www.npmjs.com/package/foldocs',
+    keywords: ['Foldkit', 'Effect', 'documentation'],
+    favicon: '/favicon.svg',
+    locale: 'en',
   },
   i18n: {
-    defaultLocale: "en",
-    fallbackLocale: "en",
-    locales: [{ locale: "en", name: "English" }, spanish()],
+    defaultLocale: 'en',
+    fallbackLocale: 'en',
+    locales: [{ locale: 'en', name: 'English' }, spanish()],
   },
-  basePath: "/docs",
-  layout: { preset: "docs" },
+  basePath: '/docs',
+  layout: { preset: 'docs' },
   landing: {
-    sections: ["hero", "overview", "stack", "features", "ai", "proof", "cta"],
-    command: "pnpm create foldocs@latest",
+    sections: ['hero', 'overview', 'stack', 'features', 'ai', 'proof', 'cta'],
+    command: 'pnpm create foldocs@latest',
     footer: {
-      author: "Aniket",
-      authorUrl: "https://github.com/Aniket-508",
-      copyright: "Copyright 2026 Tarka Works",
-      twitterUrl: "https://x.com/tarkaworks",
+      author: 'Aniket',
+      authorUrl: 'https://github.com/Aniket-508',
+      copyright: '© 2026 Tarkaworks',
+      twitterUrl: 'https://x.com/tarkaworks',
     },
   },
-  content: { dir: "content/docs", sources: [dogfoodRemoteSource] },
+  content: { dir: 'content/docs', sources: [dogfoodRemoteSource] },
   llms: true,
   markdown: true,
   sitemap: true,
   prerender: true,
   search: { staticIndex: true },
-});
+})

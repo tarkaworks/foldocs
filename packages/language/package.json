@@ -19,5 +19,8 @@
   },
   "dependencies": {
     "foldocs-core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

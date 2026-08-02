@@ -1,5 +1,5 @@
-import type { MdxComponents } from "foldocs";
-import { inertHtml as h } from "foldkit/html";
+import { inertHtml as h } from 'foldkit/html'
+import type { MdxComponents } from 'foldocs'
 
 /** Project-owned renderers for deterministic MDX elements. */
 export const mdxComponents: MdxComponents = {
@@ -7,7 +7,7 @@ export const mdxComponents: MdxComponents = {
     Kbd: (component, content) =>
       h.kbd(
         [
-          h.Class("fd-inline-code"),
+          h.Class('fd-inline-code'),
           ...(component.attributes.label === undefined
             ? []
             : [h.AriaLabel(component.attributes.label)]),
@@ -20,11 +20,11 @@ export const mdxComponents: MdxComponents = {
       h.aside(
         [
           h.Class(
-            `fd-callout fd-callout-${component.attributes.type ?? "info"}`,
+            `fd-callout fd-callout-${component.attributes.type ?? 'info'}`,
           ),
-          h.DataAttribute("component", component.name),
+          h.DataAttribute('component', component.name),
         ],
         content,
       ),
   },
-};
+}

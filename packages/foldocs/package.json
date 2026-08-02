@@ -18,18 +18,21 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@foldkit/ui": "0.137.0",
     "@foldocs/content": "workspace:*",
     "@foldocs/search": "workspace:*",
     "@foldocs/search-orama": "workspace:*",
-    "@foldkit/ui": "0.137.0",
     "effect": "4.0.0-beta.102",
+    "foldkit": "^0.137.0",
     "foldocs-core": "workspace:*",
     "foldocs-mdx": "workspace:*",
-    "foldocs-ui": "workspace:*",
-    "foldkit": "0.137.0"
+    "foldocs-ui": "workspace:*"
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.102",
     "foldkit": "^0.137.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

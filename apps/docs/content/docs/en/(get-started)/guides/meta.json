@@ -2,5 +2,13 @@
   "title": "Guides",
   "icon": "sparkles",
   "defaultOpen": false,
-  "pages": ["index", "customize-ui", "static-output", "access-control"]
+  "pages": [
+    "index",
+    "customize-ui",
+    "static-output",
+    "access-control",
+    "export-epub",
+    "import-obsidian",
+    "remote-content"
+  ]
 }

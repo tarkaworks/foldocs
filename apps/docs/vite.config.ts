@@ -1,14 +1,15 @@
-import { foldocs } from "@foldocs/vite";
-import { createTwoslashHighlighter } from "@foldocs/twoslash";
-import { foldkit } from "@foldkit/vite-plugin";
-import { defineConfig } from "vite";
+import { defineConfig } from 'vite'
 
-import docs from "./foldocs.config.js";
+import { foldkit } from '@foldkit/vite-plugin'
+import { createTwoslashHighlighter } from '@foldocs/twoslash'
+import { foldocs } from '@foldocs/vite'
+
+import docs from './foldocs.config.js'
 import {
   markdownIslandDefinitions,
   markdownIslands,
-} from "./src/markdown-islands.js";
-import { mdxComponents } from "./src/mdx-components.js";
+} from './src/markdown-islands.js'
+import { mdxComponents } from './src/mdx-components.js'
 
 export default defineConfig({
   plugins: [
@@ -24,20 +25,20 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        manualChunks: (id) => {
+        manualChunks: id => {
           if (
-            id.includes("/node_modules/.pnpm/effect@") ||
-            id.includes("/node_modules/effect/")
+            id.includes('/node_modules/.pnpm/effect@') ||
+            id.includes('/node_modules/effect/')
           )
-            return "effect";
+            return 'effect'
           if (
-            id.includes("/node_modules/.pnpm/foldkit@") ||
-            id.includes("/node_modules/foldkit/")
+            id.includes('/node_modules/.pnpm/foldkit@') ||
+            id.includes('/node_modules/foldkit/')
           )
-            return "foldkit";
-          return undefined;
+            return 'foldkit'
+          return undefined
         },
       },
     },
   },
-});
+})

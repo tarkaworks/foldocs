@@ -1,0 +1,6 @@
+{
+  "title": "Referencias de lenguajes",
+  "icon": "code-xml",
+  "defaultOpen": false,
+  "pages": ["index", "typescript", "python"]
+}

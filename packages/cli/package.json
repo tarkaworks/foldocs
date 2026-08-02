@@ -22,5 +22,8 @@
   "dependencies": {
     "effect": "4.0.0-beta.102",
     "foldocs-mdx": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

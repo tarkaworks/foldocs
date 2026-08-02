@@ -2,5 +2,17 @@
   "title": "Search",
   "icon": "search",
   "defaultOpen": false,
-  "pages": ["index", "indexing", "providers"]
+  "pages": [
+    "index",
+    "indexing",
+    "providers",
+    "orama",
+    "orama-cloud",
+    "algolia",
+    "flexsearch",
+    "typesense",
+    "trieve",
+    "mixedbread",
+    "custom"
+  ]
 }

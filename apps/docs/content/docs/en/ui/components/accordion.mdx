@@ -1,0 +1,28 @@
+---
+title: Accordion
+description: Put optional detail behind native disclosure semantics.
+icon: blocks
+---
+
+# Accordion
+
+Accordions use native `details` and `summary` behavior, so keyboard and pointer
+interaction works before the Foldkit runtime starts.
+
+## Example
+
+<Accordions>
+  <Accordion title="Does this require React?">
+    No. Foldocs renders the component with Foldkit and semantic HTML.
+  </Accordion>
+  <Accordion title="Can a panel start open?" defaultOpen="true">
+    Yes. Set `defaultOpen` to `true` for content that should initially be
+    visible.
+  </Accordion>
+</Accordions>
+
+## When to use it
+
+Use accordions for optional explanations, troubleshooting, or frequently asked
+questions. Important setup requirements should stay visible in the normal page
+flow.

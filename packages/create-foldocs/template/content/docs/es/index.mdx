@@ -1,10 +1,11 @@
 ---
-title: Foldocs
-description: Documentación para Foldkit con un runtime basado en Effect.
+title: Inicio rápido
+description: Crea una aplicación Foldocs y empieza a escribir documentación.
+icon: rocket
 order: 1
 ---
 
-# Foldocs
+# Inicio rápido
 
 <Badge>Nativo de Foldkit</Badge>
 
@@ -18,12 +19,22 @@ salidas legibles por LLM automáticamente.
   configurados.
 </Callout>
 
+## Ejecutar el servidor de desarrollo
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Añadir tu primera página
+
+Crea `content/docs/es/concepts/effects.md`. Automáticamente se convierte en
+`/es/docs/concepts/effects` y se incorpora a la navegación, búsqueda, salida
+estática y corpus para LLM.
+
 ## Empieza a escribir
 
 <Cards>
-  <Card title="Primeros pasos" href="/es/docs/getting-started">
-    Aprende las convenciones de archivos y el flujo de desarrollo.
-  </Card>
   <Card title="Configuración" href="/es/docs/configuration">
     Configura la marca, las rutas, la búsqueda y la compilación.
   </Card>

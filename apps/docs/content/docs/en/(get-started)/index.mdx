@@ -1,10 +1,11 @@
 ---
-title: Foldocs
-description: A production-oriented documentation framework for Foldkit, powered by Effect.
+title: Quick Start
+description: Create a Foldocs application and start authoring documentation.
+icon: rocket
 order: 1
 ---
 
-# Foldocs
+# Quick Start
 
 <Badge>Foldkit native</Badge>
 
@@ -19,14 +20,25 @@ URL, with copy and view actions generated automatically.
   the application framework and Effect powers the runtime.
 </Callout>
 
+## Automatic installation
+
+Create a complete Foldocs application with Foldkit, Effect, local search, static
+output, Markdown routes, and LLM files already configured:
+
+```bash
+pnpm create foldocs my-docs
+cd my-docs
+pnpm dev
+```
+
 ## What you get
 
 <Cards>
-  <Card title="Authoring" href="/en/docs/getting-started">
+  <Card title="Authoring" href="/en/docs/page-conventions">
     Markdown, MDX components, frontmatter, tables, task lists, and highlighted
     code.
   </Card>
-  <Card title="Search" href="/en/docs/features/search">
+  <Card title="Search" href="/en/docs/search">
     Browser-local Orama search by default with a provider-neutral Effect
     contract.
   </Card>
@@ -35,6 +47,7 @@ URL, with copy and view actions generated automatically.
 ## Typed all the way down
 
 ```ts
+import { createDocsProgram } from 'foldocs'
 import {
   basePath,
   i18n,
@@ -42,8 +55,7 @@ import {
   navigations,
   searchIndexUrls,
   siteConfig,
-} from "virtual:foldocs";
-import { createDocsProgram } from "foldocs";
+} from 'virtual:foldocs'
 
 const program = createDocsProgram({
   basePath,
@@ -52,8 +64,13 @@ const program = createDocsProgram({
   navigations,
   searchIndexUrls,
   site: siteConfig,
-});
+})
 ```
 
 The virtual manifest eagerly contains serializable metadata and lazy-loads each
 compiled document only when its route is visited.
+
+## Static from the first response
+
+Production builds prerender every landing and documentation route. Direct
+navigation receives the real page rather than a temporary loading document.

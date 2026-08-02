@@ -1,0 +1,9 @@
+node_modules
+dist
+*.tsbuildinfo
+pnpm-lock.yaml
+.alchemy/
+.turbo/
+playwright-report/
+test-results/
+apps/docs/public/fonts/

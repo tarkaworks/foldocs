@@ -21,3 +21,9 @@ Install `foldocs`, `foldkit`, `effect`, and `@effect/platform-browser`. Add
 Create `foldocs.config.ts`, add the two Vite plugins, mount the generated Foldkit
 program from `src/entry.ts`, and place localized content under
 `content/docs/<locale>`. The package-manager pages contain ready-to-run commands.
+
+## Required configuration
+
+Set the content directory, route base, locales, site metadata, and landing-page
+copy in `foldocs.config.ts`. Keep browser-safe configuration separate from build
+credentials.

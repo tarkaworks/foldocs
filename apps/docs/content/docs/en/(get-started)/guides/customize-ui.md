@@ -27,3 +27,9 @@ Use `foldocs customize` when configuration is no longer enough. The command
 copies selected theme, layout, or MDX component entry points into the project.
 Run typecheck and visual tests after future Foldocs upgrades because copied
 files no longer receive framework changes automatically.
+
+## Validate overrides
+
+Run type-checking, content validation, the production build, and visual browser
+tests after changing owned CSS or renderers. Test light, dark, mobile, and
+right-to-left layouts when those modes are enabled.

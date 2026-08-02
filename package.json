@@ -5,39 +5,64 @@
   "type": "module",
   "packageManager": "pnpm@10.28.2",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
+    "prepare": "test -z \"$CI\" && simple-git-hooks || true",
     "build": "turbo run build",
+    "check": "pnpm format:check && pnpm lint && pnpm check:dead-code && pnpm check:circular-deps && pnpm typecheck:scripts && pnpm release:check && pnpm build && pnpm typecheck && pnpm test",
+    "check:circular-deps": "bash scripts/check-circular-deps.sh",
+    "check:dead-code": "knip --no-progress --include files,dependencies,unlisted,unresolved,binaries,duplicates,catalog --treat-config-hints-as-errors",
     "deploy": "alchemy deploy",
     "dev": "turbo run dev --parallel",
     "dev:cloudflare": "alchemy dev",
     "destroy": "alchemy destroy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "oxlint apps packages e2e",
+    "lint": "oxlint --disable-nested-config",
+    "lint:fix": "oxlint --fix --disable-nested-config",
+    "npm:setup": "fledgling add \"*\" --repo Aniket-508/foldocs --workflow publish.yml",
+    "npm:setup:dry-run": "fledgling add \"*\" --repo Aniket-508/foldocs --workflow publish.yml --dry-run",
+    "npm:trust": "fledgling sync --repo Aniket-508/foldocs --workflow publish.yml",
+    "release:check": "node scripts/check-publish-boundary.mts",
+    "pre-push": "pnpm check && pnpm test:e2e",
+    "tegami": "node scripts/tegami.mts",
     "test": "turbo run test",
     "test:e2e": "pnpm --filter foldocs-docs build && playwright test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@effect/platform-browser": "4.0.0-beta.102",
-    "@foldkit/devtools": "0.137.0",
-    "@foldkit/devtools-mcp": "0.14.0",
     "@foldkit/oxlint-plugin": "0.5.0",
-    "@foldkit/ui": "0.137.0",
-    "@foldkit/vite-plugin": "0.11.3",
     "@playwright/test": "^1.61.1",
-    "@types/mdast": "^4.0.4",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "26.1.1",
     "alchemy": "0.93.12",
     "effect": "4.0.0-beta.102",
+    "fledgling": "1.2.0",
     "foldkit": "0.137.0",
+    "knip": "^6.31.0",
+    "madge": "^8.0.0",
+    "npm": "11.18.0",
     "oxlint": "^1.76.0",
     "prettier": "^3.8.4",
+    "simple-git-hooks": "^2.13.1",
+    "tegami": "1.3.0",
+    "tsx": "^4.23.4",
     "turbo": "^2.5.8",
     "typescript": "6.0.3",
     "vite": "^8.0.16",
     "vitest": "^4.1.9"
+  },
+  "fledgling": {
+    "provider": "github",
+    "repo": "Aniket-508/foldocs",
+    "workflow": "publish.yml",
+    "permissions": "publish",
+    "trust": true
+  },
+  "simple-git-hooks": {
+    "pre-push": "bash scripts/run-pre-push.sh"
   }
 }

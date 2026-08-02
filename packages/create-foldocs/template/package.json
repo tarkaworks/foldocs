@@ -10,14 +10,14 @@
     "deploy": "alchemy deploy",
     "destroy": "alchemy destroy",
     "preview": "vite preview",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src",
+    "lint": "oxlint --disable-nested-config",
+    "lint:fix": "oxlint --fix --disable-nested-config",
     "test": "vitest run",
-    "check": "foldocs check --locales en,es --fallback-locale en",
-    "generate:api": "foldocs-openapi openapi.yaml content/docs/en/api /en/docs/api",
-    "generate:events": "foldocs-asyncapi asyncapi.yaml content/docs/en/events /en/docs/events",
-    "export:epub": "foldocs-epub content/docs/en dist/documentation.epub Documentation urn:foldocs:documentation",
-    "import:obsidian": "foldocs-obsidian vault content/docs/en/notes"
+    "docs:check": "foldocs check --locales en,es --fallback-locale en",
+    "check": "prettier --check . && oxlint --disable-nested-config && tsc --noEmit && vitest run && foldocs check --locales en,es --fallback-locale en"
   },
   "dependencies": {
     "@effect/platform-browser": "4.0.0-beta.102",
@@ -27,12 +27,8 @@
     "foldkit": "0.137.0"
   },
   "devDependencies": {
-    "@foldocs/asyncapi": "latest",
     "@foldocs/cli": "latest",
-    "@foldocs/epub": "latest",
     "@foldocs/language": "latest",
-    "@foldocs/obsidian": "latest",
-    "@foldocs/openapi": "latest",
     "@foldocs/tailwind": "latest",
     "@foldocs/twoslash": "latest",
     "@foldocs/vite": "latest",
@@ -40,10 +36,12 @@
     "@foldkit/devtools-mcp": "0.14.0",
     "@foldkit/oxlint-plugin": "0.5.0",
     "@foldkit/vite-plugin": "0.11.3",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "latest",
     "alchemy": "0.93.12",
     "happy-dom": "^20.11.1",
     "oxlint": "^1.76.0",
+    "prettier": "^3.8.4",
     "typescript": "latest",
     "vite": "latest",
     "vitest": "^4.1.9"

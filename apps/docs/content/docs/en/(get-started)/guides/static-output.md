@@ -19,3 +19,14 @@ indexes, assets, LLM files, and the sitemap.
 
 Preview the exact `dist` directory with `pnpm preview`; do not use the development
 server as deployment verification.
+
+## Route audit
+
+Inspect the sitemap and compare it with generated HTML directories. Request a
+representative root page, nested page, localized fallback page, Markdown route,
+and unknown route.
+
+## Cache policy
+
+Cache content-hashed assets immutably. Give HTML, Markdown, search, and LLM files
+a policy that lets new deployments replace them promptly.

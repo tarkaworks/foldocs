@@ -1,0 +1,47 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["alchemy.run.ts", "e2e/**/*.ts", "scripts/*.{ts,mts}"],
+      "project": ["e2e/**/*.ts", "scripts/**/*.{ts,mts}"]
+    },
+    "apps/docs": {
+      "entry": ["foldocs.config.ts", "reference.ts"],
+      "ignore": ["public/**"],
+      "ignoreDependencies": ["@foldocs/tailwind"]
+    },
+    "packages/*": {
+      "entry": ["src/index.ts"]
+    },
+    "packages/asyncapi": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/cli": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/epub": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/obsidian": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/openapi": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/python": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/typescript": {
+      "entry": ["src/index.ts", "src/bin.ts"]
+    },
+    "packages/create-foldocs": {
+      "entry": ["src/index.ts", "src/bin.ts"],
+      "ignore": ["template/**"]
+    },
+    "packages/tailwind": {
+      "entry": []
+    }
+  },
+  "ignore": ["apps/docs/public/**"],
+  "ignoreDependencies": ["@foldkit/oxlint-plugin", "madge", "npm"]
+}

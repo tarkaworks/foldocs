@@ -1,4 +1,4 @@
 {
   "title": "Documentación",
-  "pages": ["(get-started)", "features"]
+  "pages": ["(get-started)", "ui", "core", "mdx", "cli"]
 }

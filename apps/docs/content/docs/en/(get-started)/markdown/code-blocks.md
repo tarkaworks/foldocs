@@ -11,7 +11,7 @@ highlighter.
 
 ````md
 ```ts
-const program = Effect.succeed("ready");
+const program = Effect.succeed('ready')
 ```
 ````
 
@@ -23,3 +23,13 @@ use Twoslash where hover types materially help readers.
 
 If highlighting fails for an unknown grammar, Foldocs falls back to an escaped
 plain code block rather than failing the entire document build.
+
+## Copy behavior
+
+The copy button always uses the original source, not highlighted HTML. Its label
+stays stable while only the icon and accessible status change after copying.
+
+## Build performance
+
+Use ordinary Shiki for most blocks and reserve compiler-powered transforms for
+examples where type information improves understanding.

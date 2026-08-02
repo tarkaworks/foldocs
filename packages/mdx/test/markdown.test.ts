@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import { compile, documentToMarkdown } from "../src/index.js";
+import { compile, documentToMarkdown } from '../src/index.js'
 
-describe("documentToMarkdown", () => {
-  it("serializes deterministic MDX into portable Markdown", async () => {
+describe('documentToMarkdown', () => {
+  it('serializes deterministic MDX into portable Markdown', async () => {
     const page = await compile(
       `# Effects
 
@@ -20,10 +20,10 @@ const program = Effect.succeed(1)
 \`\`\`
 `,
       { highlight: false },
-    );
+    )
 
     expect(
-      documentToMarkdown(page.document, { baseUrl: "https://example.com" }),
+      documentToMarkdown(page.document, { baseUrl: 'https://example.com' }),
     ).toBe(`# Effects
 
 > [!TIP] Typed
@@ -36,6 +36,6 @@ const program = Effect.succeed(1)
 \`\`\`ts
 const program = Effect.succeed(1)
 \`\`\`
-`);
-  });
-});
+`)
+  })
+})

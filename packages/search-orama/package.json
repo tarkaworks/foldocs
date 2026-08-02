@@ -24,5 +24,8 @@
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.102"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

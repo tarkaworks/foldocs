@@ -1,38 +1,38 @@
-import { spawn } from "node:child_process";
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { spawn } from 'node:child_process'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 
 export interface PythonDeclaration {
-  readonly name: string;
-  readonly kind: "Function" | "Class" | "Variable";
-  readonly description: string;
-  readonly signature: string;
+  readonly name: string
+  readonly kind: 'Function' | 'Class' | 'Variable'
+  readonly description: string
+  readonly signature: string
   readonly members: ReadonlyArray<{
-    readonly name: string;
-    readonly signature: string;
-    readonly description: string;
-  }>;
+    readonly name: string
+    readonly signature: string
+    readonly description: string
+  }>
 }
 
 export interface GeneratedPythonFile {
-  readonly path: string;
-  readonly content: string;
+  readonly path: string
+  readonly content: string
 }
 
 export interface PythonGenerationOptions {
-  readonly title?: string;
-  readonly description?: string;
-  readonly baseUrl?: string;
-  readonly root?: boolean;
-  readonly python?: string;
+  readonly title?: string
+  readonly description?: string
+  readonly baseUrl?: string
+  readonly root?: boolean
+  readonly python?: string
 }
 
 export interface GeneratePythonFilesOptions extends PythonGenerationOptions {
-  readonly input: string;
-  readonly output: string;
+  readonly input: string
+  readonly output: string
 }
 
-const generatedManifestName = ".foldocs-python.json";
+const generatedManifestName = '.foldocs-python.json'
 
 const extractor = String.raw`
 import ast, json, pathlib, sys
@@ -102,185 +102,185 @@ for node in tree.body:
                 result.append({"name": target.id, "kind": "Variable", "description": "Constant " + target.id + ".", "signature": signature_text, "members": []})
 
 print(json.dumps(result, ensure_ascii=False))
-`;
+`
 
-const isString = (value: unknown): value is string => typeof value === "string";
+const isString = (value: unknown): value is string => typeof value === 'string'
 
 const decodeDeclarations = (
   value: unknown,
 ): ReadonlyArray<PythonDeclaration> => {
   if (!Array.isArray(value))
-    throw new TypeError("Python extractor returned invalid JSON.");
-  return value.map((entry) => {
-    if (typeof entry !== "object" || entry === null)
-      throw new TypeError("Python declaration must be an object.");
-    const object = entry as Record<string, unknown>;
+    throw new TypeError('Python extractor returned invalid JSON.')
+  return value.map(entry => {
+    if (typeof entry !== 'object' || entry === null)
+      throw new TypeError('Python declaration must be an object.')
+    const object = entry as Record<string, unknown>
     if (
       !isString(object.name) ||
       !isString(object.description) ||
       !isString(object.signature) ||
-      !["Function", "Class", "Variable"].includes(String(object.kind)) ||
+      !['Function', 'Class', 'Variable'].includes(String(object.kind)) ||
       !Array.isArray(object.members)
     )
-      throw new TypeError("Python declaration is missing required fields.");
-    const members = object.members.map((member) => {
-      if (typeof member !== "object" || member === null)
-        throw new TypeError("Python member must be an object.");
-      const item = member as Record<string, unknown>;
+      throw new TypeError('Python declaration is missing required fields.')
+    const members = object.members.map(member => {
+      if (typeof member !== 'object' || member === null)
+        throw new TypeError('Python member must be an object.')
+      const item = member as Record<string, unknown>
       if (
         !isString(item.name) ||
         !isString(item.signature) ||
         !isString(item.description)
       )
-        throw new TypeError("Python member is missing required fields.");
+        throw new TypeError('Python member is missing required fields.')
       return {
         name: item.name,
         signature: item.signature,
         description: item.description,
-      };
-    });
+      }
+    })
     return {
       name: object.name,
-      kind: object.kind as PythonDeclaration["kind"],
+      kind: object.kind as PythonDeclaration['kind'],
       description: object.description,
       signature: object.signature,
       members,
-    };
-  });
-};
+    }
+  })
+}
 
 export const extractPythonApi = (
   input: string,
-  options: Pick<PythonGenerationOptions, "python"> = {},
+  options: Pick<PythonGenerationOptions, 'python'> = {},
 ): Promise<ReadonlyArray<PythonDeclaration>> =>
   new Promise((resolve, reject) => {
     const child = spawn(
-      options.python ?? "python3",
-      ["-c", extractor, path.resolve(input)],
+      options.python ?? 'python3',
+      ['-c', extractor, path.resolve(input)],
       {
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,
       },
-    );
-    let stdout = "";
-    let stderr = "";
+    )
+    let stdout = ''
+    let stderr = ''
     child.stdout
-      .setEncoding("utf8")
-      .on("data", (chunk: string) => (stdout += chunk));
+      .setEncoding('utf8')
+      .on('data', (chunk: string) => (stdout += chunk))
     child.stderr
-      .setEncoding("utf8")
-      .on("data", (chunk: string) => (stderr += chunk));
-    child.once("error", reject);
-    child.once("exit", (code) => {
+      .setEncoding('utf8')
+      .on('data', (chunk: string) => (stderr += chunk))
+    child.once('error', reject)
+    child.once('exit', code => {
       if (code !== 0) {
         reject(
           new Error(
             `Python extraction failed (${String(code)}): ${stderr.trim()}`,
           ),
-        );
-        return;
+        )
+        return
       }
       try {
-        resolve(decodeDeclarations(JSON.parse(stdout)));
+        resolve(decodeDeclarations(JSON.parse(stdout)))
       } catch (error) {
-        reject(error);
+        reject(error)
       }
-    });
-  });
+    })
+  })
 
 const slugify = (value: string): string =>
   value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-+|-+$/gu, "") || "api";
+    .replace(/[^a-z0-9]+/gu, '-')
+    .replace(/^-+|-+$/gu, '') || 'api'
 
-const escapeYaml = (value: string): string => JSON.stringify(value);
+const escapeYaml = (value: string): string => JSON.stringify(value)
 
 export const generatePythonApiFiles = (
   declarations: ReadonlyArray<PythonDeclaration>,
   options: PythonGenerationOptions = {},
 ): ReadonlyArray<GeneratedPythonFile> => {
-  const title = options.title ?? "Python API";
-  const description = options.description ?? "Generated Python API reference.";
+  const title = options.title ?? 'Python API'
+  const description = options.description ?? 'Generated Python API reference.'
   const pages = declarations.map((declaration, index) => {
-    const slug = slugify(declaration.name);
-    const members = declaration.members.flatMap((member) => [
+    const slug = slugify(declaration.name)
+    const members = declaration.members.flatMap(member => [
       `## ${member.name}`,
-      "",
+      '',
       member.description,
-      "",
-      "```python",
+      '',
+      '```python',
       member.signature,
-      "```",
-      "",
-    ]);
+      '```',
+      '',
+    ])
     return {
       slug,
       file: {
         path: `${slug}.mdx`,
         content: [
-          "---",
+          '---',
           `title: ${escapeYaml(declaration.name)}`,
           `description: ${escapeYaml(declaration.description)}`,
           `order: ${String(index + 2)}`,
-          "tags:",
-          "  - Python",
+          'tags:',
+          '  - Python',
           `  - ${declaration.kind}`,
-          "---",
-          "",
+          '---',
+          '',
           `# ${declaration.name}`,
-          "",
+          '',
           declaration.description,
-          "",
+          '',
           `**${declaration.kind}**`,
-          "",
-          "```python",
+          '',
+          '```python',
           declaration.signature,
-          "```",
-          "",
+          '```',
+          '',
           ...members,
-        ].join("\n"),
+        ].join('\n'),
       },
-    };
-  });
-  const baseUrl = options.baseUrl?.replace(/\/+$/u, "") ?? "";
+    }
+  })
+  const baseUrl = options.baseUrl?.replace(/\/+$/u, '') ?? ''
   const index = [
-    "---",
+    '---',
     `title: ${escapeYaml(title)}`,
     `description: ${escapeYaml(description)}`,
-    "order: 1",
-    "---",
-    "",
+    'order: 1',
+    '---',
+    '',
     `# ${title}`,
-    "",
+    '',
     description,
-    "",
+    '',
     ...pages.flatMap(({ slug }, index) => [
       `## [${declarations[index]!.name}](${baseUrl.length === 0 ? `./${slug}` : `${baseUrl}/${slug}`})`,
-      "",
+      '',
       declarations[index]!.description,
-      "",
+      '',
     ]),
-  ].join("\n");
+  ].join('\n')
   return [
-    { path: "index.mdx", content: index },
+    { path: 'index.mdx', content: index },
     {
-      path: "meta.json",
+      path: 'meta.json',
       content: JSON.stringify(
         {
           title,
           description,
           root: options.root ?? true,
           defaultOpen: true,
-          pages: ["index", ...pages.map(({ slug }) => slug)],
+          pages: ['index', ...pages.map(({ slug }) => slug)],
         },
         null,
         2,
-      ).concat("\n"),
+      ).concat('\n'),
     },
     ...pages.map(({ file }) => file),
-  ];
-};
+  ]
+}
 
 export const generateFilesOnly = async (
   options: GeneratePythonFilesOptions,
@@ -288,38 +288,38 @@ export const generateFilesOnly = async (
   generatePythonApiFiles(await extractPythonApi(options.input, options), {
     ...options,
     baseUrl: options.baseUrl ?? path.basename(path.resolve(options.output)),
-  });
+  })
 
 export const generateFiles = async (
   options: GeneratePythonFilesOptions,
 ): Promise<ReadonlyArray<GeneratedPythonFile>> => {
-  const files = await generateFilesOnly(options);
-  await fs.mkdir(options.output, { recursive: true });
-  const manifestPath = path.join(options.output, generatedManifestName);
-  const previous = await fs.readFile(manifestPath, "utf8").then(
-    (source) => JSON.parse(source) as string[],
-    (error) => {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-      throw error;
+  const files = await generateFilesOnly(options)
+  await fs.mkdir(options.output, { recursive: true })
+  const manifestPath = path.join(options.output, generatedManifestName)
+  const previous = await fs.readFile(manifestPath, 'utf8').then(
+    source => JSON.parse(source) as string[],
+    error => {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+      throw error
     },
-  );
-  const next = new Set(files.map((file) => file.path));
+  )
+  const next = new Set(files.map(file => file.path))
   await Promise.all(
     previous
-      .filter((file) => path.basename(file) === file && !next.has(file))
-      .map((file) =>
+      .filter(file => path.basename(file) === file && !next.has(file))
+      .map(file =>
         fs.unlink(path.join(options.output, file)).catch(() => undefined),
       ),
-  );
+  )
   await Promise.all(
-    files.map((file) =>
-      fs.writeFile(path.join(options.output, file.path), file.content, "utf8"),
+    files.map(file =>
+      fs.writeFile(path.join(options.output, file.path), file.content, 'utf8'),
     ),
-  );
+  )
   await fs.writeFile(
     manifestPath,
-    JSON.stringify([...next].toSorted(), null, 2).concat("\n"),
-    "utf8",
-  );
-  return files;
-};
+    JSON.stringify([...next].toSorted(), null, 2).concat('\n'),
+    'utf8',
+  )
+  return files
+}

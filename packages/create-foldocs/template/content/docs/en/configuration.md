@@ -51,7 +51,7 @@ Foldocs emits both `llms.txt`, a compact page index, and `llms-full.txt`, a
 complete Markdown corpus. Set `llms: false` only if you do not want these assets.
 
 Every page is also emitted as processed Markdown by appending `.md` to its URL—for
-example, `/en/docs/getting-started.md`. Foldocs serves the same content when a
+example, `/en/docs/concepts/effects.md`. Foldocs serves the same content when a
 client requests the HTML route with `Accept: text/markdown`. Set `markdown: false`
 to disable the per-page assets and page actions.
 
@@ -119,12 +119,12 @@ in `site.icons`. The same name then works in page frontmatter and `meta.json`:
 ```ts
 export default defineConfig({
   site: {
-    title: "My docs",
+    title: 'My docs',
     icons: {
       rocket: '<svg viewBox="0 0 24 24" aria-hidden="true">...</svg>',
     },
   },
-});
+})
 ```
 
 Directories wrapped in parentheses are route groups. For example,
@@ -157,10 +157,10 @@ children are already-rendered Foldkit nodes, keeping content deterministic and
 safe to index.
 
 ```ts
-import type { MdxComponents } from "foldocs";
-import { html } from "foldkit/html";
+import { html } from 'foldkit/html'
+import type { MdxComponents } from 'foldocs'
 
-const h = html();
+const h = html()
 
 export const mdxComponents: MdxComponents = {
   inline: {
@@ -169,7 +169,7 @@ export const mdxComponents: MdxComponents = {
   block: {
     Aside: (_, content) => h.aside([], content),
   },
-};
+}
 ```
 
 Use the registered names directly from MDX:
@@ -179,22 +179,3 @@ Press <Kbd>⌘K</Kbd> to search.
 
 <Aside type="tip">This renderer belongs to your application.</Aside>
 ```
-
-## OpenAPI
-
-Edit the included `openapi.yaml`, then run `pnpm generate:api`. The separate
-`@foldocs/openapi` package writes a root-folder API reference to
-`content/docs/en/api`, including operation pages, parameters, schemas, examples,
-request samples, responses, and navigation metadata.
-
-## AsyncAPI
-
-Edit `asyncapi.yaml`, then run `pnpm generate:events`. `@foldocs/asyncapi`
-generates channel and message pages with payloads, examples, protocol bindings,
-and root navigation metadata.
-
-## EPUB and Obsidian
-
-Run `pnpm export:epub` to package the English content tree as EPUB 3. To migrate an
-Obsidian vault, create a `vault` directory and run `pnpm import:obsidian`; wiki
-links, embeds, comments, and attachments become managed MDX content.

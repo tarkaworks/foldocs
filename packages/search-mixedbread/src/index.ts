@@ -1,59 +1,60 @@
+import { Effect } from 'effect'
+
 import {
+  type SearchClient,
+  type SearchDocument,
   SearchError,
+  type SearchIndexer,
+  type SearchSyncReport,
   createSearchIndexer,
   excerpt,
   syncSearchDocuments,
-  type SearchClient,
-  type SearchDocument,
-  type SearchIndexer,
-  type SearchSyncReport,
-} from "@foldocs/search";
-import { Effect } from "effect";
+} from '@foldocs/search'
 
 export interface MixedbreadSearchItem {
-  readonly file_id: string;
-  readonly chunk_index: number;
-  readonly score?: number;
-  readonly text?: string;
+  readonly file_id: string
+  readonly chunk_index: number
+  readonly score?: number
+  readonly text?: string
   readonly generated_metadata?: Readonly<{
-    title?: string;
-    description?: string;
-    url?: string;
-  }>;
+    title?: string
+    description?: string
+    url?: string
+  }>
 }
 
 export interface MixedbreadClient {
   readonly stores: {
     readonly search: (request: Readonly<Record<string, unknown>>) => Promise<{
-      readonly data: ReadonlyArray<MixedbreadSearchItem>;
-    }>;
-  };
+      readonly data: ReadonlyArray<MixedbreadSearchItem>
+    }>
+  }
 }
 
 export interface MixedbreadOptions {
-  readonly client: MixedbreadClient;
-  readonly storeIdentifier: string;
+  readonly client: MixedbreadClient
+  readonly storeIdentifier: string
 }
 
 export interface MixedbreadIngestionOptions {
   /** Replace the store using the Mixedbread SDK, CLI, or a private CI endpoint. */
-  readonly replace: (documents: ReadonlyArray<SearchDocument>) => Promise<void>;
+  readonly replace: (documents: ReadonlyArray<SearchDocument>) => Promise<void>
 }
 
 export const createMixedbreadSearchIndexer = (
   options: MixedbreadIngestionOptions,
-): SearchIndexer => createSearchIndexer("mixedbread", options.replace);
+): SearchIndexer => createSearchIndexer('mixedbread', options.replace)
 
 export const syncMixedbreadSearch = (
   options: MixedbreadIngestionOptions,
   documents: ReadonlyArray<SearchDocument>,
 ): Effect.Effect<SearchSyncReport, SearchError> =>
-  syncSearchDocuments(createMixedbreadSearchIndexer(options), documents);
+  syncSearchDocuments(createMixedbreadSearchIndexer(options), documents)
 
 export const createMixedbreadSearchClient = (
   options: MixedbreadOptions,
 ): SearchClient => ({
-  provider: "mixedbread",
+  provider: 'mixedbread',
   search: (query, searchOptions = {}) =>
     query.trim().length === 0
       ? Effect.succeed([])
@@ -64,24 +65,24 @@ export const createMixedbreadSearchClient = (
               store_identifiers: [options.storeIdentifier],
               top_k: searchOptions.limit ?? 12,
               search_options: { return_metadata: true },
-            });
-            return response.data.flatMap((item) => {
-              const metadata = item.generated_metadata;
-              if (metadata?.url === undefined) return [];
+            })
+            return response.data.flatMap(item => {
+              const metadata = item.generated_metadata
+              if (metadata?.url === undefined) return []
               return [
                 {
                   id: `${item.file_id}-${String(item.chunk_index)}`,
                   url: metadata.url,
-                  title: metadata.title ?? "Untitled",
+                  title: metadata.title ?? 'Untitled',
                   excerpt: excerpt(
-                    metadata.description ?? item.text ?? "",
+                    metadata.description ?? item.text ?? '',
                     query,
                   ),
                   score: item.score ?? 0,
                 },
-              ];
-            });
+              ]
+            })
           },
-          catch: (cause) => new SearchError("mixedbread", cause),
+          catch: cause => new SearchError('mixedbread', cause),
         }),
-});
+})

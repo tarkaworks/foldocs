@@ -29,7 +29,6 @@
     "@foldocs/cli": "workspace:*",
     "@foldocs/epub": "workspace:*",
     "@foldocs/language": "workspace:*",
-    "@foldocs/obsidian": "workspace:*",
     "@foldocs/openapi": "workspace:*",
     "@foldocs/python": "workspace:*",
     "@foldocs/tailwind": "workspace:*",

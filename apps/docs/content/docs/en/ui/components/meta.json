@@ -1,0 +1,15 @@
+{
+  "title": "Components",
+  "icon": "blocks",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "callout",
+    "cards",
+    "tabs",
+    "steps",
+    "accordion",
+    "files",
+    "code-blocks"
+  ]
+}

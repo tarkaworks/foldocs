@@ -5,10 +5,19 @@ description: Add Foldocs to an existing Foldkit workspace with pnpm.
 
 # Install with pnpm
 
+## Install runtime packages
+
 Install the framework and its Foldkit runtime:
 
 ```sh
 pnpm add foldocs foldkit effect
 ```
 
+## Configure Vite
+
 Then add the Foldocs Vite plugin and point it at your `content/docs` directory.
+
+## Verify the application
+
+Run `pnpm dev`, open a nested documentation route, and confirm a production
+build emits that route as static HTML.

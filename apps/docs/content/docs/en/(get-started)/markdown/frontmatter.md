@@ -5,9 +5,13 @@ description: Define page metadata once and reuse it across navigation, SEO, and 
 
 # Frontmatter
 
+## Metadata boundary
+
 Frontmatter is parsed by Foldocs before the Markdown body enters the official
 Foldkit parser. Source lines are preserved so compiler errors still point at the
 correct location.
+
+## Supported fields
 
 | Field              | Effect                                                 |
 | ------------------ | ------------------------------------------------------ |
@@ -21,5 +25,7 @@ correct location.
 | `hidden`           | Routable page excluded from navigation                 |
 | `keywords`, `tags` | Discovery metadata                                     |
 | `socialImage`      | Page-specific Open Graph image                         |
+
+## Validation
 
 Unknown fields are rejected instead of being silently discarded.

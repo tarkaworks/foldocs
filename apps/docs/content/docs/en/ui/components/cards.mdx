@@ -1,0 +1,38 @@
+---
+title: Cards
+description: Present a compact group of related documentation destinations.
+icon: blocks
+---
+
+# Cards
+
+Cards make a small set of important next destinations easier to scan. Keep normal
+text links in surrounding prose so the page remains useful outside the visual UI.
+
+## Example
+
+<Cards>
+  <Card
+    title="Layouts"
+    description="Choose the shell for a documentation root."
+    icon="panels-top-left"
+    href="/en/docs/ui/layouts"
+  />
+  <Card
+    title="Theme"
+    description="Apply brand colors and typography."
+    icon="settings"
+    href="/en/docs/ui/theme"
+  />
+</Cards>
+
+## Properties
+
+`Card` accepts `title`, `description`, `href`, and an optional Lucide `icon`.
+Applications can replace an icon name through `site.icons` with a project-owned
+SVG.
+
+## Usage
+
+Use two to four cards for meaningful choices. A long API list should remain a
+normal list or table rather than becoming a grid of oversized controls.

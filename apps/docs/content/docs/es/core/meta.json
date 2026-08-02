@@ -1,0 +1,20 @@
+{
+  "title": "Foldocs Core",
+  "description": "Configuración, manifiestos y navegación",
+  "icon": "database",
+  "root": true,
+  "pages": [
+    "---Introducción---",
+    "index",
+    "page-tree",
+    "---Configuración---",
+    "configuration",
+    "manifests",
+    "content-sources",
+    "---Runtime---",
+    "navigation",
+    "internationalization",
+    "search",
+    "utilities"
+  ]
+}

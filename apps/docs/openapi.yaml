@@ -20,12 +20,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Compiled document metadata.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Document"
+                $ref: '#/components/schemas/Document'
   /search:
     post:
       operationId: searchDocuments
@@ -47,14 +47,14 @@ paths:
                   type: string
                   description: Requested content locale.
       responses:
-        "200":
+        '200':
           description: Matching documents.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Document"
+                  $ref: '#/components/schemas/Document'
 components:
   schemas:
     Document:

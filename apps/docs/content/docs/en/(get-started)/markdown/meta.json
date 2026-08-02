@@ -2,5 +2,13 @@
   "title": "Markdown",
   "icon": "file-text",
   "defaultOpen": false,
-  "pages": ["index", "frontmatter", "code-blocks", "islands"]
+  "pages": [
+    "index",
+    "frontmatter",
+    "gfm",
+    "directives",
+    "code-blocks",
+    "twoslash",
+    "islands"
+  ]
 }

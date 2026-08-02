@@ -1,0 +1,34 @@
+---
+title: Files
+description: Explain project structure with accessible file and folder trees.
+icon: files
+---
+
+# Files
+
+Use `Files`, `Folder`, and `File` to document generated or expected project
+structure.
+
+## Example
+
+<Files>
+  <Folder name="content" defaultOpen="true">
+    <Folder name="docs" defaultOpen="true">
+      <Folder name="en" defaultOpen="true">
+        <File name="index.mdx" />
+        <File name="meta.json" />
+      </Folder>
+    </Folder>
+  </Folder>
+  <File name="foldocs.config.ts" icon="settings" />
+</Files>
+
+## Behavior
+
+Folders use native disclosure state and can start open. File and folder icons are
+Lucide by default and may be overridden through the site icon registry.
+
+## Keep examples focused
+
+Show only the files relevant to the surrounding explanation. A complete
+repository dump is harder to scan and becomes stale quickly.

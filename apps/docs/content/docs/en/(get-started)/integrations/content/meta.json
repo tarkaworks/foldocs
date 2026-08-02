@@ -1,0 +1,14 @@
+{
+  "title": "Content sources",
+  "icon": "files",
+  "defaultOpen": false,
+  "pages": [
+    "index",
+    "local-markdown",
+    "remote-mdx",
+    "remote-adapter",
+    "sanity",
+    "basehub",
+    "obsidian"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Foldocs UI",
+  "description": "Foldkit layouts and documentation views",
+  "icon": "blocks",
+  "root": true,
+  "pages": [
+    "---Introduction---",
+    "index",
+    "component-library",
+    "theme",
+    "---References---",
+    "components",
+    "layouts",
+    "navigation",
+    "markdown",
+    "search",
+    "translations",
+    "customization",
+    "accessibility"
+  ]
+}

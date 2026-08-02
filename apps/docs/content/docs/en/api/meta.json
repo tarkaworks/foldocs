@@ -1,7 +1,0 @@
-{
-  "title": "Foldocs API",
-  "description": "Example endpoints rendered by the separate @foldocs/openapi package.",
-  "root": true,
-  "defaultOpen": true,
-  "pages": ["---HTTP API---", "index", "getdocument", "searchdocuments"]
-}

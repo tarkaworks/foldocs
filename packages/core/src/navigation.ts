@@ -1,141 +1,140 @@
-import type { PageMetadata } from "@foldocs/content";
+import type { PageMetadata } from '@foldocs/content'
 
 export interface NavigationPage {
-  readonly _tag: "Page";
-  readonly label: string;
-  readonly icon?: string;
-  readonly url: string;
-  readonly page: PageMetadata;
+  readonly _tag: 'Page'
+  readonly label: string
+  readonly icon?: string
+  readonly url: string
+  readonly page: PageMetadata
 }
 
 export interface NavigationFolder {
-  readonly _tag: "Folder";
-  readonly label: string;
-  readonly segment: string;
-  readonly defaultOpen: boolean;
+  readonly _tag: 'Folder'
+  readonly label: string
+  readonly segment: string
+  readonly defaultOpen: boolean
   /** Root folders act as mutually exclusive documentation sections/tabs. */
-  readonly root: boolean;
-  readonly description?: string;
-  readonly icon?: string;
+  readonly root: boolean
+  readonly description?: string
+  readonly icon?: string
   /** Optional page linked from the folder row instead of listed as a child. */
-  readonly index?: NavigationPage;
-  readonly children: ReadonlyArray<NavigationNode>;
+  readonly index?: NavigationPage
+  readonly children: ReadonlyArray<NavigationNode>
 }
 
 /** A static sidebar section heading declared as `---Section---` in meta.json. */
 export interface NavigationSeparator {
-  readonly _tag: "Separator";
-  readonly label: string;
+  readonly _tag: 'Separator'
+  readonly label: string
 }
 
 export type NavigationNode =
-  NavigationPage | NavigationFolder | NavigationSeparator;
+  NavigationPage | NavigationFolder | NavigationSeparator
 
 interface MutableFolder {
-  label: string;
-  segment: string;
-  directory: string;
-  folders: Map<string, MutableFolder>;
-  pages: Array<{ readonly key: string; readonly page: PageMetadata }>;
+  label: string
+  segment: string
+  directory: string
+  folders: Map<string, MutableFolder>
+  pages: Array<{ readonly key: string; readonly page: PageMetadata }>
 }
 
 /** Fumadocs-compatible navigation metadata loaded from a directory's meta.json. */
 export interface NavigationMeta {
-  readonly title?: string;
-  readonly description?: string;
-  readonly icon?: string;
-  readonly pages?: ReadonlyArray<string>;
-  readonly defaultOpen?: boolean;
-  readonly root?: boolean;
+  readonly title?: string
+  readonly description?: string
+  readonly icon?: string
+  readonly pages?: ReadonlyArray<string>
+  readonly defaultOpen?: boolean
+  readonly root?: boolean
 }
 
-export type NavigationMetaMap = Readonly<Record<string, NavigationMeta>>;
+export type NavigationMetaMap = Readonly<Record<string, NavigationMeta>>
 
 const humanize = (value: string): string =>
   value
-    .replace(/[-_]+/gu, " ")
-    .replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
+    .replace(/[-_]+/gu, ' ')
+    .replace(/\b\p{L}/gu, letter => letter.toUpperCase())
 
 const pageOrder = (page: PageMetadata): number =>
-  page.frontmatter.order ?? Number.MAX_SAFE_INTEGER;
+  page.frontmatter.order ?? Number.MAX_SAFE_INTEGER
 
 const comparePages = (left: PageMetadata, right: PageMetadata): number =>
   pageOrder(left) - pageOrder(right) ||
-  left.frontmatter.title.localeCompare(right.frontmatter.title);
+  left.frontmatter.title.localeCompare(right.frontmatter.title)
 
 const folderLabel = (segment: string): string =>
-  humanize(segment.replace(/^\((.*)\)$/u, "$1"));
+  humanize(segment.replace(/^\((.*)\)$/u, '$1'))
 
 const separatorLabel = (entry: string): string | undefined => {
-  const match = /^---(.+?)---$/u.exec(entry.trim());
-  const label = match?.[1]?.trim();
-  return label === undefined || label.length === 0 ? undefined : label;
-};
+  const match = /^---(.+?)---$/u.exec(entry.trim())
+  const label = match?.[1]?.trim()
+  return label === undefined || label.length === 0 ? undefined : label
+}
 
 const orderChildren = (
   entries: ReadonlyArray<{
-    readonly key: string;
-    readonly node: NavigationPage | NavigationFolder;
+    readonly key: string
+    readonly node: NavigationPage | NavigationFolder
   }>,
   pages: ReadonlyArray<string> | undefined,
 ): ReadonlyArray<NavigationNode> => {
   const sorted = [...entries].sort((left, right) => {
-    if (left.node._tag === "Page" && right.node._tag === "Page")
-      return comparePages(left.node.page, right.node.page);
-    return left.node.label.localeCompare(right.node.label);
-  });
-  if (pages === undefined) return sorted.map(({ node }) => node);
+    if (left.node._tag === 'Page' && right.node._tag === 'Page')
+      return comparePages(left.node.page, right.node.page)
+    return left.node.label.localeCompare(right.node.label)
+  })
+  if (pages === undefined) return sorted.map(({ node }) => node)
 
   const explicitKeys = new Set(
     pages.filter(
-      (entry) => entry !== "..." && separatorLabel(entry) === undefined,
+      entry => entry !== '...' && separatorLabel(entry) === undefined,
     ),
-  );
-  const explicit = new Map(sorted.map((entry) => [entry.key, entry.node]));
+  )
+  const explicit = new Map(sorted.map(entry => [entry.key, entry.node]))
   const remaining = sorted
     .filter(({ key }) => !explicitKeys.has(key))
-    .map(({ node }) => node);
-  const ordered: NavigationNode[] = [];
-  const included = new Set<string>();
-  let includedRemaining = false;
+    .map(({ node }) => node)
+  const ordered: NavigationNode[] = []
+  const included = new Set<string>()
+  let includedRemaining = false
 
   for (const entry of pages) {
-    const separator = separatorLabel(entry);
+    const separator = separatorLabel(entry)
     if (separator !== undefined) {
-      ordered.push({ _tag: "Separator", label: separator });
-      continue;
+      ordered.push({ _tag: 'Separator', label: separator })
+      continue
     }
-    if (entry === "...") {
-      if (!includedRemaining) ordered.push(...remaining);
-      includedRemaining = true;
-      continue;
+    if (entry === '...') {
+      if (!includedRemaining) ordered.push(...remaining)
+      includedRemaining = true
+      continue
     }
-    const node = explicit.get(entry);
+    const node = explicit.get(entry)
     if (node !== undefined && !included.has(entry)) {
-      ordered.push(node);
-      included.add(entry);
+      ordered.push(node)
+      included.add(entry)
     }
   }
 
-  if (!includedRemaining) ordered.push(...remaining);
-  return ordered;
-};
+  return ordered
+}
 
 const freezeFolder = (
   folder: MutableFolder,
   metadata: NavigationMetaMap,
 ): NavigationFolder => {
-  const meta = metadata[folder.directory];
-  const folders = [...folder.folders.values()].map((child) => ({
+  const meta = metadata[folder.directory]
+  const folders = [...folder.folders.values()].map(child => ({
     key: child.segment,
     node: freezeFolder(child, metadata),
-  }));
+  }))
   const pages = folder.pages
     .sort((left, right) => comparePages(left.page, right.page))
     .map(({ key, page }) => ({
       key,
       node: {
-        _tag: "Page",
+        _tag: 'Page',
         label: page.frontmatter.label ?? page.frontmatter.title,
         ...(page.frontmatter.icon === undefined
           ? {}
@@ -143,16 +142,16 @@ const freezeFolder = (
         url: page.url,
         page,
       } satisfies NavigationPage,
-    }));
+    }))
   const indexEntry = pages.find(
-    ({ key, node }) => key === "index" && node.page.frontmatter.index === true,
-  );
+    ({ key, node }) => key === 'index' && node.page.frontmatter.index === true,
+  )
   const children = orderChildren(
-    [...pages.filter((entry) => entry !== indexEntry), ...folders],
+    [...pages.filter(entry => entry !== indexEntry), ...folders],
     meta?.pages,
-  );
+  )
   return {
-    _tag: "Folder",
+    _tag: 'Folder',
     label: meta?.title ?? folder.label,
     segment: folder.segment,
     defaultOpen: meta?.defaultOpen ?? true,
@@ -163,148 +162,148 @@ const freezeFolder = (
     ...(meta?.icon === undefined ? {} : { icon: meta.icon }),
     ...(indexEntry === undefined ? {} : { index: indexEntry.node }),
     children,
-  };
-};
+  }
+}
 
 const navigationPath = (
   page: PageMetadata,
 ): { readonly folders: ReadonlyArray<string>; readonly page: string } => {
   const segments = (page.navigationPath ?? page.translationKey ?? page.id)
-    .replace(/\.(?:md|mdx)$/iu, "")
-    .split("/")
-    .filter(Boolean);
-  const pageKey = segments.pop() ?? "index";
-  return { folders: segments, page: pageKey };
-};
+    .replace(/\.(?:md|mdx)$/iu, '')
+    .split('/')
+    .filter(Boolean)
+  const pageKey = segments.pop() ?? 'index'
+  return { folders: segments, page: pageKey }
+}
 
 export const buildNavigation = (
   pages: ReadonlyArray<PageMetadata>,
   metadata: NavigationMetaMap = {},
 ): ReadonlyArray<NavigationNode> => {
   const root: MutableFolder = {
-    label: "Documentation",
-    segment: "",
-    directory: "",
+    label: 'Documentation',
+    segment: '',
+    directory: '',
     folders: new Map(),
     pages: [],
-  };
+  }
 
   for (const page of pages) {
     if (page.frontmatter.hidden === true || page.frontmatter.draft === true)
-      continue;
-    const { folders: folderSegments, page: pageKey } = navigationPath(page);
-    let cursor = root;
+      continue
+    const { folders: folderSegments, page: pageKey } = navigationPath(page)
+    let cursor = root
     for (const segment of folderSegments) {
-      let next = cursor.folders.get(segment);
+      let next = cursor.folders.get(segment)
       if (next === undefined) {
-        const directory = [cursor.directory, segment].filter(Boolean).join("/");
+        const directory = [cursor.directory, segment].filter(Boolean).join('/')
         next = {
           label: folderLabel(segment),
           segment,
           directory,
           folders: new Map(),
           pages: [],
-        };
-        cursor.folders.set(segment, next);
+        }
+        cursor.folders.set(segment, next)
       }
-      cursor = next;
+      cursor = next
     }
-    cursor.pages.push({ key: pageKey, page });
+    cursor.pages.push({ key: pageKey, page })
   }
 
-  return freezeFolder(root, metadata).children;
-};
+  return freezeFolder(root, metadata).children
+}
 
 export const flattenNavigation = (
   nodes: ReadonlyArray<NavigationNode>,
 ): ReadonlyArray<NavigationPage> =>
-  nodes.flatMap((node) =>
-    node._tag === "Page"
+  nodes.flatMap(node =>
+    node._tag === 'Page'
       ? [node]
-      : node._tag === "Folder"
+      : node._tag === 'Folder'
         ? [
             ...(node.index === undefined ? [] : [node.index]),
             ...flattenNavigation(node.children),
           ]
         : [],
-  );
+  )
 
 export interface NavigationTab {
-  readonly title: string;
-  readonly description?: string;
-  readonly icon?: string;
-  readonly url: string;
-  readonly current: boolean;
+  readonly title: string
+  readonly description?: string
+  readonly icon?: string
+  readonly url: string
+  readonly current: boolean
 }
 
 const containsUrl = (node: NavigationNode, currentUrl: string): boolean =>
-  node._tag === "Page"
+  node._tag === 'Page'
     ? node.url === currentUrl
-    : node._tag === "Folder"
+    : node._tag === 'Folder'
       ? node.index?.url === currentUrl ||
-        node.children.some((child) => containsUrl(child, currentUrl))
-      : false;
+        node.children.some(child => containsUrl(child, currentUrl))
+      : false
 
 const collectRootFolders = (
   nodes: ReadonlyArray<NavigationNode>,
 ): ReadonlyArray<NavigationFolder> =>
-  nodes.flatMap((node) => {
-    if (node._tag !== "Folder") return [];
-    return node.root ? [node] : collectRootFolders(node.children);
-  });
+  nodes.flatMap(node => {
+    if (node._tag !== 'Folder') return []
+    return node.root ? [node] : collectRootFolders(node.children)
+  })
 
 const activeRootFolder = (
   nodes: ReadonlyArray<NavigationNode>,
   currentUrl: string,
 ): NavigationFolder | undefined => {
   for (const node of nodes) {
-    if (node._tag !== "Folder") continue;
-    const nested = activeRootFolder(node.children, currentUrl);
-    if (nested !== undefined) return nested;
-    if (node.root && containsUrl(node, currentUrl)) return node;
+    if (node._tag !== 'Folder') continue
+    const nested = activeRootFolder(node.children, currentUrl)
+    if (nested !== undefined) return nested
+    if (node.root && containsUrl(node, currentUrl)) return node
   }
-  return undefined;
-};
+  return undefined
+}
 
 const withoutRootFolders = (
   nodes: ReadonlyArray<NavigationNode>,
 ): ReadonlyArray<NavigationNode> => {
   const filtered = nodes.flatMap((node): ReadonlyArray<NavigationNode> => {
-    if (node._tag !== "Folder") return [node];
-    if (node.root) return [];
-    const children = withoutRootFolders(node.children);
+    if (node._tag !== 'Folder') return [node]
+    if (node.root) return []
+    const children = withoutRootFolders(node.children)
     return node.index !== undefined ||
-      children.some((child) => child._tag !== "Separator")
+      children.some(child => child._tag !== 'Separator')
       ? [{ ...node, children }]
-      : [];
-  });
+      : []
+  })
   return filtered.filter((node, index) => {
-    if (node._tag !== "Separator") return true;
+    if (node._tag !== 'Separator') return true
     for (const candidate of filtered.slice(index + 1)) {
-      if (candidate._tag === "Separator") return false;
-      return true;
+      if (candidate._tag === 'Separator') return false
+      return true
     }
-    return false;
-  });
-};
+    return false
+  })
+}
 
 /** Returns the sidebar tree visible for a URL, respecting Fumadocs-style roots. */
 export const navigationForUrl = (
   nodes: ReadonlyArray<NavigationNode>,
   currentUrl: string,
 ): ReadonlyArray<NavigationNode> =>
-  activeRootFolder(nodes, currentUrl)?.children ?? withoutRootFolders(nodes);
+  activeRootFolder(nodes, currentUrl)?.children ?? withoutRootFolders(nodes)
 
 /** Returns layout tabs when the URL is inside a root folder. */
 export const navigationTabsForUrl = (
   nodes: ReadonlyArray<NavigationNode>,
   currentUrl: string,
 ): ReadonlyArray<NavigationTab> => {
-  const current = activeRootFolder(nodes, currentUrl);
-  if (current === undefined) return [];
-  return collectRootFolders(nodes).flatMap((folder) => {
-    const url = folder.index?.url ?? flattenNavigation(folder.children)[0]?.url;
-    if (url === undefined) return [];
+  const current = activeRootFolder(nodes, currentUrl)
+  if (current === undefined) return []
+  return collectRootFolders(nodes).flatMap(folder => {
+    const url = folder.index?.url ?? flattenNavigation(folder.children)[0]?.url
+    if (url === undefined) return []
     return [
       {
         title: folder.label,
@@ -315,6 +314,6 @@ export const navigationTabsForUrl = (
         url,
         current: folder === current,
       },
-    ];
-  });
-};
+    ]
+  })
+}

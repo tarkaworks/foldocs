@@ -1,25 +1,25 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from 'vitest'
 
 import {
-  createSanityContentSource,
   type SanityClientLike,
-} from "../src/index.js";
+  createSanityContentSource,
+} from '../src/index.js'
 
-describe("Sanity content source", () => {
-  it("maps a GROQ result to virtual MDX files", async () => {
-    const fetchCalls = vi.fn();
+describe('Sanity content source', () => {
+  it('maps a GROQ result to virtual MDX files', async () => {
+    const fetchCalls = vi.fn()
     const client: SanityClientLike = {
       async fetch<Result>(
         query: string,
         params?: Readonly<Record<string, unknown>>,
         options?: Readonly<Record<string, unknown>>,
       ) {
-        fetchCalls(query, params, options);
+        fetchCalls(query, params, options)
         return [
-          { slug: "intro", title: "Introduction", body: "Welcome" },
-        ] as unknown as Result;
+          { slug: 'intro', title: 'Introduction', body: 'Welcome' },
+        ] as unknown as Result
       },
-    };
+    }
     const source = createSanityContentSource({
       client,
       query: '*[_type == "docs"]',
@@ -27,15 +27,15 @@ describe("Sanity content source", () => {
         path: `${record.slug}.mdx`,
         source: `---\ntitle: ${record.title}\n---\n\n${record.body}`,
       }),
-    });
+    })
 
     expect(await source.load()).toEqual([
-      expect.objectContaining({ path: "intro.mdx" }),
-    ]);
+      expect.objectContaining({ path: 'intro.mdx' }),
+    ])
     expect(fetchCalls).toHaveBeenCalledWith(
       '*[_type == "docs"]',
       undefined,
       undefined,
-    );
-  });
-});
+    )
+  })
+})
