@@ -1,9 +1,9 @@
 ---
-title: Bun
+title: Install with Bun
 description: Install Foldocs in an existing Foldkit application with Bun.
 ---
 
-# Bun
+# Install with Bun
 
 ## Runtime packages
 
