@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { tegami } from 'tegami'
+import { type PublishPlan, tegami } from 'tegami'
 import { runCli } from 'tegami/cli'
 import { github } from 'tegami/plugins/github'
 
@@ -66,5 +66,28 @@ export const paper = tegami({
 })
 
 if (import.meta.main) {
-  await runCli(paper)
+  const publishWithDiagnostics = async () => {
+    try {
+      return (await paper.publish()) as PublishPlan
+    } catch (error) {
+      const failures = error instanceof AggregateError ? error.errors : [error]
+
+      console.error(
+        failures
+          .map((failure, index) => {
+            const message =
+              failure instanceof Error ? failure.message : String(failure)
+            return `Publish failure ${index + 1}:\n${message}`
+          })
+          .join('\n\n'),
+      )
+      throw error
+    }
+  }
+
+  const shouldPublish =
+    process.argv[2] === 'ci' ||
+    (process.argv[2] === 'publish' && !process.argv.includes('--dry-run'))
+
+  await runCli(paper, shouldPublish ? { publish: publishWithDiagnostics } : {})
 }
