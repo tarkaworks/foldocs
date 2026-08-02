@@ -1,5 +1,5 @@
 import { Effect, Option, Queue, Schema as S, Stream } from 'effect'
-import { Command, Mount, Render, type Runtime, Subscription } from 'foldkit'
+import { Command, Render, type Runtime, Subscription } from 'foldkit'
 import * as Dom from 'foldkit/dom'
 import { type Document, type HtmlBuilder } from 'foldkit/html'
 import { m } from 'foldkit/message'
@@ -267,7 +267,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     activeTocId: S.String,
     mobileTocOpen: S.Boolean,
     narrowViewport: S.Boolean,
-    isLandingHeaderVisible: S.Boolean,
     collapsedSidebarGroups: S.Array(S.String),
     theme: S.Literals(['light', 'dark']),
     systemTheme: S.Literals(['light', 'dark']),
@@ -284,6 +283,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   type Model = typeof Model.Type
 
   const CompletedNavigateInternal = m('CompletedNavigateInternal')
+  const CompletedScrollToSection = m('CompletedScrollToSection')
   const CompletedLoadExternal = m('CompletedLoadExternal')
   const CompletedOpenExternalInNewTab = m('CompletedOpenExternalInNewTab')
   const ClickedLink = m('ClickedLink', { request: UrlRequest })
@@ -314,9 +314,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   const SelectedSearchResult = m('SelectedSearchResult', { url: S.String })
   const ChangedNarrowViewport = m('ChangedNarrowViewport', {
     narrow: S.Boolean,
-  })
-  const ChangedHeroVisibility = m('ChangedHeroVisibility', {
-    isVisible: S.Boolean,
   })
   const ToggledSidebar = m('ToggledSidebar')
   const ClosedSidebar = m('ClosedSidebar')
@@ -377,37 +374,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     message: FoldocsDialogMessage,
   })
 
-  const ObserveHeroVisibility = Mount.defineStream(
-    'ObserveHeroVisibility',
-    ChangedHeroVisibility,
-  )(element =>
-    Stream.callback<typeof ChangedHeroVisibility.Type>(queue =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => {
-            const observer = new IntersectionObserver(
-              entries => {
-                const entry = entries[0]
-                if (entry === undefined) return
-                Queue.offerUnsafe(
-                  queue,
-                  ChangedHeroVisibility({ isVisible: entry.isIntersecting }),
-                )
-              },
-              { threshold: 0 },
-            )
-            observer.observe(element)
-            return observer
-          }),
-          observer => Effect.sync(() => observer.disconnect()),
-        )
-        return yield* Effect.never
-      }),
-    ),
-  )
-
   const Message = S.Union([
     CompletedNavigateInternal,
+    CompletedScrollToSection,
     CompletedLoadExternal,
     CompletedOpenExternalInNewTab,
     ClickedLink,
@@ -424,7 +393,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ToggledMobileToc,
     SelectedSearchResult,
     ChangedNarrowViewport,
-    ChangedHeroVisibility,
     ToggledSidebar,
     ClosedSidebar,
     ToggledSearch,
@@ -459,6 +427,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     messages: [CompletedNavigateInternal],
     execute: ({ url }) =>
       pushUrl(url).pipe(Effect.as(CompletedNavigateInternal())),
+  })
+
+  const ScrollToSection = Command.define('ScrollToSection', {
+    args: { sectionId: S.String },
+    messages: [CompletedScrollToSection],
+    execute: ({ sectionId }) =>
+      Effect.sync(() => {
+        globalThis.document
+          ?.getElementById(sectionId)
+          ?.scrollIntoView({ block: 'start' })
+        return CompletedScrollToSection()
+      }),
   })
 
   const LoadExternal = Command.define('LoadExternal', {
@@ -919,7 +899,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         mobileTocOpen: false,
         narrowViewport:
           globalThis.matchMedia?.(narrowViewportQuery).matches ?? false,
-        isLandingHeaderVisible: false,
         collapsedSidebarGroups: [],
         theme,
         systemTheme,
@@ -1115,7 +1094,27 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       case 'ClickedOpenExternal':
         return [model, [OpenExternalInNewTab({ href: message.href })]]
       case 'ChangedUrl': {
-        if (message.url.pathname === model.pathname) return [model, []]
+        if (message.url.pathname === model.pathname) {
+          return Option.match(message.url.hash, {
+            onNone: () => [model, []],
+            onSome: encodedSectionId => {
+              let sectionId = encodedSectionId
+              try {
+                sectionId = decodeURIComponent(encodedSectionId)
+              } catch {
+                // Invalid percent escapes cannot identify a rendered heading.
+              }
+              return [
+                {
+                  ...model,
+                  activeTocId: sectionId,
+                  mobileTocOpen: false,
+                },
+                [ScrollToSection({ sectionId })],
+              ]
+            },
+          })
+        }
         const [page, commands, locale, pathname] = pageRequest(
           message.url.pathname,
         )
@@ -1147,8 +1146,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             activeSearchResultIndex: -1,
             activeTocId: '',
             mobileTocOpen: false,
-            isLandingHeaderVisible:
-              page._tag === 'PageHome' ? false : model.isLandingHeaderVisible,
             copiedText: '',
             copyMarkdownStatus: 'idle',
           },
@@ -1287,7 +1284,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             activeTocId: message.sectionId,
             mobileTocOpen: false,
           },
-          [],
+          [ScrollToSection({ sectionId: message.sectionId })],
         ]
       case 'ToggledMobileToc':
         return [{ ...model, mobileTocOpen: message.open }, []]
@@ -1304,8 +1301,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         const [nextModel, commands] = closeSidebar(model)
         return [{ ...nextModel, narrowViewport: message.narrow }, commands]
       }
-      case 'ChangedHeroVisibility':
-        return [{ ...model, isLandingHeaderVisible: !message.isVisible }, []]
       case 'ToggledSidebar':
         return model.sidebarOpen ? closeSidebar(model) : openSidebar(model)
       case 'ClosedSidebar':
@@ -1418,6 +1413,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       case 'CompletedApplyLocaleMetadata':
       case 'CompletedSaveSidebarGroups':
       case 'CompletedScrollSearchResult':
+      case 'CompletedScrollToSection':
       case 'CompletedNavigateInternal':
       case 'CompletedLoadExternal':
       case 'CompletedOpenExternalInNewTab':
@@ -1508,8 +1504,6 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             headerLanguageMenu: model.headerLanguageMenu,
             theme: model.theme,
             themePreference: model.themePreference,
-            headerVisible: model.isLandingHeaderVisible,
-            heroAttributes: [h.OnMount(ObserveHeroVisibility())],
             copiedText: model.copiedText,
             ...commonSearchOptions(model),
             actions: {

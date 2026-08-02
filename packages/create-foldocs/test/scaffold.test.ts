@@ -131,13 +131,8 @@ describe('create-foldocs', () => {
       fs.readFile(path.join(result.directory, 'public/favicon.svg'), 'utf8'),
     ).resolves.toContain('M148.656 50.395')
     await expect(
-      fs.stat(
-        path.join(
-          result.directory,
-          'public/fonts/JetBrainsMono-Variable.woff2',
-        ),
-      ),
-    ).resolves.toBeDefined()
+      fs.stat(path.join(result.directory, 'public/fonts')),
+    ).rejects.toMatchObject({ code: 'ENOENT' })
     await expect(
       fs.readFile(path.join(result.directory, 'alchemy.run.ts'), 'utf8'),
     ).resolves.toContain("'my-docs',")

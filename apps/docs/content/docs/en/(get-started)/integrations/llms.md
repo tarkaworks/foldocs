@@ -8,8 +8,8 @@ description: Publish agent-readable page Markdown and complete documentation cor
 ## Per-page Markdown
 
 Every page has a sibling `.md` URL and supports Markdown content negotiation.
-The page toolbar provides Copy Markdown, View as Markdown, and shortcuts for
-opening the canonical page in supported assistants.
+The page toolbar provides Copy Markdown plus links to the page source, raw
+Markdown, Scira AI, ChatGPT, Claude, and Cursor.
 
 ## Complete corpora
 

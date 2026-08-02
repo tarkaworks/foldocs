@@ -4,5 +4,3 @@ dist
 .env
 .DS_Store
 *.local
-public/fonts/ABCFavorit-Book.woff2
-public/fonts/ABCFavorit-Light.woff2

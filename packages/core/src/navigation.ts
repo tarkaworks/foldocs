@@ -287,7 +287,7 @@ const withoutRootFolders = (
   })
 }
 
-/** Returns the sidebar tree visible for a URL, respecting Fumadocs-style roots. */
+/** Returns the sidebar tree visible for a URL, respecting configured roots. */
 export const navigationForUrl = (
   nodes: ReadonlyArray<NavigationNode>,
   currentUrl: string,

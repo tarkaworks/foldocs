@@ -33,9 +33,12 @@ export const UiTranslations = S.Struct({
   copyMarkdown: S.optionalKey(S.String),
   openPage: S.optionalKey(S.String),
   openPageMenu: S.optionalKey(S.String),
+  openInGitHub: S.optionalKey(S.String),
   viewAsMarkdown: S.optionalKey(S.String),
+  openInSciraAi: S.optionalKey(S.String),
   openInChatGPT: S.optionalKey(S.String),
   openInClaude: S.optionalKey(S.String),
+  openInCursor: S.optionalKey(S.String),
   openInGrok: S.optionalKey(S.String),
   askAiAboutPage: S.optionalKey(S.String),
   pagination: S.optionalKey(S.String),
@@ -89,9 +92,12 @@ export interface ResolvedUiTranslations {
   readonly copyMarkdown: string
   readonly openPage: string
   readonly openPageMenu: string
+  readonly openInGitHub: string
   readonly viewAsMarkdown: string
+  readonly openInSciraAi: string
   readonly openInChatGPT: string
   readonly openInClaude: string
+  readonly openInCursor: string
   readonly openInGrok: string
   readonly askAiAboutPage: string
   readonly pagination: string
@@ -144,9 +150,12 @@ export const defaultUiTranslations: ResolvedUiTranslations = {
   copyMarkdown: 'Copy Markdown',
   openPage: 'Open',
   openPageMenu: 'Open page options',
+  openInGitHub: 'Open in GitHub',
   viewAsMarkdown: 'View as Markdown',
+  openInSciraAi: 'Open in Scira AI',
   openInChatGPT: 'Open in ChatGPT',
   openInClaude: 'Open in Claude',
+  openInCursor: 'Open in Cursor',
   openInGrok: 'Open in Grok',
   askAiAboutPage: 'Read {url} so I can ask questions about it.',
   pagination: 'Pagination',
@@ -251,10 +260,7 @@ export type LandingConfig = typeof LandingConfig.Type
 export const defaultLandingSections: ReadonlyArray<LandingSection> = [
   'hero',
   'overview',
-  'stack',
   'features',
-  'ai',
-  'proof',
   'cta',
 ]
 

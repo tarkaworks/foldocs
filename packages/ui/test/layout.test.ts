@@ -69,7 +69,6 @@ describe('landing layout', () => {
           headerLanguageMenu: initLanguageMenu('test-landing-language'),
           theme: 'light',
           themePreference: 'system',
-          headerVisible: false,
           copiedText: '',
           searchOpen: false,
           searchDialog: initSearchDialog(),

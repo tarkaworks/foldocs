@@ -169,8 +169,6 @@ export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
   readonly headerLanguageMenu?: LanguageMenuModel
   readonly theme: 'light' | 'dark'
   readonly themePreference: ThemePreference
-  readonly headerVisible: boolean
-  readonly heroAttributes?: ReadonlyArray<Attribute<Message>>
   readonly copiedText: string
   readonly actions: LandingLayoutActions<Message>
 }
@@ -549,6 +547,55 @@ const headerActions = <Message>(
     ],
   )
 }
+
+const headerView = <Message>(
+  site: SiteConfig,
+  homeUrl: string,
+  preference: ThemePreference,
+  selectTheme: (preference: ThemePreference) => Message,
+  searchAction: Message,
+  searchOpen: boolean,
+  locales: ReadonlyArray<LocaleLink>,
+  translations: ResolvedUiTranslations,
+  languageMenu: LanguageMenuModel | undefined,
+  gotLanguageMenuMessage:
+    ((message: LanguageMenuMessage) => Message) | undefined,
+  h: HtmlBuilder<Message>,
+  options: {
+    readonly attributes?: ReadonlyArray<Attribute<Message>>
+    readonly className?: string
+    readonly mobileMenu?: Html
+  } = {},
+): Html =>
+  h.header(
+    [
+      h.Class(
+        `fd-header fd-docs-header${options.className === undefined ? '' : ` ${options.className}`}`,
+      ),
+      ...(options.attributes ?? []),
+    ],
+    [
+      h.div(
+        [h.Class('fd-header-inner')],
+        [
+          brandView(site, h, homeUrl, translations.home),
+          headerActions(
+            site,
+            preference,
+            selectTheme,
+            searchAction,
+            searchOpen,
+            locales,
+            translations,
+            languageMenu,
+            gotLanguageMenuMessage,
+            h,
+            options.mobileMenu,
+          ),
+        ],
+      ),
+    ],
+  )
 
 const navigationContextForUrl = (
   nodes: ReadonlyArray<NavigationNode>,
@@ -1146,6 +1193,38 @@ const markdownDocumentUrl = (site: SiteConfig, markdownUrl: string): string => {
   }
 }
 
+const pageFileForUrl = (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+): string | undefined => {
+  for (const node of nodes) {
+    if (node._tag === 'Separator') continue
+    if (node._tag === 'Page') {
+      if (node.url === currentUrl) return node.page.file
+      continue
+    }
+    if (node.index?.url === currentUrl) return node.index.page.file
+    const nested = pageFileForUrl(node.children, currentUrl)
+    if (nested !== undefined) return nested
+  }
+  return undefined
+}
+
+const githubDocumentUrl = (
+  site: SiteConfig,
+  navigation: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+): string | undefined => {
+  if (site.githubUrl === undefined) return undefined
+  const repositoryUrl = site.githubUrl
+    .replace(/\.git\/?$/u, '')
+    .replace(/\/+$/u, '')
+  const file = pageFileForUrl(navigation, currentUrl)
+  if (file === undefined || file.startsWith('remote:')) return repositoryUrl
+  const encodedFile = file.split('/').map(encodeURIComponent).join('/')
+  return `${repositoryUrl}/blob/main/${encodedFile}`
+}
+
 const pageActionsView = <Message>(
   options: DocsLayoutOptions<Message>,
   h: HtmlBuilder<Message>,
@@ -1154,30 +1233,53 @@ const pageActionsView = <Message>(
   if (!options.markdownEnabled) return h.empty
   const sourceUrl = markdownDocumentUrl(options.site, options.markdownUrl)
   const prompt = interpolateTranslation(t.askAiAboutPage, { url: sourceUrl })
-  const openItems = [
+  const githubUrl = githubDocumentUrl(
+    options.site,
+    options.navigation,
+    options.currentUrl,
+  )
+  const markdownItem = {
+    label: t.viewAsMarkdown,
+    href: options.markdownUrl,
+    icon: 'text',
+  } as const
+  const openItems: ReadonlyArray<{
+    readonly label: string
+    readonly href: string
+    readonly icon: IconName
+  }> = [
+    ...(githubUrl === undefined
+      ? []
+      : [{ label: t.openInGitHub, href: githubUrl, icon: 'github' as const }]),
+    markdownItem,
     {
-      label: t.viewAsMarkdown,
-      href: options.markdownUrl,
-      kind: 'markdown',
+      label: t.openInSciraAi,
+      href: `https://scira.ai/?${new URLSearchParams({ q: prompt })}`,
+      icon: 'scira',
     },
     {
       label: t.openInChatGPT,
-      href: `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`,
-      kind: 'external',
+      href: `https://chatgpt.com/?${new URLSearchParams({
+        prompt,
+        hints: 'search',
+      })}`,
+      icon: 'openai',
     },
     {
       label: t.openInClaude,
-      href: `https://claude.ai/new?q=${encodeURIComponent(prompt)}`,
-      kind: 'external',
+      href: `https://claude.ai/new?${new URLSearchParams({ q: prompt })}`,
+      icon: 'anthropic',
     },
     {
-      label: t.openInGrok,
-      href: `https://grok.com/?q=${encodeURIComponent(prompt)}`,
-      kind: 'external',
+      label: t.openInCursor,
+      href: `https://cursor.com/link/prompt?${new URLSearchParams({
+        text: prompt,
+      })}`,
+      icon: 'cursor',
     },
-  ] as const
+  ]
   const itemForHref = (href: string) =>
-    openItems.find(item => item.href === href) ?? openItems[0]
+    openItems.find(item => item.href === href) ?? markdownItem
   const copyAriaLabel =
     options.copyMarkdownStatus === 'copied'
       ? t.copiedMarkdown
@@ -1205,6 +1307,7 @@ const pageActionsView = <Message>(
                 h.AriaControls(`${pageOpenMenuId}-items`),
                 h.AriaLabel(t.openPageMenu),
                 h.Title(t.openPageMenu),
+                h.Class('fd-control fd-control-outline fd-page-action'),
               ],
               [openButtonContent],
             ),
@@ -1224,21 +1327,17 @@ const pageActionsView = <Message>(
                 content: h.span(
                   [h.Class('fd-page-open-item-content')],
                   [
-                    ...(item.kind === 'markdown' ? [icon('markdown', h)] : []),
+                    icon(item.icon, h, 'fd-page-open-provider'),
                     h.span([h.Class('fd-page-open-label')], [item.label]),
-                    ...(item.kind === 'external'
-                      ? [icon('arrow', h, 'fd-page-open-external')]
-                      : []),
+                    icon('externalLink', h, 'fd-page-open-external'),
                   ],
                 ),
               }
             },
             buttonContent: openButtonContent,
+            buttonClassName: 'fd-control fd-control-outline fd-page-action',
             itemsClassName: 'fd-page-open-menu',
             backdropClassName: 'fd-page-open-backdrop',
-            separatorClassName: 'fd-page-open-separator',
-            itemGroupKey: href =>
-              itemForHref(href).kind === 'markdown' ? 'markdown' : 'ai',
             className: 'fd-page-open',
             ariaLabel: t.openPageMenu,
             anchor: {
@@ -1263,6 +1362,7 @@ const pageActionsView = <Message>(
                 ...button,
                 h.Disabled(options.copyMarkdownStatus === 'loading'),
                 h.AriaLabel(copyAriaLabel),
+                h.Class('fd-control fd-control-outline fd-page-action'),
               ],
               [
                 icon(
@@ -1367,12 +1467,6 @@ export const docsLayout = <Message>(
         h.div(
           [h.Class('fd-sidebar-mobile-footer')],
           [
-            themeSelector(
-              options.themePreference,
-              options.actions.selectTheme,
-              t,
-              h,
-            ),
             languageSelector(
               options.locales,
               t,
@@ -1449,29 +1543,19 @@ export const docsLayout = <Message>(
         [h.Class('fd-skip-link'), h.Href('#main-content')],
         [t.skipToContent],
       ),
-      h.header(
-        [h.Class('fd-header fd-docs-header'), ...backgroundDisabled],
-        [
-          h.div(
-            [h.Class('fd-header-inner')],
-            [
-              brandView(options.site, h, options.homeUrl, t.home),
-              headerActions(
-                options.site,
-                options.themePreference,
-                options.actions.selectTheme,
-                options.actions.toggleSearch,
-                options.searchOpen,
-                options.locales,
-                t,
-                options.headerLanguageMenu,
-                options.actions.gotHeaderLanguageMenuMessage,
-                h,
-                mobileMenuButton,
-              ),
-            ],
-          ),
-        ],
+      headerView(
+        options.site,
+        options.homeUrl,
+        options.themePreference,
+        options.actions.selectTheme,
+        options.actions.toggleSearch,
+        options.searchOpen,
+        options.locales,
+        t,
+        options.headerLanguageMenu,
+        options.actions.gotHeaderLanguageMenuMessage,
+        h,
+        { attributes: backgroundDisabled, mobileMenu: mobileMenuButton },
       ),
       h.div(
         [
@@ -1694,45 +1778,24 @@ export const landingLayout = <Message>(
         [h.Class('fd-skip-link'), h.Href('#main-content')],
         [t.skipToContent],
       ),
-      h.header(
-        [
-          h.Class(
-            `fd-header fd-landing-header ${options.headerVisible ? 'fd-landing-header-visible' : 'fd-landing-header-hidden'}`,
-          ),
-          h.AriaHidden(!options.headerVisible),
-        ],
-        [
-          h.div(
-            [h.Class('fd-header-inner')],
-            [
-              brandView(options.site, h, options.homeUrl, t.home),
-              h.nav(
-                [h.Class('fd-landing-nav'), h.AriaLabel(t.mainNavigation)],
-                [
-                  languageSelector(
-                    options.locales,
-                    t,
-                    options.headerLanguageMenu,
-                    'header-language-menu',
-                    headerLanguageMenuId,
-                    options.actions.gotHeaderLanguageMenuMessage,
-                    h,
-                  ),
-                  themeSelector(
-                    options.themePreference,
-                    options.actions.selectTheme,
-                    t,
-                    h,
-                  ),
-                  h.a(
-                    [h.Class('fd-dive-in'), h.Href(options.docsUrl)],
-                    [t.diveIn, icon<Message>('arrow', h)],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+      headerView(
+        options.site,
+        options.homeUrl,
+        options.themePreference,
+        options.actions.selectTheme,
+        options.actions.toggleSearch,
+        options.searchOpen,
+        options.locales,
+        t,
+        options.headerLanguageMenu,
+        options.actions.gotHeaderLanguageMenuMessage,
+        h,
+        {
+          className: 'fd-landing-header',
+          attributes: options.searchOpen
+            ? [h.AriaHidden(true), h.Attribute('inert', '')]
+            : [],
+        },
       ),
       h.main(
         [h.Id('main-content')],
@@ -1740,18 +1803,11 @@ export const landingLayout = <Message>(
           ...(options.landing.sections.includes('hero')
             ? [
                 h.section(
-                  [
-                    h.Class('fd-landing-section fd-hero'),
-                    ...(options.heroAttributes ?? []),
-                  ],
+                  [h.Class('fd-landing-section fd-hero')],
                   [
                     h.div(
                       [h.Class('fd-landing-section-inner')],
                       [
-                        h.div(
-                          [h.Class('fd-hero-brand')],
-                          [brandView(options.site, h, options.homeUrl, t.home)],
-                        ),
                         h.h1(
                           [],
                           options.landing.headline === undefined

@@ -10,7 +10,7 @@ export default defineConfig({
     logoText: 'Foldocs',
     tagline:
       'Beautiful, searchable, LLM-ready documentation for Foldkit, powered by Effect.',
-    githubUrl: 'https://github.com/Aniket-508/foldocs',
+    githubUrl: 'https://github.com/Tarkaworks/foldocs',
     npmUrl: 'https://www.npmjs.com/package/foldocs',
     keywords: ['Foldkit', 'Effect', 'documentation'],
     favicon: '/favicon.svg',
@@ -24,7 +24,7 @@ export default defineConfig({
   basePath: '/docs',
   layout: { preset: 'docs' },
   landing: {
-    sections: ['hero', 'overview', 'stack', 'features', 'ai', 'proof', 'cta'],
+    sections: ['hero', 'overview', 'features', 'cta'],
     command: 'pnpm create foldocs@latest',
   },
   content: { dir: 'content/docs' },

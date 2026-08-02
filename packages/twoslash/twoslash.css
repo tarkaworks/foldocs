@@ -19,11 +19,15 @@
   color: var(--fd-foreground);
   background: var(--fd-background);
   box-shadow: 0 0.8rem 2rem color-mix(in srgb, #000 18%, transparent);
-  font:
-    0.75rem/1.45 ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    monospace;
+  font-family: var(
+    --fd-font-mono,
+    'JetBrains Mono Variable',
+    'JetBrains Mono',
+    ui-monospace,
+    monospace
+  );
+  font-size: 0.75rem;
+  line-height: 1.45;
   white-space: pre-wrap;
 }
 
@@ -41,7 +45,7 @@
   padding-top: 0.45rem;
   margin-top: 0.45rem;
   border-top: 1px solid var(--fd-border);
-  font-family: 'ABC Favorit', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--fd-font-sans, 'Inter Variable', Inter, sans-serif);
 }
 
 .fd-code .twoslash-error {

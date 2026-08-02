@@ -144,36 +144,86 @@ test('prerendered homepage, localized docs, Markdown, and remote content agree',
   expect(errors).toEqual([])
 })
 
-test('landing navigation follows the hero and the footer keeps its attribution', async ({
+test('landing uses the shared docs header and the footer keeps its attribution', async ({
   page,
 }) => {
   const errors = expectNoRuntimeErrors(page)
   await page.goto('/en')
 
   const header = page.locator('.fd-landing-header')
-  await expect(header).toHaveClass(/fd-landing-header-hidden/u)
-  await expect(header).toHaveAttribute('aria-hidden', 'true')
+  await expect(header).toBeVisible()
+  await expect(header).toHaveClass(/fd-docs-header/u)
+  await expect(header).not.toHaveAttribute('aria-hidden', 'true')
+  await expect(header.locator('#fd-search-trigger')).toBeVisible()
+  await expect(header.locator('.fd-language-trigger')).toBeVisible()
+  await expect(header.locator('.fd-theme-selector')).toBeVisible()
+  await expect(
+    header.locator('.fd-social-link[aria-label="GitHub"]'),
+  ).toHaveAttribute('href', 'https://github.com/Tarkaworks/foldocs')
+  await expect(
+    header.locator('.fd-social-link[aria-label="npm"]'),
+  ).toBeVisible()
+  await expect(page.locator('.fd-hero-brand')).toHaveCount(0)
+  await expect(page.locator('.fd-landing-section')).toHaveCount(4)
+  await expect(page.locator('.fd-landing-section h2')).toHaveText([
+    'Write docs. Ship. Repeat.',
+    'Batteries included.',
+    'Start writing.',
+  ])
+  await expect(
+    page.getByText('Built on Foldkit. Powered by Effect.'),
+  ).toHaveCount(0)
+  await expect(page.getByText('Built for humans. Readable by AI.')).toHaveCount(
+    0,
+  )
+  await expect(page.getByText('Everything is connected.')).toHaveCount(0)
 
-  await page.evaluate(() => {
-    const hero = document.querySelector<HTMLElement>('.fd-hero')
-    if (hero === null) throw new Error('Landing hero was not rendered.')
-    window.scrollTo(0, hero.offsetTop + hero.offsetHeight + 1)
-  })
-  await expect(header).toHaveClass(/fd-landing-header-visible/u)
-  await expect(header).toHaveAttribute('aria-hidden', 'false')
-
-  await page.evaluate(() => window.scrollTo(0, 0))
-  await expect(header).toHaveClass(/fd-landing-header-hidden/u)
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await expect(header).toBeVisible()
 
   const footer = page.locator('.fd-home-footer')
   await expect(footer.locator('.fd-site-footer-left p')).toHaveCount(1)
   await expect(footer).toContainText(
     'Built by Aniket. The source code is available on GitHub.',
   )
+  await expect(footer.getByRole('link', { name: 'Aniket' })).toHaveAttribute(
+    'href',
+    'https://aniketpawar.com',
+  )
+  await expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute(
+    'href',
+    'https://github.com/Tarkaworks/foldocs',
+  )
   await expect(footer).toContainText('© 2026 Tarkaworks')
   await expect(
     footer.getByRole('link', { name: 'Tarkaworks on X' }),
   ).toHaveAttribute('href', 'https://x.com/tarkaworks')
+  expect(errors).toEqual([])
+})
+
+test('open fonts are bundled and applied consistently', async ({ page }) => {
+  const errors = expectNoRuntimeErrors(page)
+  await page.goto('/en/docs/markdown/code-blocks')
+
+  const typography = await page.evaluate(async () => {
+    await document.fonts.ready
+    const code = document.querySelector<HTMLElement>('.fd-code-block pre')
+    if (code === null) throw new Error('Code block was not rendered.')
+
+    return {
+      body: getComputedStyle(document.body).fontFamily,
+      code: getComputedStyle(code).fontFamily,
+      interLoaded: document.fonts.check('16px "Inter Variable"'),
+      jetBrainsMonoLoaded: document.fonts.check(
+        '14px "JetBrains Mono Variable"',
+      ),
+    }
+  })
+
+  expect(typography.body).toContain('Inter Variable')
+  expect(typography.code).toContain('JetBrains Mono Variable')
+  expect(typography.interLoaded).toBe(true)
+  expect(typography.jetBrainsMonoLoaded).toBe(true)
   expect(errors).toEqual([])
 })
 
@@ -244,6 +294,7 @@ test('Foldkit theme colors and dropdown chevrons stay synchronized', async ({
   await page.goto('/en/docs')
 
   const root = page.locator('.fd-root')
+  await expect(root).not.toHaveAttribute('id', 'root')
   const search = page.locator('#fd-search-trigger')
   const light = page.getByRole('button', { name: 'Light' })
   const dark = page.getByRole('button', { name: 'Dark' })
@@ -261,11 +312,15 @@ test('Foldkit theme colors and dropdown chevrons stay synchronized', async ({
   const githubLink = page.locator(
     '.fd-header .fd-social-link[aria-label="GitHub"]',
   )
+  await expect(githubLink).toHaveAttribute(
+    'href',
+    'https://github.com/Tarkaworks/foldocs',
+  )
   const npmLink = page.locator('.fd-header .fd-social-link[aria-label="npm"]')
   await expect(githubLink).not.toHaveClass(/fd-control/u)
   await expect(npmLink).not.toHaveClass(/fd-control/u)
   await expect(
-    githubLink.locator('path[d^="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53"]'),
+    githubLink.locator('path[d^="M12 .297c-6.63 0-12 5.373-12 12"]'),
   ).toBeVisible()
   await expect(
     npmLink.locator('path[d^="M240 250h100v-50h100V0H240v250"]'),
@@ -331,7 +386,7 @@ test('Foldkit theme colors and dropdown chevrons stay synchronized', async ({
     .locator('body')
     .evaluate(element => getComputedStyle(element).fontFamily)
   expect(portalFont).toBe(documentFont)
-  expect(portalFont).toContain('ABC Favorit')
+  expect(portalFont).toContain('Inter Variable')
   await expect(languageChevron).toHaveCSS(
     'transform',
     'matrix(-1, 0, 0, -1, 0, 0)',
@@ -350,7 +405,7 @@ test('Foldkit theme colors and dropdown chevrons stay synchronized', async ({
   expect(errors).toEqual([])
 })
 
-test('Fumadocs-style sections, folders, page actions, and pager work together', async ({
+test('sections, folders, page actions, and pager work together', async ({
   page,
 }) => {
   const errors = expectNoRuntimeErrors(page)
@@ -366,26 +421,33 @@ test('Fumadocs-style sections, folders, page actions, and pager work together', 
     'background-color',
     'rgba(0, 0, 0, 0)',
   )
-  const introductionLabel = page.locator('.fd-sidebar-section-label').first()
-  const quickStartItem = page.locator('.fd-sidebar-link-root[href="/en/docs"]')
-  const writingLabel = page.locator('.fd-sidebar-section-label').nth(1)
-  const lastIntroductionItem = writingLabel.locator(
-    'xpath=../preceding-sibling::li[1]',
-  )
-  const introductionLabelBox = await introductionLabel.boundingBox()
-  const quickStartItemBox = await quickStartItem.boundingBox()
-  const lastIntroductionItemBox = await lastIntroductionItem.boundingBox()
-  const writingLabelBox = await writingLabel.boundingBox()
-  expect(
-    (quickStartItemBox?.y ?? 0) -
-      (introductionLabelBox?.y ?? 0) -
-      (introductionLabelBox?.height ?? 0),
-  ).toBe(8)
-  expect(
-    (writingLabelBox?.y ?? 0) -
-      (lastIntroductionItemBox?.y ?? 0) -
-      (lastIntroductionItemBox?.height ?? 0),
-  ).toBe(8)
+  const sectionSpacing = await page.locator('.fd-sidebar').evaluate(sidebar => {
+    const labels = sidebar.querySelectorAll<HTMLElement>(
+      '.fd-sidebar-section-label',
+    )
+    const introduction = labels[0]
+    const writing = labels[1]
+    const quickStart = sidebar.querySelector<HTMLElement>(
+      '.fd-sidebar-link-root[href="/en/docs"]',
+    )
+    const lastIntroductionItem = writing?.parentElement?.previousElementSibling
+    if (
+      introduction === undefined ||
+      writing === undefined ||
+      quickStart === null ||
+      !(lastIntroductionItem instanceof HTMLElement)
+    )
+      throw new Error('Could not resolve sidebar section spacing anchors.')
+    const introductionBox = introduction.getBoundingClientRect()
+    const quickStartBox = quickStart.getBoundingClientRect()
+    const lastIntroductionBox = lastIntroductionItem.getBoundingClientRect()
+    const writingBox = writing.getBoundingClientRect()
+    return {
+      first: quickStartBox.y - introductionBox.y - introductionBox.height,
+      last: writingBox.y - lastIntroductionBox.y - lastIntroductionBox.height,
+    }
+  })
+  expect(sectionSpacing).toEqual({ first: 8, last: 8 })
   for (const href of [
     '/en/docs',
     '/en/docs/what-is-foldocs',
@@ -400,9 +462,21 @@ test('Fumadocs-style sections, folders, page actions, and pager work together', 
     ).toBeVisible()
   }
   await expect(page.locator('.fd-page-context')).toHaveCount(0)
+  const navbarSearch = page.locator('#fd-search-trigger')
   const documentationSelector = page.getByRole('button', {
     name: 'Select documentation',
   })
+  await navbarSearch.hover()
+  await page.waitForTimeout(200)
+  const controlHoverBorder = await navbarSearch.evaluate(
+    element => getComputedStyle(element).borderColor,
+  )
+  await documentationSelector.hover()
+  await page.waitForTimeout(200)
+  await expect(documentationSelector).toHaveCSS(
+    'border-color',
+    controlHoverBorder,
+  )
   await documentationSelector.click()
   const documentationMenu = page.locator('.fd-layout-tabs-menu')
   await expect(documentationMenu).toBeVisible()
@@ -623,11 +697,31 @@ test('Fumadocs-style sections, folders, page actions, and pager work together', 
   await expect(pnpmPage).toBeVisible()
 
   const open = page.getByRole('button', { name: 'Open page options' })
+  const copyMarkdown = page.locator('.fd-page-actions > button')
+  for (const action of [copyMarkdown, open]) {
+    await expect(action).toHaveClass(/fd-control-outline/u)
+    expect((await action.boundingBox())?.height).toBe(
+      (await navbarSearch.boundingBox())?.height,
+    )
+    expect(
+      await action.evaluate(element => {
+        const style = getComputedStyle(element)
+        return [style.borderRadius, style.borderColor, style.backgroundColor]
+      }),
+    ).toEqual(
+      await navbarSearch.evaluate(element => {
+        const style = getComputedStyle(element)
+        return [style.borderRadius, style.borderColor, style.backgroundColor]
+      }),
+    )
+  }
   await open.click()
   const menu = page.locator('.fd-page-open-menu')
   await expect(menu).toBeVisible()
   await expect(menu).toBeFocused()
   await expect(menu).toHaveCSS('box-shadow', 'none')
+  await expect(menu).toHaveCSS('outline-style', 'none')
+  await expect(menu.locator('.fd-page-open-separator')).toHaveCount(0)
   expect(
     await menu.evaluate(element => getComputedStyle(element).fontFamily),
   ).toBe(
@@ -641,26 +735,38 @@ test('Fumadocs-style sections, folders, page actions, and pager work together', 
     const box = await externalIcon.boundingBox()
     expect(box).not.toBeNull()
     expect(box?.width).toBe(box?.height)
-    expect(box?.width ?? 0).toBeLessThan(16)
+    expect(box?.width).toBe(14)
+  }
+  for (const providerIcon of await menu
+    .locator('.fd-page-open-provider')
+    .all()) {
+    const box = await providerIcon.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box?.width).toBe(16)
+    expect(box?.height).toBe(16)
+  }
+  await expect(menu.getByRole('menuitem')).toHaveCount(6)
+  for (const label of [
+    'Open in GitHub',
+    'View as Markdown',
+    'Open in Scira AI',
+    'Open in ChatGPT',
+    'Open in Claude',
+    'Open in Cursor',
+  ]) {
+    await expect(menu.getByRole('menuitem', { name: label })).toBeVisible()
   }
   await expect(
-    menu.getByRole('menuitem', { name: 'View as Markdown' }),
-  ).toBeVisible()
-  await expect(
-    menu.getByRole('menuitem', { name: 'Open in ChatGPT' }),
-  ).toBeVisible()
-  await expect(
-    menu.getByRole('menuitem', { name: 'Open in Claude' }),
-  ).toBeVisible()
-  await expect(
     menu.getByRole('menuitem', { name: 'Open in Grok' }),
-  ).toBeVisible()
+  ).toHaveCount(0)
   await page.mouse.click(700, 240)
   await expect(menu).toHaveCount(0)
   await expect(open).toBeFocused()
 
-  const copyMarkdown = page.locator('.fd-page-actions > button')
   await expect(copyMarkdown).toHaveAccessibleName('Copy page as Markdown')
+  expect((await copyMarkdown.locator('.fd-icon').boundingBox())?.width).toBe(
+    (await navbarSearch.locator('.fd-icon').boundingBox())?.width,
+  )
   const copyWidthBefore = (await copyMarkdown.boundingBox())?.width
   const copyIconBefore = await copyMarkdown.locator('.fd-icon').innerHTML()
   await copyMarkdown.click()
@@ -698,6 +804,12 @@ test('Fumadocs-style sections, folders, page actions, and pager work together', 
   await expect(docsFooter).toContainText(
     'Built by Aniket. The source code is available on GitHub.',
   )
+  await expect(
+    docsFooter.getByRole('link', { name: 'Aniket' }),
+  ).toHaveAttribute('href', 'https://aniketpawar.com')
+  await expect(
+    docsFooter.getByRole('link', { name: 'GitHub' }),
+  ).toHaveAttribute('href', 'https://github.com/Tarkaworks/foldocs')
   await expect(docsFooter).toContainText('© 2026 Tarkaworks')
   await expect(
     docsFooter.getByRole('link', { name: 'Tarkaworks on X' }),
@@ -709,6 +821,7 @@ test('default documentation components render with Foldkit-native behavior', asy
   page,
 }) => {
   const errors = expectNoRuntimeErrors(page)
+  await page.addInitScript(() => localStorage.setItem('foldocs-theme', 'dark'))
   await page.goto('/en/docs/ui/components')
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Components')
@@ -716,6 +829,14 @@ test('default documentation components render with Foldkit-native behavior', asy
   await expect(page.locator('.fd-callout')).toHaveCount(2)
   await expect(page.locator('.fd-callout-strand')).toHaveCount(2)
   await expect(page.locator('.fd-card-icon')).toHaveCount(2)
+  await expect(page.locator('.fd-callout').first()).toHaveCSS(
+    'box-shadow',
+    'none',
+  )
+  await expect(page.locator('.fd-card-icon').first()).toHaveCSS(
+    'box-shadow',
+    'none',
+  )
   await expect(page.locator('.fd-step')).toHaveCount(3)
   await expect(page.locator('.fd-accordion')).toHaveCount(2)
   await expect(page.locator('.fd-file-folder')).toHaveCount(3)
@@ -740,6 +861,25 @@ test('default documentation components render with Foldkit-native behavior', asy
     'color',
     primaryColor,
   )
+
+  const tabsLink = page.locator('.fd-toc').getByRole('link', { name: 'Tabs' })
+  const tabsHeading = page.getByRole('heading', {
+    level: 2,
+    name: 'Tabs',
+  })
+  await tabsLink.click()
+  await expect(page).toHaveURL(/#tabs$/u)
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(0)
+  const headerHeight =
+    (await page.locator('.fd-header').boundingBox())?.height ?? 0
+  await expect
+    .poll(async () => (await tabsHeading.boundingBox())?.y ?? Infinity)
+    .toBeLessThanOrEqual(headerHeight + 32)
+  const headingTop = (await tabsHeading.boundingBox())?.y ?? 0
+  expect(headingTop).toBeGreaterThanOrEqual(headerHeight)
+  expect(headingTop).toBeLessThanOrEqual(headerHeight + 32)
   await activePage.hover()
   await expect(activePage).toHaveCSS('color', primaryColor)
   await expect(activePage.locator('.fd-navigation-icon')).toHaveCSS(
@@ -787,6 +927,8 @@ test('mobile navigation traps focus and restores the menu button', async ({
     name: 'Documentation navigation',
   })
   await expect(dialog).toBeVisible()
+  await expect(page.locator('.fd-theme-selector')).toHaveCount(1)
+  await expect(dialog.locator('.fd-theme-selector')).toHaveCount(0)
   const first = dialog.locator('a[href]').first()
   await expect(first).toBeFocused()
 

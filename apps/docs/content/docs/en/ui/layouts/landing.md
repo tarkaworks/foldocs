@@ -1,6 +1,6 @@
 ---
 title: Landing layout
-description: Configure the homepage hero, feature sections, navigation reveal, and footer.
+description: Configure the homepage hero, feature sections, shared navigation, and footer.
 icon: home
 ---
 
@@ -12,9 +12,14 @@ with documentation pages.
 
 ## Sections
 
-Configure the hero, command preview, features, architecture, and call to action.
-The default navigation appears only after the hero leaves the first viewport,
-matching the Foldkit website behavior.
+The default composition keeps the page focused: hero, overview, features, and
+one final call to action. Add the optional `stack`, `ai`, or `proof` sections in
+`foldocs.config.ts` when they add information that is not already covered by
+your feature copy.
+
+The hero uses the same persistent header as the documentation layout, so the
+site identity and navigation appear once rather than being repeated inside the
+hero.
 
 ## Primary route
 

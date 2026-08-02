@@ -261,7 +261,6 @@ const renderRouteBody = (
           currentLocale: route.locale,
           theme: 'light',
           themePreference: 'system',
-          headerVisible: false,
           copiedText: '',
           ...search,
           actions: {

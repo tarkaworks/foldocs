@@ -71,7 +71,6 @@ describe('generated homepage routing', () => {
     const [model] = program.init(url('https://example.com/'))
 
     expect(model.page._tag).toBe('PageHome')
-    expect(model.isLandingHeaderVisible).toBe(false)
   })
 
   it('keeps a root document when basePath is /', () => {

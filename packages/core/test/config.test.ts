@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveConfig } from '../src/config.js'
+import { defaultLandingSections, resolveConfig } from '../src/config.js'
 
 describe('landing configuration', () => {
+  it('uses a concise default landing composition', () => {
+    expect(defaultLandingSections).toEqual([
+      'hero',
+      'overview',
+      'features',
+      'cta',
+    ])
+  })
+
   it('resolves an author-selected landing composition', () => {
     const config = resolveConfig({
       site: {

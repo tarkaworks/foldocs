@@ -39,7 +39,11 @@
       "ignore": ["template/**"]
     },
     "packages/tailwind": {
-      "entry": []
+      "entry": [],
+      "ignoreDependencies": [
+        "@fontsource-variable/inter",
+        "@fontsource-variable/jetbrains-mono"
+      ]
     }
   },
   "ignore": ["apps/docs/public/**"],

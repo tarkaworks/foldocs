@@ -2,6 +2,7 @@
   "name": "foldocs-monorepo",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.28.2",
   "engines": {
@@ -21,9 +22,9 @@
     "format:check": "prettier --check .",
     "lint": "oxlint --disable-nested-config",
     "lint:fix": "oxlint --fix --disable-nested-config",
-    "npm:setup": "fledgling add \"*\" --repo Aniket-508/foldocs --workflow publish.yml",
-    "npm:setup:dry-run": "fledgling add \"*\" --repo Aniket-508/foldocs --workflow publish.yml --dry-run",
-    "npm:trust": "fledgling sync --repo Aniket-508/foldocs --workflow publish.yml",
+    "npm:setup": "fledgling add \"*\" --repo Tarkaworks/foldocs --workflow publish.yml",
+    "npm:setup:dry-run": "fledgling add \"*\" --repo Tarkaworks/foldocs --workflow publish.yml --dry-run",
+    "npm:trust": "fledgling sync --repo Tarkaworks/foldocs --workflow publish.yml",
     "release:check": "node scripts/check-publish-boundary.mts",
     "pre-push": "pnpm check && pnpm test:e2e",
     "tegami": "node scripts/tegami.mts",
@@ -57,7 +58,7 @@
   },
   "fledgling": {
     "provider": "github",
-    "repo": "Aniket-508/foldocs",
+    "repo": "Tarkaworks/foldocs",
     "workflow": "publish.yml",
     "permissions": "publish",
     "trust": true

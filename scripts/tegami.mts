@@ -7,7 +7,7 @@ import { github } from 'tegami/plugins/github'
 export const paper = tegami({
   plugins: [
     github({
-      repo: 'Aniket-508/foldocs',
+      repo: 'Tarkaworks/foldocs',
       versionPr: {
         base: 'main',
       },
