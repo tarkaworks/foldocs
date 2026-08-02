@@ -1,7 +1,6 @@
 ---
 title: Internationalization
 description: Resolve locale UI, content fallback, and stable translated routes.
-icon: languages
 ---
 
 # Internationalization

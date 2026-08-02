@@ -1,7 +1,6 @@
 ---
 title: Page manifests
 description: Look up pages and calculate adjacent documents from a typed manifest.
-icon: file-text
 ---
 
 # Page manifests

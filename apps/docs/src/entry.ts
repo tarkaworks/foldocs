@@ -13,9 +13,12 @@ import {
 } from 'virtual:foldocs'
 
 import { overlay } from '@foldkit/devtools'
+import { inject } from '@vercel/analytics'
 
 import { markdownIslands } from './markdown-islands.js'
 import { mdxComponents } from './mdx-components.js'
+
+inject({ mode: import.meta.env.PROD ? 'production' : 'development' })
 
 const preloadedPage = await preloadDocsPage(
   manifest,

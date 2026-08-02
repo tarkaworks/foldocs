@@ -1,6 +1,6 @@
 {
   "title": "Framework",
-  "icon": "book-open",
+  "icon": "building",
   "description": "Crea documentación de producción con Foldkit",
   "root": true,
   "pages": [

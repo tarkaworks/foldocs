@@ -1,7 +1,6 @@
 ---
 title: Generate AsyncAPI files
 description: Produce stable channel and operation pages from an AsyncAPI contract.
-icon: radio
 ---
 
 # Generate AsyncAPI files

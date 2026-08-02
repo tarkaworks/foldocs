@@ -1,7 +1,6 @@
 ---
 title: Components and islands
 description: Add deterministic components and stateful Foldkit Markdown islands.
-icon: blocks
 ---
 
 # Components and islands

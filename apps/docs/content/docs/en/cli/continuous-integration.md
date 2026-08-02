@@ -1,7 +1,6 @@
 ---
 title: Continuous integration
 description: Validate content, types, tests, and static output before deployment.
-icon: wrench
 ---
 
 # Continuous integration

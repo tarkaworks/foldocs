@@ -1,7 +1,6 @@
 ---
 title: Sanity
 description: Map Sanity records into typed Foldocs content files.
-icon: database
 ---
 
 # Sanity

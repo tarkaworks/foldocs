@@ -1,7 +1,6 @@
 ---
 title: Python
 description: Generate Markdown reference pages from public Python declarations.
-icon: code-xml
 ---
 
 # Python

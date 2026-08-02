@@ -1,7 +1,6 @@
 ---
 title: Page tree
 description: Understand the typed separators, pages, folders, and root tabs used by Foldocs.
-icon: folder-open
 ---
 
 # Page tree

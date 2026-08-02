@@ -1,7 +1,6 @@
 ---
 title: TypeScript
 description: Generate reference pages from exported TypeScript declarations.
-icon: code-xml
 ---
 
 # TypeScript

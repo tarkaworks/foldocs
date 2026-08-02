@@ -1,7 +1,6 @@
 ---
 title: Markdown directives
 description: Add typed Foldkit islands to standard Markdown without arbitrary evaluation.
-icon: code-xml
 ---
 
 # Markdown directives

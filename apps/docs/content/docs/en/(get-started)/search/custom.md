@@ -1,7 +1,6 @@
 ---
 title: Custom search provider
 description: Implement a provider without coupling Foldocs UI to an SDK.
-icon: wrench
 ---
 
 # Custom search provider

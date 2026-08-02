@@ -1,7 +1,6 @@
 ---
 title: Code blocks
 description: Render highlighted code with metadata, line numbers, and a stable copy action.
-icon: code-xml
 ---
 
 # Code blocks

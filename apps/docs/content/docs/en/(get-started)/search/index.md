@@ -1,7 +1,6 @@
 ---
 title: Search
 description: Use zero-configuration local search or connect a hosted provider.
-icon: search
 index: true
 ---
 

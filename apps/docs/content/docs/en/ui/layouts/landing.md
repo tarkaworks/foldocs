@@ -1,7 +1,6 @@
 ---
 title: Landing layout
 description: Configure the homepage hero, feature sections, shared navigation, and footer.
-icon: home
 ---
 
 # Landing layout

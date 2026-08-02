@@ -1,7 +1,7 @@
 ---
 title: Component library
 description: Use the Foldkit-native component set included with every Foldocs application.
-icon: blocks
+icon: library
 ---
 
 # Component library

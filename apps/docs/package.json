@@ -19,6 +19,7 @@
   "dependencies": {
     "@effect/platform-browser": "4.0.0-beta.102",
     "@foldkit/markdown": "0.2.1",
+    "@vercel/analytics": "2.0.1",
     "effect": "4.0.0-beta.102",
     "foldkit": "0.137.0",
     "foldocs": "workspace:*"

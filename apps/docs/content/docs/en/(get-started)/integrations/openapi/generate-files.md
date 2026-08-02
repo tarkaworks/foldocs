@@ -1,7 +1,6 @@
 ---
 title: Generate OpenAPI files
 description: Configure stable paths and regeneration for OpenAPI reference pages.
-icon: braces
 ---
 
 # Generate OpenAPI files

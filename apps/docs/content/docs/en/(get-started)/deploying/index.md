@@ -1,7 +1,6 @@
 ---
 title: Deploying
 description: Publish the prerendered Foldocs output to any static-capable platform.
-icon: rocket
 index: true
 ---
 

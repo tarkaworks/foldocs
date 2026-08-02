@@ -1,7 +1,6 @@
 ---
 title: Glass layout
 description: Use translucent surfaces for a visually layered documentation shell.
-icon: panels-top-left
 ---
 
 # Glass layout

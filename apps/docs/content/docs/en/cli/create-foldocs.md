@@ -1,7 +1,6 @@
 ---
 title: Create Foldocs
 description: Generate a complete Foldkit documentation application with one command.
-icon: rocket
 ---
 
 # Create Foldocs

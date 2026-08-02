@@ -1,7 +1,6 @@
 ---
 title: Frontmatter
 description: Validate author-controlled metadata with the shared Effect schema.
-icon: settings
 ---
 
 # Frontmatter

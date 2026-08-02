@@ -1,7 +1,6 @@
 ---
 title: Markdown serialization
 description: Turn the compiled document back into portable agent-readable Markdown.
-icon: file-text
 ---
 
 # Markdown serialization

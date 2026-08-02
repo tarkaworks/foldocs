@@ -1,6 +1,6 @@
 {
   "title": "Manual installation",
-  "icon": "package",
+  "icon": "wrench",
   "defaultOpen": false,
   "pages": ["index", "pnpm", "npm"]
 }

@@ -1,7 +1,6 @@
 ---
 title: Import an Obsidian vault
 description: Publish selected Obsidian notes as deterministic Foldocs pages.
-icon: files
 ---
 
 # Import an Obsidian vault

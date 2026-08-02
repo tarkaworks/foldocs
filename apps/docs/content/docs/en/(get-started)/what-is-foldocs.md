@@ -1,7 +1,7 @@
 ---
 title: What is Foldocs?
 description: Understand the responsibilities Foldocs adds around a Foldkit application.
-icon: book-open
+icon: circle-question-mark
 ---
 
 # What is Foldocs?

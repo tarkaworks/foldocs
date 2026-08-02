@@ -1,7 +1,6 @@
 ---
 title: Foldocs CLI
 description: Scaffold applications, validate content, and generate owned customization files.
-icon: code-xml
 ---
 
 # Foldocs CLI

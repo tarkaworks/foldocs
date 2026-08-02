@@ -1,7 +1,6 @@
 ---
 title: Markdown rendering
 description: Render Foldocs AST nodes with Foldkit Markdown views and project components.
-icon: file-text
 ---
 
 # Markdown rendering

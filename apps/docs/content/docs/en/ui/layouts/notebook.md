@@ -1,7 +1,6 @@
 ---
 title: Notebook layout
 description: Use a calmer reading-focused shell for guides and knowledge bases.
-icon: panels-top-left
 ---
 
 # Notebook layout

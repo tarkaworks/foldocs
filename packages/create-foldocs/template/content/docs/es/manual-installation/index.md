@@ -1,7 +1,7 @@
 ---
 title: Instalación manual
 description: Añade Foldocs a una aplicación existente de Foldkit.
-icon: settings
+icon: wrench
 index: true
 ---
 

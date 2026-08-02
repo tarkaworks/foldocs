@@ -1,7 +1,6 @@
 ---
 title: Versioning
 description: Organize stable, preview, and archived documentation without changing the runtime.
-icon: git-branch
 ---
 
 # Versioning

@@ -32,6 +32,10 @@ Contributions are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) to get the
 repository running locally and land a change. By participating, you agree to our
 [Code of Conduct](./CODE_OF_CONDUCT.md).
 
+## Acknowledgements
+
+- [Fumadocs] by [Fuma Nama](https://x.com/fuma_nama)
+
 ## License
 
 Published under the [MIT](./LICENSE) license.

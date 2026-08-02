@@ -1,7 +1,7 @@
 ---
 title: Foldocs MDX
 description: Compile Markdown and deterministic MDX into a portable typed document.
-icon: file-text
+icon: album
 ---
 
 # Foldocs MDX

@@ -1,7 +1,6 @@
 ---
 title: Customization
 description: Own theme and layout overrides without forking Foldocs UI.
-icon: settings
 ---
 
 # Customization

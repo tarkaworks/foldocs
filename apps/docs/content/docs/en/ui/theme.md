@@ -1,7 +1,7 @@
 ---
 title: Theme
 description: Configure Foldocs colors, typography, dimensions, and dark mode without forking UI code.
-icon: settings
+icon: palette
 ---
 
 # Theme

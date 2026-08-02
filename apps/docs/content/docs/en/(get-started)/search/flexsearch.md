@@ -1,7 +1,6 @@
 ---
 title: FlexSearch
 description: Run a compact local search index with a provider-compatible client.
-icon: search
 ---
 
 # FlexSearch

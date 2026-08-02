@@ -1,7 +1,6 @@
 ---
 title: Validate links
 description: Catch broken local links, duplicate routes, and invalid pages in CI.
-icon: check
 ---
 
 # Validate links

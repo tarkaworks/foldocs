@@ -1,7 +1,6 @@
 ---
 title: Local Markdown
 description: Use the zero-configuration content source built into Foldocs.
-icon: file-text
 ---
 
 # Local Markdown

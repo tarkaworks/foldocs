@@ -1,7 +1,6 @@
 ---
 title: Integrations
 description: Generate and import documentation without coupling provider SDKs to the browser.
-icon: plug
 index: true
 ---
 

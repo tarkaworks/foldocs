@@ -1,7 +1,6 @@
 ---
 title: Algolia
 description: Synchronize Foldocs documents to Algolia and query them in the browser.
-icon: search
 ---
 
 # Algolia

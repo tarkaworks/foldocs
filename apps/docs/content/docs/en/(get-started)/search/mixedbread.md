@@ -1,7 +1,6 @@
 ---
 title: Mixedbread
 description: Add semantic hosted search through the Foldocs provider interface.
-icon: search
 ---
 
 # Mixedbread

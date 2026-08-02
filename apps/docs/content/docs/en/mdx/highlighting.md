@@ -1,7 +1,6 @@
 ---
 title: Code highlighting
 description: Configure Shiki or a compiler-aware highlighter without changing the AST.
-icon: sparkles
 ---
 
 # Code highlighting

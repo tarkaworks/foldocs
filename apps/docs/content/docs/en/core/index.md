@@ -1,7 +1,7 @@
 ---
 title: Foldocs Core
 description: Typed configuration, manifests, navigation, and localization primitives.
-icon: database
+icon: album
 ---
 
 # Foldocs Core

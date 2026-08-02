@@ -1,7 +1,6 @@
 ---
 title: Build with remote content
 description: Fetch CMS or repository content without giving up static output.
-icon: plug
 ---
 
 # Build with remote content

@@ -1,7 +1,6 @@
 ---
 title: Orama
 description: Use Foldocs' zero-configuration local full-text search provider.
-icon: search
 ---
 
 # Orama

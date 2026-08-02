@@ -1,7 +1,6 @@
 ---
 title: Trieve
 description: Connect Foldocs search and ingestion to a Trieve dataset.
-icon: search
 ---
 
 # Trieve

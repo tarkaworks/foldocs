@@ -1,7 +1,7 @@
 ---
 title: Manual installation
 description: Add the generated Foldocs setup to an existing Foldkit application.
-icon: settings
+icon: wrench
 index: true
 ---
 

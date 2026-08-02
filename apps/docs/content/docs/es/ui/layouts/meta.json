@@ -1,6 +1,5 @@
 {
   "title": "Diseños",
-  "icon": "panels-top-left",
   "defaultOpen": false,
   "pages": ["index", "docs", "notebook", "flux", "glass", "landing"]
 }

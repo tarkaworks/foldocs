@@ -1,7 +1,6 @@
 ---
 title: MDX files
 description: Add deterministic component composition without evaluating arbitrary JavaScript.
-icon: code-xml
 ---
 
 # MDX files

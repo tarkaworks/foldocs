@@ -1,7 +1,6 @@
 ---
 title: Document AST
 description: Work with the portable block and inline node model.
-icon: database
 ---
 
 # Document AST

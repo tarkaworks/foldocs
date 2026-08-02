@@ -1,7 +1,6 @@
 ---
 title: Markdown files
 description: Compile portable Markdown through official Foldkit Markdown validation.
-icon: file-text
 ---
 
 # Markdown files

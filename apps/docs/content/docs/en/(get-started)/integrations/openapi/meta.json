@@ -1,6 +1,5 @@
 {
   "title": "OpenAPI",
-  "icon": "braces",
   "defaultOpen": false,
   "pages": ["index", "generate-files"]
 }

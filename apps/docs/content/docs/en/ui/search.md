@@ -1,7 +1,6 @@
 ---
 title: Search UI
 description: Connect any Foldocs search provider to the accessible search dialog.
-icon: search
 ---
 
 # Search UI

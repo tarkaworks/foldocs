@@ -1,7 +1,6 @@
 ---
 title: Customize source
 description: Copy theme, layout, or MDX renderer entry points into your project.
-icon: settings
 ---
 
 # Customize source

@@ -1,7 +1,6 @@
 ---
 title: Export an EPUB
 description: Package documentation into an offline EPUB with deterministic chapters and assets.
-icon: book-open
 ---
 
 # Export an EPUB

@@ -1,7 +1,6 @@
 ---
 title: Navigation
 description: Build sidebars, root tabs, route groups, page context, and pagination.
-icon: book-open
 ---
 
 # Navigation

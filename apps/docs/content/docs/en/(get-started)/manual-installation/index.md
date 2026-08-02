@@ -1,7 +1,7 @@
 ---
 title: Manual installation
 description: Add Foldocs to an existing Foldkit and Vite application.
-icon: settings
+icon: wrench
 index: true
 ---
 

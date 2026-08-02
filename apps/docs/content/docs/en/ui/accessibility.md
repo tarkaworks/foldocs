@@ -1,7 +1,6 @@
 ---
 title: Accessibility
 description: Keyboard, focus, motion, and semantic guarantees in Foldocs UI.
-icon: sparkles
 ---
 
 # Accessibility

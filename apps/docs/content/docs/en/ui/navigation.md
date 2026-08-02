@@ -1,7 +1,6 @@
 ---
 title: Navigation views
 description: Render pages, folders, root selectors, and page context consistently.
-icon: book-open
 ---
 
 # Navigation views

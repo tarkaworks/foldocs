@@ -1,7 +1,6 @@
 ---
 title: Page conventions
 description: Control routes, metadata, ordering, drafts, and folder index pages.
-icon: file-text
 ---
 
 # Page conventions

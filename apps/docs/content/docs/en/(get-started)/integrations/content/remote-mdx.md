@@ -1,7 +1,6 @@
 ---
 title: Remote MDX
 description: Load trusted Markdown or MDX at build time with Effect error handling.
-icon: plug
 ---
 
 # Remote MDX

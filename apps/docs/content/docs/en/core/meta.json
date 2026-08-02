@@ -1,7 +1,7 @@
 {
   "title": "Foldocs Core",
   "description": "Configuration, manifests, and navigation",
-  "icon": "database",
+  "icon": "cuboid",
   "root": true,
   "pages": [
     "---Introduction---",

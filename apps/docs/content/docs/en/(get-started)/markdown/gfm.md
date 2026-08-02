@@ -1,7 +1,6 @@
 ---
 title: GitHub Flavored Markdown
 description: Use tables, task lists, strikethrough, and autolinks in portable pages.
-icon: file-text
 ---
 
 # GitHub Flavored Markdown

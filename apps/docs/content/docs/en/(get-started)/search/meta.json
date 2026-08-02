@@ -1,6 +1,5 @@
 {
   "title": "Search",
-  "icon": "search",
   "defaultOpen": false,
   "pages": [
     "index",

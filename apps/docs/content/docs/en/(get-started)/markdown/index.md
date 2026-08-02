@@ -1,7 +1,6 @@
 ---
 title: Markdown
 description: Author typed Markdown with FoldKit's official parser and Foldocs enrichment.
-icon: file-text
 index: true
 ---
 

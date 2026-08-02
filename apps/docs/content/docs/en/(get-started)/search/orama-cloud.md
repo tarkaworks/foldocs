@@ -1,7 +1,6 @@
 ---
 title: Orama Cloud
 description: Search a hosted Orama index while keeping the Foldocs provider contract.
-icon: search
 ---
 
 # Orama Cloud

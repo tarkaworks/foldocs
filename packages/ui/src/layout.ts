@@ -192,7 +192,8 @@ const navigationIcon = <Message>(
   customIcons: Readonly<Record<string, string>> | undefined,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const svg = navigationIconSvg(name ?? 'file-text', customIcons)
+  if (name === undefined) return h.empty
+  const svg = navigationIconSvg(name, customIcons)
   return svg === undefined
     ? h.empty
     : h.span(
@@ -2146,6 +2147,7 @@ export const landingLayout = <Message>(
         'fd-home-footer',
         h,
       ),
+      searchDialogView(options, h),
     ],
   )
 }

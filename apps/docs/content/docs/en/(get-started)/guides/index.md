@@ -1,7 +1,7 @@
 ---
 title: Guides
 description: Practical recipes for adapting Foldocs to a production application.
-icon: sparkles
+icon: book
 index: true
 ---
 

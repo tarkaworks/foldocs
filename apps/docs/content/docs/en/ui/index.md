@@ -1,7 +1,7 @@
 ---
 title: Foldocs UI
 description: Foldkit-native layouts and documentation views without a React runtime.
-icon: blocks
+icon: album
 ---
 
 # Foldocs UI

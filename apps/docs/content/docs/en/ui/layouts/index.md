@@ -1,7 +1,6 @@
 ---
 title: Layouts
 description: Understand the docs and landing layout inputs and responsive behavior.
-icon: blocks
 index: true
 ---
 

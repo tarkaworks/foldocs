@@ -1,7 +1,6 @@
 ---
 title: Flux layout
 description: Use a more expressive shell while retaining the Foldocs navigation model.
-icon: panels-top-left
 ---
 
 # Flux layout

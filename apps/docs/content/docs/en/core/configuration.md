@@ -1,7 +1,6 @@
 ---
 title: Configuration
 description: Decode and resolve a Foldocs application configuration.
-icon: settings
 ---
 
 # Configuration

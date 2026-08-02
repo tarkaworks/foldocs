@@ -1,7 +1,6 @@
 ---
 title: Navigation model
 description: Build deterministic page trees, folder indexes, and documentation roots.
-icon: book-open
 ---
 
 # Navigation model

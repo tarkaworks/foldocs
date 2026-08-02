@@ -1,7 +1,6 @@
 ---
 title: Internationalization
 description: Ship localized routes, navigation, search, metadata, and interface text.
-icon: languages
 index: true
 ---
 

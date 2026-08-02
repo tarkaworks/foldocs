@@ -1,6 +1,5 @@
 {
   "title": "AsyncAPI",
-  "icon": "radio",
   "defaultOpen": false,
   "pages": ["index", "generate-files"]
 }

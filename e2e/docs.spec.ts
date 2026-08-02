@@ -1,5 +1,15 @@
 import { type Page, expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/_vercel/insights/script.js', async route => {
+    await route.fulfill({
+      body: '',
+      contentType: 'application/javascript',
+      status: 200,
+    })
+  })
+})
+
 const expectNoRuntimeErrors = (page: Page): Array<string> => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
@@ -149,6 +159,9 @@ test('landing uses the shared docs header and the footer keeps its attribution',
 }) => {
   const errors = expectNoRuntimeErrors(page)
   await page.goto('/en')
+  await expect(
+    page.locator('script[src="/_vercel/insights/script.js"]'),
+  ).toHaveCount(1)
 
   const header = page.locator('.fd-landing-header')
   await expect(header).toBeVisible()
@@ -157,6 +170,15 @@ test('landing uses the shared docs header and the footer keeps its attribution',
   await expect(header.locator('#fd-search-trigger')).toBeVisible()
   await expect(header.locator('.fd-language-trigger')).toBeVisible()
   await expect(header.locator('.fd-theme-selector')).toBeVisible()
+  await header.locator('#fd-search-trigger').click()
+  const searchDialog = page.getByRole('dialog', {
+    name: 'Search documentation',
+  })
+  await expect(searchDialog).toBeVisible()
+  await expect(searchDialog.getByRole('combobox')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(searchDialog).toBeHidden()
+  await expect(header.locator('#fd-search-trigger')).toBeFocused()
   await expect(
     header.locator('.fd-social-link[aria-label="GitHub"]'),
   ).toHaveAttribute('href', 'https://github.com/Tarkaworks/foldocs')
@@ -454,12 +476,24 @@ test('sections, folders, page actions, and pager work together', async ({
     '/en/docs/comparisons',
     '/en/docs/manual-installation',
     '/en/docs/guides',
-    '/en/docs/navigation',
-    '/en/docs/versioning',
   ]) {
     await expect(
       page.locator(`.fd-sidebar a[href="${href}"] .fd-navigation-icon`),
     ).toBeVisible()
+  }
+  for (const href of [
+    '/en/docs/page-conventions',
+    '/en/docs/markdown',
+    '/en/docs/navigation',
+    '/en/docs/versioning',
+    '/en/docs/deploying',
+    '/en/docs/internationalization',
+    '/en/docs/search',
+    '/en/docs/integrations',
+  ]) {
+    await expect(
+      page.locator(`.fd-sidebar a[href="${href}"] .fd-navigation-icon`),
+    ).toHaveCount(0)
   }
   await expect(page.locator('.fd-page-context')).toHaveCount(0)
   const navbarSearch = page.locator('#fd-search-trigger')
@@ -857,10 +891,7 @@ test('default documentation components render with Foldkit-native behavior', asy
     probe.remove()
     return normalized
   }, primaryValue)
-  await expect(activePage.locator('.fd-navigation-icon')).toHaveCSS(
-    'color',
-    primaryColor,
-  )
+  await expect(activePage.locator('.fd-navigation-icon')).toHaveCount(0)
 
   const tabsLink = page.locator('.fd-toc').getByRole('link', { name: 'Tabs' })
   const tabsHeading = page.getByRole('heading', {
@@ -882,10 +913,6 @@ test('default documentation components render with Foldkit-native behavior', asy
   expect(headingTop).toBeLessThanOrEqual(headerHeight + 32)
   await activePage.hover()
   await expect(activePage).toHaveCSS('color', primaryColor)
-  await expect(activePage.locator('.fd-navigation-icon')).toHaveCSS(
-    'color',
-    primaryColor,
-  )
 
   const tabInputs = page.locator('.fd-tab-input')
   await expect(tabInputs).toHaveCount(2)

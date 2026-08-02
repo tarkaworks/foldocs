@@ -1,7 +1,6 @@
 ---
 title: UI translations
 description: Localize navigation, search, page actions, pagination, and accessibility labels.
-icon: languages
 ---
 
 # UI translations

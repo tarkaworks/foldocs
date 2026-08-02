@@ -1,7 +1,6 @@
 ---
 title: Docs layout
 description: Use the balanced three-column documentation shell.
-icon: panels-top-left
 ---
 
 # Docs layout

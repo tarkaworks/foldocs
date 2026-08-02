@@ -1,7 +1,6 @@
 ---
 title: Typesense
 description: Index Foldocs pages in Typesense and query them with a scoped client.
-icon: search
 ---
 
 # Typesense

@@ -1,7 +1,6 @@
 ---
 title: Check documentation
 description: Compile every page and catch route, link, heading, and locale problems.
-icon: check
 ---
 
 # Check documentation

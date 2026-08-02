@@ -1,7 +1,6 @@
 ---
 title: Compiler
 description: Compile content with frontmatter, typed islands, and optional highlighting.
-icon: code-xml
 ---
 
 # Compiler

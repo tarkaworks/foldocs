@@ -1,7 +1,6 @@
 ---
 title: Content sources
 description: Implement the small typed contract used by local files, remote MDX, and CMS adapters.
-icon: files
 ---
 
 # Content sources

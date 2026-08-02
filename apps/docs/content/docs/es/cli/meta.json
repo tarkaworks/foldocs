@@ -1,7 +1,7 @@
 {
   "title": "Foldocs CLI",
   "description": "Creación, validación y personalización",
-  "icon": "code-xml",
+  "icon": "terminal",
   "root": true,
   "pages": [
     "---Descripción general---",

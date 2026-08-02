@@ -1,7 +1,6 @@
 ---
 title: Obsidian
 description: Convert an Obsidian vault into portable Foldocs Markdown and assets.
-icon: files
 ---
 
 # Obsidian

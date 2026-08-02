@@ -1,7 +1,6 @@
 ---
 title: Twoslash
 description: Add compiler-aware TypeScript information to highlighted code blocks.
-icon: code-xml
 ---
 
 # Twoslash

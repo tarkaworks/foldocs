@@ -1,7 +1,6 @@
 ---
 title: BaseHub
 description: Convert BaseHub query results into deterministic documentation files.
-icon: database
 ---
 
 # BaseHub
