@@ -37,7 +37,7 @@ or MDX \`source\`. Provider SDKs and credentials remain build-time only.
 export default defineConfig({
   site: {
     title: 'Foldocs',
-    description: 'A production documentation framework for Foldkit.',
+    description: 'The beautiful and flexible Foldkit documentation framework.',
     baseUrl: 'https://foldocs.vercel.app',
     logoText: 'Foldocs',
     tagline:
@@ -57,7 +57,7 @@ export default defineConfig({
     },
     publisher: {
       type: 'Organization',
-      name: 'TarkaWorks',
+      name: 'Tarkaworks',
       url: 'https://github.com/tarkaworks',
       logo: '/favicon.svg',
     },

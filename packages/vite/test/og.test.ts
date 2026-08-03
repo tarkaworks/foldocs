@@ -27,7 +27,7 @@ describe('Open Graph image rendering', () => {
 
     expect(markup).toContain('Quick &lt;Start&gt;')
     expect(markup).toContain('Foldkit &amp; Effect.')
-    expect(markup).toContain('Made by TarkaWorks')
+    expect(markup).toContain('Made by Tarkaworks')
     expect(markup).not.toContain('foldocs.vercel.app')
     expect(markup).not.toContain('transform:rotate')
     expect(markup).not.toContain('border:')

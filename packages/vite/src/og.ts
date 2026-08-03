@@ -64,7 +64,7 @@ export const defaultOgImageTemplate: OgImageTemplate = context => {
     <div style="font-size:${String(titleSize(context.title))}px;font-weight:700;letter-spacing:-0.045em;line-height:1.02;">${title}</div>
     ${description === undefined ? '' : `<div style="color:${colors.muted};font-size:31px;font-weight:500;letter-spacing:-0.025em;line-height:1.24;margin-top:28px;width:680px;">${description}</div>`}
   </div>
-  <div style="position:absolute;left:66px;bottom:52px;color:${colors.muted};font-size:19px;font-weight:600;letter-spacing:-0.01em;">Made by TarkaWorks</div>
+  <div style="position:absolute;left:66px;bottom:52px;color:${colors.muted};font-size:19px;font-weight:600;letter-spacing:-0.01em;">Made by Tarkaworks</div>
 </div>`
 }
 
