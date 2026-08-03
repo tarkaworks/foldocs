@@ -1,7 +1,13 @@
 {
   "name": "@foldocs/epub",
   "version": "0.0.0",
-  "private": true,
+  "description": "Export Foldocs Markdown and MDX content as a portable EPUB publication.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/epub"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -24,5 +30,8 @@
   "dependencies": {
     "fflate": "^0.8.2",
     "foldocs-mdx": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

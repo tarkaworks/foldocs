@@ -1,7 +1,13 @@
 {
   "name": "@foldocs/sanity",
   "version": "0.0.0",
-  "private": true,
+  "description": "Build-time Sanity content source adapter for Foldocs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/sanity"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -20,5 +26,8 @@
   },
   "dependencies": {
     "@foldocs/content": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

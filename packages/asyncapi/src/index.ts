@@ -253,6 +253,7 @@ const operationPage = (
   document: AsyncApiDocument,
   entry: AsyncOperation,
   order: number,
+  options: AsyncApiGenerationOptions,
 ): string => {
   const description =
     entry.description ?? `${entry.action.toUpperCase()} ${entry.channel}`
@@ -289,6 +290,9 @@ const operationPage = (
     message?.payload === undefined
       ? ''
       : ['### Payload', schemaSection(document, message.payload)].join('\n\n'),
+    options.playground === false || message?.payload === undefined
+      ? ''
+      : `<AsyncApiPlayground action=${JSON.stringify(entry.action)} channel=${JSON.stringify(entry.channel)} payload=${JSON.stringify(encodeURIComponent(JSON.stringify(schemaExample(document, message.payload), null, 2)))} />`,
     bindings === undefined
       ? ''
       : [
@@ -359,7 +363,7 @@ export const generateAsyncApiFiles = (
     `${document.info.title} event reference`
   const pages = entries.map((entry, index) => ({
     path: `${entry.slug}.mdx`,
-    content: operationPage(document, entry, index + 2),
+    content: operationPage(document, entry, index + 2, options),
   }))
   if (!(options.includeIndex ?? true)) return pages
   const baseUrl = options.baseUrl ?? ''

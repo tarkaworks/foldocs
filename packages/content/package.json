@@ -1,6 +1,7 @@
 {
   "name": "@foldocs/content",
   "version": "0.1.0",
+  "description": "Typed content contracts, collections, and build-time source adapters for Foldocs.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -1,6 +1,7 @@
 {
   "name": "foldocs",
   "version": "0.1.1",
+  "description": "The beautiful and flexible Foldkit documentation framework, powered by Effect.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
   },
   "dependencies": {
     "@foldkit/ui": "0.137.0",
+    "@foldocs/ai": "workspace:*",
     "@foldocs/content": "workspace:*",
     "@foldocs/search": "workspace:*",
     "@foldocs/search-orama": "workspace:*",

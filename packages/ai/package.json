@@ -1,0 +1,36 @@
+{
+  "name": "@foldocs/ai",
+  "version": "0.0.0",
+  "description": "Effect-native, provider-neutral AI client and server helpers for Foldocs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/ai"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.102"
+  },
+  "peerDependencies": {
+    "effect": "4.0.0-beta.102"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

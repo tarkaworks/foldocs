@@ -9,9 +9,12 @@ import {
 import type { CompiledPage } from 'foldocs-mdx'
 import { describe, expect, it } from 'vitest'
 
+import { Dialog } from '@foldkit/ui'
+
 import {
   docsLayout,
   githubDocumentUrl,
+  initAiDialog,
   initLandingCopyTooltip,
   initLanguageMenu,
   initSearchDialog,
@@ -151,7 +154,9 @@ describe('documentation layout', () => {
         label: 'Manual installation',
         icon: 'package',
         segment: 'manual-installation',
+        directory: 'manual-installation',
         defaultOpen: true,
+        collapsible: true,
         root: false,
         index: {
           _tag: 'Page',
@@ -227,6 +232,25 @@ describe('documentation layout', () => {
           sidebarLanguageMenu: initLanguageMenu('test-sidebar-language'),
           markdownUrl: '/docs/manual-installation/pnpm.md',
           markdownEnabled: true,
+          ai: {
+            open: true,
+            input: 'How do I install it?',
+            loading: false,
+            error: '',
+            messages: [
+              {
+                role: 'assistant',
+                content: 'Use pnpm add.',
+                sources: [
+                  {
+                    title: 'Installation',
+                    url: '/docs/manual-installation/pnpm',
+                  },
+                ],
+              },
+            ],
+          },
+          aiDialog: Dialog.open(initAiDialog())[0],
           footer: {
             author: 'Aniket',
             copyright: '© 2026 Tarkaworks',
@@ -257,6 +281,11 @@ describe('documentation layout', () => {
             openImage: () => 'open-image',
             closeImage: 'close-image',
             submitFeedback: () => 'submit-feedback',
+            openAi: 'open-ai',
+            closeAi: 'close-ai',
+            updateAiInput: () => 'update-ai-input',
+            submitAi: 'submit-ai',
+            gotAiDialogMessage: () => 'ai-dialog',
             toggleSearch: 'toggle-search',
             closeSearch: 'close-search',
             updateSearch: () => 'update-search',
@@ -281,6 +310,9 @@ describe('documentation layout', () => {
     expect(text).toContain('Manual installation')
     expect(text).toContain('Copy Markdown')
     expect(text).toContain('Open')
+    expect(text).toContain('Ask AI')
+    expect(text).toContain('Use pnpm add.')
+    expect(Option.isSome(Scene.find(rendered, '.fd-ai-dialog'))).toBe(true)
     expect(text).toContain('Previous')
     expect(text).toContain('Next')
     expect(Option.isSome(Scene.find(rendered, '.fd-sidebar-section'))).toBe(

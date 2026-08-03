@@ -1,6 +1,7 @@
 {
   "name": "@foldocs/cli",
   "version": "0.1.1",
+  "description": "Authoring, validation, customization, tree, component, and preview commands for Foldocs.",
   "license": "MIT",
   "repository": {
     "type": "git",

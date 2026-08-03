@@ -33,10 +33,10 @@
   --fd-background: var(--fd-cream);
   --fd-foreground: var(--fd-gray-800);
   --fd-muted: var(--fd-gray-100);
-  --fd-muted-foreground: var(--fd-gray-500);
+  --fd-muted-foreground: var(--fd-gray-600);
   --fd-card: var(--fd-cream);
   --fd-border: var(--fd-gray-300);
-  --fd-primary: var(--fd-accent-600);
+  --fd-primary: var(--fd-accent-700);
   --fd-primary-foreground: #fff;
   --fd-code: var(--fd-gray-50);
   --fd-selection: var(--fd-accent-200);

@@ -15,6 +15,9 @@ export interface AlgoliaHit {
   readonly objectID: string
   readonly url: string
   readonly title: string
+  readonly type?: 'page' | 'section'
+  readonly pageTitle?: string
+  readonly breadcrumbs?: ReadonlyArray<string>
   readonly description?: string
   readonly content?: string
 }
@@ -67,6 +70,9 @@ export const createAlgoliaSearchIndexer = (
             'objectID',
             'url',
             'title',
+            'type',
+            'pageTitle',
+            'breadcrumbs',
             'description',
             'content',
             'locale',
@@ -127,6 +133,11 @@ export const createAlgoliaSearchClient = (
           id: hit.objectID,
           url: hit.url,
           title: hit.title,
+          ...(hit.type === undefined ? {} : { type: hit.type }),
+          ...(hit.pageTitle === undefined ? {} : { pageTitle: hit.pageTitle }),
+          ...(hit.breadcrumbs === undefined
+            ? {}
+            : { breadcrumbs: [...hit.breadcrumbs] }),
           excerpt: excerpt(hit.description ?? hit.content ?? '', query),
           score: Math.max(0, (searchOptions.limit ?? 12) - index),
         }))

@@ -54,6 +54,7 @@ describe('AsyncAPI generation', () => {
     expect(files[1]?.content).toContain('"root": true')
     expect(files[2]?.content).toContain('`PUBLISH orders/{orderId}`')
     expect(files[2]?.content).toContain('Order identifier')
+    expect(files[2]?.content).toContain('<AsyncApiPlayground')
     await Promise.all(
       files
         .filter(file => file.path.endsWith('.mdx'))

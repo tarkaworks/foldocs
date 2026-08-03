@@ -1,7 +1,13 @@
 {
   "name": "@foldocs/python",
   "version": "0.0.0",
-  "private": true,
+  "description": "Generate Foldocs API reference pages from Python source files.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/python"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -23,5 +29,8 @@
   },
   "devDependencies": {
     "foldocs-mdx": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

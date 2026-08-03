@@ -14,6 +14,9 @@ type IndexedDocument = DocumentData & {
   readonly id: string
   readonly url: string
   readonly title: string
+  readonly type: 'page' | 'section'
+  readonly pageTitle: string
+  readonly breadcrumbs: Array<string>
   readonly description: string
   readonly content: string
   readonly locale: string
@@ -43,6 +46,9 @@ export const createFlexSearchClient = (
       id: document.id,
       url: document.url,
       title: document.title,
+      type: document.type ?? 'page',
+      pageTitle: document.pageTitle ?? document.title,
+      breadcrumbs: [...(document.breadcrumbs ?? [])],
       description: document.description ?? '',
       content: document.content,
       locale: document.locale ?? '',
@@ -75,6 +81,9 @@ export const createFlexSearchClient = (
           id,
           url: document.url,
           title: document.title,
+          type: document.type,
+          pageTitle: document.pageTitle,
+          breadcrumbs: document.breadcrumbs,
           excerpt: excerpt(document.description || document.content, query),
           score: Math.max(0, limit - results.length),
         })

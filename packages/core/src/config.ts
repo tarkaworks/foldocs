@@ -42,6 +42,15 @@ export const UiTranslations = S.Struct({
   openInCursor: S.optionalKey(S.String),
   openInGrok: S.optionalKey(S.String),
   askAiAboutPage: S.optionalKey(S.String),
+  askAi: S.optionalKey(S.String),
+  closeAi: S.optionalKey(S.String),
+  aiTitle: S.optionalKey(S.String),
+  aiDescription: S.optionalKey(S.String),
+  aiPlaceholder: S.optionalKey(S.String),
+  aiSend: S.optionalKey(S.String),
+  aiThinking: S.optionalKey(S.String),
+  aiUnavailable: S.optionalKey(S.String),
+  aiSources: S.optionalKey(S.String),
   pagination: S.optionalKey(S.String),
   previousPage: S.optionalKey(S.String),
   nextPage: S.optionalKey(S.String),
@@ -111,6 +120,15 @@ export interface ResolvedUiTranslations {
   readonly openInCursor: string
   readonly openInGrok: string
   readonly askAiAboutPage: string
+  readonly askAi: string
+  readonly closeAi: string
+  readonly aiTitle: string
+  readonly aiDescription: string
+  readonly aiPlaceholder: string
+  readonly aiSend: string
+  readonly aiThinking: string
+  readonly aiUnavailable: string
+  readonly aiSources: string
   readonly pagination: string
   readonly previousPage: string
   readonly nextPage: string
@@ -179,6 +197,15 @@ export const defaultUiTranslations: ResolvedUiTranslations = {
   openInCursor: 'Open in Cursor',
   openInGrok: 'Open in Grok',
   askAiAboutPage: 'Read {url} so I can ask questions about it.',
+  askAi: 'Ask AI',
+  closeAi: 'Close AI assistant',
+  aiTitle: 'Ask the documentation',
+  aiDescription: 'Answers use this documentation as context.',
+  aiPlaceholder: 'Ask a question…',
+  aiSend: 'Send',
+  aiThinking: 'Thinking…',
+  aiUnavailable: 'The AI assistant is temporarily unavailable.',
+  aiSources: 'Sources',
   pagination: 'Pagination',
   previousPage: 'Previous',
   nextPage: 'Next',
@@ -433,6 +460,8 @@ export interface FoldocsConfig {
   readonly search?: {
     readonly staticIndex?: boolean
   }
+  /** Optional embedded assistant backed by a server-side endpoint. */
+  readonly ai?: false | { readonly endpoint?: string }
 }
 
 export interface ResolvedFoldocsConfig {
@@ -464,6 +493,10 @@ export interface ResolvedFoldocsConfig {
   readonly prerender: boolean
   readonly search: {
     readonly staticIndex: boolean
+  }
+  readonly ai: {
+    readonly enabled: boolean
+    readonly endpoint: string
   }
 }
 
@@ -748,6 +781,13 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
     prerender: config.prerender ?? true,
     search: {
       staticIndex: config.search?.staticIndex ?? true,
+    },
+    ai: {
+      enabled: config.ai !== undefined && config.ai !== false,
+      endpoint:
+        typeof config.ai === 'object'
+          ? (config.ai.endpoint ?? '/api/ai')
+          : '/api/ai',
     },
   }
 }

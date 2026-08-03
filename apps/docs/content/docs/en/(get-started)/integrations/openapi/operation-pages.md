@@ -27,11 +27,18 @@ The first declared media type is documented with its required status,
 description, property table, and a generated example. Schema examples and
 defaults take precedence over inferred placeholder values.
 
+## Request playground
+
+Every operation includes an `ApiPlayground` that can send the generated example
+from the browser and display its status and response body. Browser CORS rules
+still apply, and authors can disable the playground with `playground: false`.
+
 ## Request examples
 
-Every operation includes cURL and JavaScript `fetch` examples. The request URL
-uses the first server in the OpenAPI document and falls back to
-`https://api.example.com` when no server is declared.
+The default cURL and TypeScript samples appear in synchronized tabs. Configure
+`codeSamples` to add Python, Go, Java, PHP, or C#. The request URL uses the first
+server in the OpenAPI document and falls back to `https://api.example.com` when
+no server is declared.
 
 ## Responses
 

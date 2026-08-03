@@ -20,12 +20,51 @@ export interface GenerateTypeScriptFilesOptions extends TypeScriptGenerationOpti
   readonly output: string
 }
 
-interface ApiDeclaration {
+export interface ApiDeclaration {
   readonly name: string
   readonly kind: string
   readonly module: string
   readonly description: string
   readonly signature: string
+}
+
+export interface TypeTableProperty {
+  readonly name: string
+  readonly type: string
+  readonly description: string
+  readonly default?: string
+  readonly required: boolean
+}
+
+export interface TranspileTypeScriptOptions {
+  readonly jsx?: boolean
+  readonly target?: 'es2020' | 'es2022' | 'esnext'
+}
+
+/** Transpile an authored TypeScript example for a synchronized JavaScript tab. */
+export const transpileTypeScript = (
+  source: string,
+  options: TranspileTypeScriptOptions = {},
+): string =>
+  ts
+    .transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target:
+          options.target === 'es2020'
+            ? ts.ScriptTarget.ES2020
+            : options.target === 'es2022'
+              ? ts.ScriptTarget.ES2022
+              : ts.ScriptTarget.ESNext,
+        jsx: options.jsx ? ts.JsxEmit.ReactJSX : ts.JsxEmit.Preserve,
+        removeComments: false,
+      },
+    })
+    .outputText.replace(/^["']use strict["'];\s*\n?/u, '')
+    .trimEnd()
+
+export interface GenerateTypeTableOptions {
+  readonly tsconfig?: string
 }
 
 const generatedManifestName = '.foldocs-typescript.json'
@@ -184,6 +223,76 @@ export const extractTypeScriptApi = (
     }
   }
   return result.sort((left, right) => left.name.localeCompare(right.name))
+}
+
+/** Extract object-like properties for Foldocs' inline AutoTypeTable component. */
+export const generateTypeTable = (
+  input: string,
+  exportName: string,
+  options: GenerateTypeTableOptions = {},
+): ReadonlyArray<TypeTableProperty> => {
+  const filename = path.resolve(input)
+  const config = compilerOptions(options.tsconfig)
+  const program = ts.createProgram({
+    rootNames: [...new Set([...config.files, filename])],
+    options: config.options,
+  })
+  const diagnostics = ts
+    .getPreEmitDiagnostics(program)
+    .filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error)
+  if (diagnostics.length > 0)
+    throw new TypeError(
+      ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+        getCanonicalFileName: file => file,
+        getCurrentDirectory: ts.sys.getCurrentDirectory,
+        getNewLine: () => '\n',
+      }),
+    )
+  const source = program.getSourceFile(filename)
+  if (source === undefined) throw new TypeError(`Unable to read ${filename}.`)
+  const declaration = source.statements.find(node => {
+    if (
+      !ts.isInterfaceDeclaration(node) &&
+      !ts.isTypeAliasDeclaration(node) &&
+      !ts.isClassDeclaration(node)
+    )
+      return false
+    return node.name?.text === exportName
+  })
+  if (declaration === undefined)
+    throw new TypeError(`Unable to find type ${exportName} in ${filename}.`)
+  const checker = program.getTypeChecker()
+  const type = checker.getTypeAtLocation(declaration)
+  return checker.getPropertiesOfType(type).map(property => {
+    const propertyDeclaration =
+      property.valueDeclaration ?? property.declarations?.[0]
+    const propertyType =
+      propertyDeclaration === undefined
+        ? checker.getAnyType()
+        : checker.getTypeOfSymbolAtLocation(property, propertyDeclaration)
+    const defaultTag = property
+      .getJsDocTags(checker)
+      .find(tag => tag.name === 'default' || tag.name === 'defaultValue')
+    const defaultValue = defaultTag?.text
+      ?.map(part => part.text)
+      .join('')
+      .trim()
+    return {
+      name: property.getName(),
+      type: checker.typeToString(
+        propertyType,
+        propertyDeclaration,
+        ts.TypeFormatFlags.NoTruncation,
+      ),
+      description: ts
+        .displayPartsToString(property.getDocumentationComment(checker))
+        .trim(),
+      ...(defaultValue === undefined || defaultValue.length === 0
+        ? {}
+        : { default: defaultValue }),
+      required: (property.flags & ts.SymbolFlags.Optional) === 0,
+    }
+  })
 }
 
 const pageFor = (

@@ -14,6 +14,11 @@
     "zoomable-images",
     "inline-toc",
     "type-table",
+    "graph-view",
+    "github-info",
+    "story",
+    "api-playground",
+    "media",
     "banner"
   ]
 }

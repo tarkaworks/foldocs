@@ -1,6 +1,11 @@
 import { Schema as S } from 'effect'
 
-import { PageFrontmatter, TocItem } from '@foldocs/content'
+import {
+  PageFrontmatter,
+  PageReference,
+  StructuredDataSection,
+  TocItem,
+} from '@foldocs/content'
 
 export type Text = Readonly<{ _tag: 'Text'; value: string }>
 export type InlineCode = Readonly<{ _tag: 'InlineCode'; value: string }>
@@ -129,6 +134,9 @@ export type CodeBlock = Readonly<{
   value: string
   language?: string
   meta?: string
+  title?: string
+  icon?: string
+  tab?: string
   highlightedHtml?: string
 }>
 export type MathBlock = Readonly<{
@@ -235,6 +243,9 @@ export const CodeBlock = S.Struct({
   value: S.String,
   language: S.optionalKey(S.String),
   meta: S.optionalKey(S.String),
+  title: S.optionalKey(S.String),
+  icon: S.optionalKey(S.String),
+  tab: S.optionalKey(S.String),
   highlightedHtml: S.optionalKey(S.String),
 })
 export const MathBlock = S.Struct({
@@ -307,6 +318,8 @@ export const CompiledPage = S.Struct({
   toc: S.Array(TocItem),
   source: S.String,
   plainText: S.String,
+  structuredData: S.optionalKey(S.Array(StructuredDataSection)),
+  references: S.optionalKey(S.Array(PageReference)),
 })
 export type CompiledPage = typeof CompiledPage.Type
 

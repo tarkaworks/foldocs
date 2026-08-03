@@ -156,6 +156,45 @@ describe('navigation', () => {
     ).toEqual(['Listed', 'Legacy'])
   })
 
+  it('supports links, icon separators, exclusions, extraction, reverse rest, and custom indexes', () => {
+    const advanced = [
+      page('alpha', 'Alpha'),
+      page('beta', 'Beta'),
+      page('hidden', 'Hidden'),
+      page('guides/overview', 'Guide overview'),
+      page('guides/advanced', 'Advanced guide'),
+    ]
+    const tree = buildNavigation(advanced, {
+      '': {
+        pages: [
+          '---[sparkles]Start---',
+          '[GitHub](https://github.com/tarkaworks/foldocs)',
+          '...guides',
+          'z...a',
+          '!hidden',
+        ],
+      },
+      guides: {
+        title: 'Guides',
+        pagesIndex: 'overview',
+        collapsible: false,
+      },
+    })
+
+    expect(tree).toMatchObject([
+      { _tag: 'Separator', label: 'Start', icon: 'sparkles' },
+      {
+        _tag: 'Link',
+        label: 'GitHub',
+        url: 'https://github.com/tarkaworks/foldocs',
+      },
+      { _tag: 'Page', label: 'Guide overview' },
+      { _tag: 'Page', label: 'Advanced guide' },
+      { _tag: 'Page', label: 'Beta' },
+      { _tag: 'Page', label: 'Alpha' },
+    ])
+  })
+
   it('normalizes trailing slashes and returns adjacent pages', () => {
     expect(
       findPageByUrl(pages, '/docs/getting-started/')?.frontmatter.title,

@@ -1,6 +1,7 @@
 {
   "name": "create-foldocs",
   "version": "0.1.1",
+  "description": "Create a complete Foldkit-native documentation application with Foldocs.",
   "license": "MIT",
   "repository": {
     "type": "git",

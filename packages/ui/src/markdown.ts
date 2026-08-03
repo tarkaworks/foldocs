@@ -29,6 +29,31 @@ export interface MdxComponents {
   readonly block?: Readonly<Record<string, BlockComponentView>>
 }
 
+export interface MarkdownGraphLink {
+  readonly url: string
+  readonly title: string
+  readonly direction: 'outgoing' | 'backlink'
+}
+
+export interface MarkdownGraph {
+  readonly currentTitle: string
+  readonly links: ReadonlyArray<MarkdownGraphLink>
+}
+
+export interface MarkdownApiRequest {
+  readonly id: string
+  readonly url: string
+  readonly method: string
+  readonly body: string
+}
+
+export interface MarkdownApiResponse {
+  readonly loading: boolean
+  readonly status: string
+  readonly body: string
+  readonly error: string
+}
+
 export type MarkdownIslands = FoldkitMarkdown.Islands
 
 export interface MarkdownViewOptions<Message> {
@@ -46,10 +71,25 @@ export interface MarkdownViewOptions<Message> {
   /** Selected package manager shared by every package-install block. */
   readonly packageManager?: PackageManager
   readonly selectPackageManager?: (manager: PackageManager) => Message
+  /** Selected value keyed by a Tabs component's groupId. */
+  readonly selectedTabs?: Readonly<Record<string, string>>
+  readonly selectTab?: (
+    groupId: string,
+    value: string,
+    persist: boolean,
+    updateAnchor: boolean,
+  ) => Message
   /** Current page headings used by the built-in InlineTOC component. */
   readonly toc?: ReadonlyArray<TocItem>
   readonly selectToc?: (id: string) => Message
   readonly openImage?: (url: string, alt: string) => Message
+  readonly graph?: MarkdownGraph
+  readonly apiRequestUrls?: Readonly<Record<string, string>>
+  readonly apiRequestBodies?: Readonly<Record<string, string>>
+  readonly apiResponses?: Readonly<Record<string, MarkdownApiResponse>>
+  readonly updateApiRequestUrl?: (id: string, value: string) => Message
+  readonly updateApiRequestBody?: (id: string, value: string) => Message
+  readonly sendApiRequest?: (request: MarkdownApiRequest) => Message
 }
 
 const externalUrl = (url: string): boolean => /^(?:https?:)?\/\//iu.test(url)
@@ -264,16 +304,47 @@ export const renderMarkdown = <Message>(
         return h.p([h.Class('fd-paragraph')], block.content.map(renderInline))
       case 'CodeBlock': {
         const copyButton = codeCopyButton(block.value)
+        const titleIcon =
+          block.title === undefined
+            ? undefined
+            : navigationIconSvg(block.icon ?? 'code', options.icons)
         return h.div(
-          [h.Class('fd-code-block')],
+          [
+            h.Class(
+              `fd-code-block${block.title === undefined ? '' : ' fd-code-block-titled'}`,
+            ),
+          ],
           [
             h.div(
               [h.Class('fd-code-toolbar')],
               [
-                h.span(
-                  [h.Class('fd-code-language')],
-                  [block.language ?? 'text'],
-                ),
+                ...(block.title === undefined
+                  ? [
+                      h.span(
+                        [h.Class('fd-code-language')],
+                        [block.language ?? 'text'],
+                      ),
+                    ]
+                  : [
+                      h.span(
+                        [h.Class('fd-code-title')],
+                        [
+                          ...(titleIcon === undefined
+                            ? []
+                            : [
+                                h.span(
+                                  [
+                                    h.Class('fd-icon'),
+                                    h.AriaHidden(true),
+                                    h.InnerHTML(titleIcon),
+                                  ],
+                                  [],
+                                ),
+                              ]),
+                          block.title,
+                        ],
+                      ),
+                    ]),
                 ...(copyButton === undefined ? [] : [copyButton]),
               ],
             ),
@@ -422,6 +493,7 @@ export const renderMarkdown = <Message>(
           return island(block.attributes, content, occurrenceIndex)
         const component = options.components?.block?.[block.name]
         if (component !== undefined) return component(block, content)
+        if (block.name === 'MdxModule') return h.empty
         if (block.name === 'Callout' || block.name === 'Note') {
           const inputType = block.attributes.type ?? 'info'
           const type =
@@ -590,6 +662,280 @@ export const renderMarkdown = <Message>(
           )
         }
         if (block.name === 'TypeTableItem') return h.empty
+        if (block.name === 'ApiPlayground') {
+          const id = block.attributes.id ?? `api-${String(occurrenceIndex)}`
+          const method = (block.attributes.method ?? 'GET').toUpperCase()
+          const url = block.attributes.url ?? ''
+          let body = ''
+          try {
+            body = decodeURIComponent(block.attributes.body ?? '')
+          } catch {
+            body = block.attributes.body ?? ''
+          }
+          const requestUrl = options.apiRequestUrls?.[id] ?? url
+          const requestBody = options.apiRequestBodies?.[id] ?? body
+          const response = options.apiResponses?.[id]
+          return h.section(
+            [
+              h.Class('fd-api-playground'),
+              h.DataAttribute('component', 'ApiPlayground'),
+            ],
+            [
+              h.div(
+                [h.Class('fd-api-playground-request')],
+                [
+                  h.span(
+                    [
+                      h.Class(
+                        `fd-api-method fd-api-method-${method.toLowerCase()}`,
+                      ),
+                    ],
+                    [method],
+                  ),
+                  options.updateApiRequestUrl === undefined
+                    ? h.code([h.Class('fd-api-url')], [requestUrl])
+                    : h.input([
+                        h.Class('fd-api-url-input'),
+                        h.Type('url'),
+                        h.Value(requestUrl),
+                        h.AriaLabel('Request URL'),
+                        h.OnInput(value =>
+                          options.updateApiRequestUrl!(id, value),
+                        ),
+                      ]),
+                  ...(options.sendApiRequest === undefined
+                    ? []
+                    : [
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.Class(
+                              'fd-control fd-control-outline fd-control-sm',
+                            ),
+                            h.OnClick(
+                              options.sendApiRequest({
+                                id,
+                                url: requestUrl,
+                                method,
+                                body: requestBody,
+                              }),
+                            ),
+                            h.Disabled(response?.loading === true),
+                          ],
+                          [response?.loading === true ? 'Sending…' : 'Send'],
+                        ),
+                      ]),
+                ],
+              ),
+              ...(body.length === 0 &&
+              options.apiRequestBodies?.[id] === undefined
+                ? []
+                : [
+                    h.div(
+                      [h.Class('fd-api-playground-body')],
+                      [
+                        h.strong([], ['Request body']),
+                        h.textarea(
+                          [
+                            h.Value(requestBody),
+                            h.AriaLabel('Request body'),
+                            ...(options.updateApiRequestBody === undefined
+                              ? [h.Attribute('readonly', '')]
+                              : [
+                                  h.OnInput(value =>
+                                    options.updateApiRequestBody!(id, value),
+                                  ),
+                                ]),
+                            h.Attribute('rows', '8'),
+                          ],
+                          [],
+                        ),
+                      ],
+                    ),
+                  ]),
+              ...(response === undefined
+                ? []
+                : [
+                    h.div(
+                      [
+                        h.Class('fd-api-playground-response'),
+                        h.AriaLive('polite'),
+                      ],
+                      [
+                        h.strong(
+                          [],
+                          [
+                            response.error.length > 0
+                              ? 'Request failed'
+                              : `Response${response.status.length === 0 ? '' : ` · ${response.status}`}`,
+                          ],
+                        ),
+                        ...(response.error.length > 0
+                          ? [h.p([h.Class('fd-api-error')], [response.error])]
+                          : response.body.length === 0
+                            ? []
+                            : [h.pre([], [h.code([], [response.body])])]),
+                      ],
+                    ),
+                  ]),
+            ],
+          )
+        }
+        if (block.name === 'AsyncApiPlayground') {
+          let payload = ''
+          try {
+            payload = decodeURIComponent(block.attributes.payload ?? '')
+          } catch {
+            payload = block.attributes.payload ?? ''
+          }
+          const copyButton = codeCopyButton(payload)
+          return h.section(
+            [
+              h.Class('fd-api-playground fd-asyncapi-playground'),
+              h.DataAttribute('component', 'AsyncApiPlayground'),
+            ],
+            [
+              h.div(
+                [h.Class('fd-api-playground-request')],
+                [
+                  h.span(
+                    [h.Class('fd-api-method')],
+                    [(block.attributes.action ?? 'send').toUpperCase()],
+                  ),
+                  h.code(
+                    [h.Class('fd-api-url')],
+                    [block.attributes.channel ?? 'channel'],
+                  ),
+                  ...(copyButton === undefined ? [] : [copyButton]),
+                ],
+              ),
+              ...(payload.length === 0
+                ? []
+                : [h.pre([], [h.code([], [payload])])]),
+            ],
+          )
+        }
+        if (block.name === 'Video') {
+          const src = block.attributes.src
+          if (src === undefined) return h.empty
+          return h.video(
+            [
+              h.Class('fd-media fd-video'),
+              h.Src(src),
+              h.Attribute('controls', ''),
+              h.Attribute('preload', block.attributes.preload ?? 'metadata'),
+              ...(block.attributes.poster === undefined
+                ? []
+                : [h.Attribute('poster', block.attributes.poster)]),
+              ...(block.attributes.title === undefined
+                ? []
+                : [h.Title(block.attributes.title)]),
+            ],
+            content,
+          )
+        }
+        if (block.name === 'Audio') {
+          const src = block.attributes.src
+          if (src === undefined) return h.empty
+          return h.audio(
+            [
+              h.Class('fd-media fd-audio'),
+              h.Src(src),
+              h.Attribute('controls', ''),
+              h.Attribute('preload', block.attributes.preload ?? 'metadata'),
+            ],
+            content,
+          )
+        }
+        if (block.name === 'Embed') {
+          const src = block.attributes.src
+          if (src === undefined || !/^https:\/\//iu.test(src)) return h.empty
+          return h.iframe(
+            [
+              h.Class('fd-media fd-embed'),
+              h.Src(src),
+              h.Title(block.attributes.title ?? 'Embedded media'),
+              h.Attribute('loading', 'lazy'),
+              h.Attribute('allowfullscreen', ''),
+              h.Attribute(
+                'sandbox',
+                block.attributes.sandbox ??
+                  'allow-scripts allow-same-origin allow-presentation',
+              ),
+            ],
+            [],
+          )
+        }
+        if (block.name === 'GraphView') {
+          const graph = options.graph
+          if (graph === undefined) return h.empty
+          return h.figure(
+            [
+              h.Class('fd-graph-view'),
+              h.DataAttribute('component', 'GraphView'),
+            ],
+            [
+              h.figcaption([h.Class('fd-graph-title')], [graph.currentTitle]),
+              h.ul(
+                [h.Class('fd-graph-links')],
+                graph.links.map(link =>
+                  h.li(
+                    [h.Class(`fd-graph-link fd-graph-link-${link.direction}`)],
+                    [
+                      h.a([h.Href(link.url)], [link.title]),
+                      h.span(
+                        [h.Class('fd-graph-direction')],
+                        [
+                          link.direction === 'outgoing'
+                            ? 'Referenced page'
+                            : 'Links here',
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          )
+        }
+        if (block.name === 'GithubInfo') {
+          const owner = block.attributes.owner
+          const repository =
+            block.attributes.repo ?? block.attributes.repository
+          if (owner === undefined || repository === undefined) return h.empty
+          const url = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`
+          return h.a(
+            [
+              h.Class('fd-github-info'),
+              h.Href(url),
+              h.Target('_blank'),
+              h.Rel('noreferrer noopener'),
+              h.DataAttribute('component', 'GithubInfo'),
+            ],
+            [
+              h.span(
+                [
+                  h.Class('fd-icon'),
+                  h.AriaHidden(true),
+                  h.InnerHTML(icons.github),
+                ],
+                [],
+              ),
+              h.span(
+                [h.Class('fd-github-repository')],
+                [`${owner}/${repository}`],
+              ),
+              h.img([
+                h.Class('fd-github-stars'),
+                h.Src(
+                  `https://img.shields.io/github/stars/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}?style=flat&label=stars`,
+                ),
+                h.Alt(`GitHub stars for ${owner}/${repository}`),
+                h.Attribute('loading', 'lazy'),
+              ]),
+            ],
+          )
+        }
         if (block.name === 'Card') {
           const href = block.attributes.href
           const cardIcon =
@@ -645,35 +991,62 @@ export const renderMarkdown = <Message>(
                   candidate.attributes.title ??
                   candidate.attributes.value ??
                   `Tab ${String(index + 1)}`,
+                value:
+                  candidate.attributes.value ??
+                  candidate.attributes.title ??
+                  String(index),
                 content: content[index] ?? h.empty,
               },
             ]
           })
           if (tabs.length === 0) return h.div([h.Class('fd-tabs')], content)
-          const group = `fd-tabs-${String(occurrenceIndex)}`
+          const groupId =
+            block.attributes.groupId ??
+            block.attributes.group ??
+            `page-${String(occurrenceIndex)}`
+          const group = `fd-tabs-${groupId.replace(/[^a-z0-9_-]+/giu, '-')}-${String(occurrenceIndex)}`
+          const defaultIndex = Math.max(
+            0,
+            Math.min(
+              tabs.length - 1,
+              Number.parseInt(block.attributes.defaultIndex ?? '0', 10) || 0,
+            ),
+          )
+          const selectedValue =
+            options.selectedTabs?.[groupId] ?? tabs[defaultIndex]?.value
+          const persist = block.attributes.persist === 'true'
+          const updateAnchor = block.attributes.updateAnchor === 'true'
           return h.div(
-            [h.Class('fd-tabs'), h.DataAttribute('component', 'Tabs')],
             [
-              ...tabs.map((_, index) =>
-                h.input([
-                  h.Id(`${group}-${String(index)}`),
-                  h.Class('fd-tab-input'),
-                  h.Type('radio'),
-                  h.Attribute('name', group),
-                  h.Value(String(index)),
-                  ...(index === 0 ? [h.Attribute('checked', '')] : []),
-                ]),
-              ),
+              h.Class('fd-tabs'),
+              h.DataAttribute('component', 'Tabs'),
+              h.DataAttribute('group-id', groupId),
+            ],
+            [
               h.div(
                 [h.Class('fd-tabs-list'), h.Role('tablist')],
                 tabs.map((tab, index) =>
-                  h.label(
+                  h.button(
                     [
                       h.Id(`${group}-${String(index)}-trigger`),
+                      h.Type('button'),
                       h.Class('fd-tab-trigger'),
-                      h.Attribute('for', `${group}-${String(index)}`),
                       h.Role('tab'),
                       h.AriaControls(`${group}-${String(index)}-panel`),
+                      h.AriaSelected(tab.value === selectedValue),
+                      h.Tabindex(tab.value === selectedValue ? 0 : -1),
+                      ...(options.selectTab === undefined
+                        ? []
+                        : [
+                            h.OnClick(
+                              options.selectTab(
+                                groupId,
+                                tab.value,
+                                persist,
+                                updateAnchor,
+                              ),
+                            ),
+                          ]),
                     ],
                     [tab.title],
                   ),
@@ -688,6 +1061,9 @@ export const renderMarkdown = <Message>(
                       h.Class('fd-tab-panel'),
                       h.Role('tabpanel'),
                       h.AriaLabelledBy(`${group}-${String(index)}-trigger`),
+                      ...(tab.value === selectedValue
+                        ? []
+                        : [h.Attribute('hidden', '')]),
                     ],
                     [tab.content],
                   ),
@@ -698,6 +1074,93 @@ export const renderMarkdown = <Message>(
         }
         if (block.name === 'Tab') {
           return h.div([h.Class('fd-tab-content')], content)
+        }
+        if (block.name === 'Story') {
+          const variants = block.blocks.flatMap((candidate, index) => {
+            if (
+              candidate._tag !== 'BlockComponent' ||
+              candidate.name !== 'StoryVariant'
+            )
+              return []
+            const title =
+              candidate.attributes.title ??
+              candidate.attributes.name ??
+              `Variant ${String(index + 1)}`
+            return [
+              {
+                title,
+                value: candidate.attributes.value ?? title,
+                content: content[index] ?? h.empty,
+              },
+            ]
+          })
+          if (variants.length === 0)
+            return h.div([h.Class('fd-story')], content)
+          const groupId =
+            block.attributes.groupId ??
+            `story-${block.attributes.id ?? String(occurrenceIndex)}`
+          const selected = options.selectedTabs?.[groupId] ?? variants[0]!.value
+          return h.section(
+            [h.Class('fd-story'), h.DataAttribute('component', 'Story')],
+            [
+              h.div(
+                [h.Class('fd-story-toolbar'), h.Role('tablist')],
+                variants.map((variant, index) =>
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.Id(`${groupId}-${String(index)}-trigger`),
+                      h.Class('fd-story-variant-trigger'),
+                      h.Role('tab'),
+                      h.AriaSelected(variant.value === selected),
+                      h.AriaControls(`${groupId}-${String(index)}-panel`),
+                      ...(options.selectTab === undefined
+                        ? []
+                        : [
+                            h.OnClick(
+                              options.selectTab(
+                                groupId,
+                                variant.value,
+                                block.attributes.persist === 'true',
+                                false,
+                              ),
+                            ),
+                          ]),
+                    ],
+                    [variant.title],
+                  ),
+                ),
+              ),
+              ...variants.map((variant, index) =>
+                h.div(
+                  [
+                    h.Id(`${groupId}-${String(index)}-panel`),
+                    h.Class('fd-story-stage'),
+                    h.Role('tabpanel'),
+                    h.AriaLabelledBy(`${groupId}-${String(index)}-trigger`),
+                    ...(variant.value === selected
+                      ? []
+                      : [h.Attribute('hidden', '')]),
+                  ],
+                  [variant.content],
+                ),
+              ),
+            ],
+          )
+        }
+        if (block.name === 'StoryVariant')
+          return h.div([h.Class('fd-story-variant')], content)
+        if (block.name === 'StoryControl') {
+          return h.label(
+            [h.Class('fd-story-control')],
+            [
+              h.span(
+                [],
+                [block.attributes.label ?? block.attributes.name ?? 'Property'],
+              ),
+              h.output([], [block.attributes.value ?? '']),
+            ],
+          )
         }
         if (block.name === 'Accordions') {
           return h.div([h.Class('fd-accordions')], content)

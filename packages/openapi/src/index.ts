@@ -229,6 +229,7 @@ const codeSamples = (
   method: string,
   route: string,
   operation: JsonObject,
+  languages: NonNullable<OpenApiGenerationOptions['codeSamples']>,
 ): string => {
   const url = `${serverUrl(document).replace(/\/+$/u, '')}${route}`
   const body = resolveReference(document, operation.requestBody)
@@ -255,17 +256,119 @@ const codeSamples = (
     '',
     'const data = await response.json();',
   ].join('\n')
+  const samples = {
+    curl: { language: 'bash', title: 'cURL', value: curl },
+    typescript: {
+      language: 'ts',
+      title: 'TypeScript',
+      value: javascript,
+    },
+    python: {
+      language: 'python',
+      title: 'Python',
+      value: [
+        'import requests',
+        '',
+        `response = requests.request(${JSON.stringify(method.toUpperCase())}, ${JSON.stringify(url)}${bodyJson === undefined ? '' : `, json=${JSON.stringify(example)}`})`,
+        'data = response.json()',
+      ].join('\n'),
+    },
+    go: {
+      language: 'go',
+      title: 'Go',
+      value: [
+        `request, err := http.NewRequest(${JSON.stringify(method.toUpperCase())}, ${JSON.stringify(url)}, ${bodyJson === undefined ? 'nil' : `strings.NewReader(${JSON.stringify(bodyJson)})`})`,
+        'if err != nil { panic(err) }',
+        ...(bodyJson === undefined
+          ? []
+          : ['request.Header.Set("content-type", "application/json")']),
+        'response, err := http.DefaultClient.Do(request)',
+        'if err != nil { panic(err) }',
+        'defer response.Body.Close()',
+      ].join('\n'),
+    },
+    java: {
+      language: 'java',
+      title: 'Java',
+      value: [
+        'var client = java.net.http.HttpClient.newHttpClient();',
+        `var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create(${JSON.stringify(url)}))`,
+        ...(bodyJson === undefined
+          ? [
+              `  .method(${JSON.stringify(method.toUpperCase())}, java.net.http.HttpRequest.BodyPublishers.noBody())`,
+            ]
+          : [
+              '  .header("content-type", "application/json")',
+              `  .method(${JSON.stringify(method.toUpperCase())}, java.net.http.HttpRequest.BodyPublishers.ofString(${JSON.stringify(bodyJson)}))`,
+            ]),
+        '  .build();',
+        'var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());',
+      ].join('\n'),
+    },
+    php: {
+      language: 'php',
+      title: 'PHP',
+      value: [
+        '$curl = curl_init();',
+        `curl_setopt($curl, CURLOPT_URL, ${JSON.stringify(url)});`,
+        `curl_setopt($curl, CURLOPT_CUSTOMREQUEST, ${JSON.stringify(method.toUpperCase())});`,
+        ...(bodyJson === undefined
+          ? []
+          : [
+              `curl_setopt($curl, CURLOPT_POSTFIELDS, ${JSON.stringify(bodyJson)});`,
+              'curl_setopt($curl, CURLOPT_HTTPHEADER, ["content-type: application/json"]);',
+            ]),
+        'curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);',
+        '$response = curl_exec($curl);',
+      ].join('\n'),
+    },
+    csharp: {
+      language: 'csharp',
+      title: 'C#',
+      value: [
+        'using var client = new HttpClient();',
+        `using var request = new HttpRequestMessage(new HttpMethod(${JSON.stringify(method.toUpperCase())}), ${JSON.stringify(url)});`,
+        ...(bodyJson === undefined
+          ? []
+          : [
+              `request.Content = new StringContent(${JSON.stringify(bodyJson)}, Encoding.UTF8, "application/json");`,
+            ]),
+        'using var response = await client.SendAsync(request);',
+        'var data = await response.Content.ReadAsStringAsync();',
+      ].join('\n'),
+    },
+  } as const
   return [
     '## Request examples',
     '',
-    '```bash',
-    curl,
-    '```',
-    '',
-    '```ts',
-    javascript,
-    '```',
+    ...languages.flatMap(language => {
+      const sample = samples[language]
+      return [
+        `\`\`\`${sample.language} tab=${JSON.stringify(sample.title)}`,
+        sample.value,
+        '```',
+        '',
+      ]
+    }),
   ].join('\n')
+}
+
+const playground = (
+  document: OpenApiDocument,
+  entry: OperationEntry,
+): string => {
+  const body = resolveReference(document, entry.operation.requestBody)
+  const media = Object.entries(asObject(body?.content) ?? {})[0]?.[1]
+  const example =
+    body === undefined
+      ? ''
+      : JSON.stringify(
+          schemaExample(document, asObject(media)?.schema),
+          null,
+          2,
+        )
+  const url = `${serverUrl(document).replace(/\/+$/u, '')}${entry.route}`
+  return `<ApiPlayground id=${JSON.stringify(entry.slug)} method=${JSON.stringify(entry.method.toUpperCase())} url=${JSON.stringify(url)} body=${JSON.stringify(encodeURIComponent(example))} />`
 }
 
 interface OperationEntry {
@@ -320,6 +423,7 @@ const operationMarkdown = (
   document: OpenApiDocument,
   entry: OperationEntry,
   order: number,
+  options: OpenApiGenerationOptions,
 ): string => {
   const parameters = [
     ...(Array.isArray(entry.pathItem.parameters)
@@ -349,7 +453,14 @@ const operationMarkdown = (
     entry.description ?? '',
     parameterRows(document, parameters),
     requestBodySection(document, entry.operation.requestBody),
-    codeSamples(document, entry.method, entry.route, entry.operation),
+    options.playground === false ? '' : playground(document, entry),
+    codeSamples(
+      document,
+      entry.method,
+      entry.route,
+      entry.operation,
+      options.codeSamples ?? ['curl', 'typescript'],
+    ),
     responseSections(document, entry.operation.responses),
   ]
     .filter(Boolean)
@@ -417,7 +528,7 @@ export const generateOpenApiFiles = (
   const baseUrl = options.baseUrl ?? ''
   const pages = entries.map((entry, index) => ({
     path: `${entry.slug}.mdx`,
-    content: operationMarkdown(document, entry, index + 2),
+    content: operationMarkdown(document, entry, index + 2, options),
   }))
   if (!includeIndex) return pages
   const index = [

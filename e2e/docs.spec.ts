@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { type Page, expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
@@ -21,6 +22,29 @@ const expectNoRuntimeErrors = (page: Page): Array<string> => {
 
 const waitForRuntime = (page: Page) =>
   page.locator('html[data-foldocs-ready="true"]').waitFor()
+
+const expectNoSeriousAccessibilityViolations = async (page: Page) => {
+  const result = await new AxeBuilder({ page })
+    .include('.fd-root')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze()
+  expect(
+    result.violations.filter(
+      violation =>
+        violation.impact === 'serious' || violation.impact === 'critical',
+    ),
+  ).toEqual([])
+}
+
+test('landing and docs have no serious WCAG violations', async ({ page }) => {
+  await page.goto('/en')
+  await waitForRuntime(page)
+  await expectNoSeriousAccessibilityViolations(page)
+
+  await page.goto('/en/docs/ui/components')
+  await waitForRuntime(page)
+  await expectNoSeriousAccessibilityViolations(page)
+})
 
 test('prerendered homepage, localized docs, Markdown, and remote content agree', async ({
   page,
@@ -1140,14 +1164,16 @@ test('default documentation components render with Foldkit-native behavior', asy
   await activePage.hover()
   await expect(activePage).toHaveCSS('color', primaryColor)
 
-  const tabInputs = page.locator('.fd-tab-input')
-  await expect(tabInputs).toHaveCount(2)
-  const npmTab = page.locator('.fd-tab-trigger[for$="-1"]')
+  const tabs = page.locator('.fd-tabs[data-group-id]')
+  await expect(tabs).toHaveCount(1)
+  const npmTab = tabs.getByRole('tab', { name: 'npm', exact: true })
   await expect(npmTab).toHaveCount(1)
   await npmTab.click()
-  await expect(page.locator('.fd-tab-input:checked')).toHaveValue('1')
-  await expect(page.locator('.fd-tab-panel:nth-child(2)')).toBeVisible()
-  await expect(page.locator('.fd-tab-panel:nth-child(1)')).toBeHidden()
+  await expect(npmTab).toHaveAttribute('aria-selected', 'true')
+  await expect(
+    tabs.getByRole('tabpanel', { name: 'npm', exact: true }),
+  ).toBeVisible()
+  await expect(tabs.locator('.fd-tab-panel').first()).toBeHidden()
 
   const closedAccordion = page
     .locator('.fd-accordion')

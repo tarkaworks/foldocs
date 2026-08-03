@@ -1,5 +1,5 @@
 import { Option, Schema as S } from 'effect'
-import { inertHtml as h } from 'foldkit/html'
+import { type HtmlBuilder, inertHtml as h } from 'foldkit/html'
 import { Scene } from 'foldkit/test'
 import type { Block } from 'foldocs-mdx'
 import { describe, expect, it } from 'vitest'
@@ -124,7 +124,7 @@ describe('custom MDX components', () => {
       '.fd-callout-strand',
       '.fd-card-icon',
       '.fd-step',
-      '.fd-tab-input',
+      '.fd-tab-trigger',
       '.fd-accordion',
       '.fd-file-folder',
     ]) {
@@ -283,5 +283,89 @@ describe('custom MDX components', () => {
     expect(Option.isSome(Scene.find(rendered, '.custom-feature'))).toBe(true)
     expect(Option.isSome(Scene.find(rendered, '.custom-key'))).toBe(true)
     expect(Scene.textContent(rendered)).toContain('Press ⌘K')
+  })
+
+  it('renders API playground responses and safe media components', () => {
+    const interactiveHtml = h as unknown as HtmlBuilder<string>
+    const rendered = renderMarkdown(
+      {
+        blocks: [
+          {
+            _tag: 'BlockComponent',
+            name: 'ApiPlayground',
+            attributes: {
+              id: 'create-user',
+              method: 'POST',
+              url: 'https://api.example.com/users',
+              body: encodeURIComponent('{"name":"Ada"}'),
+            },
+            blocks: [],
+          },
+          {
+            _tag: 'BlockComponent',
+            name: 'AsyncApiPlayground',
+            attributes: {
+              action: 'send',
+              channel: 'users/created',
+              payload: encodeURIComponent('{"id":"user-1"}'),
+            },
+            blocks: [],
+          },
+          {
+            _tag: 'BlockComponent',
+            name: 'Video',
+            attributes: { src: '/demo.mp4', title: 'Demo' },
+            blocks: [],
+          },
+          {
+            _tag: 'BlockComponent',
+            name: 'Audio',
+            attributes: { src: '/demo.mp3', title: 'Narration' },
+            blocks: [],
+          },
+          {
+            _tag: 'BlockComponent',
+            name: 'Embed',
+            attributes: {
+              src: 'https://example.com/embed',
+              title: 'Example embed',
+            },
+            blocks: [],
+          },
+        ],
+      },
+      {
+        apiRequestUrls: {
+          'create-user': 'https://api.example.com/users/preview',
+        },
+        apiRequestBodies: { 'create-user': '{"name":"Grace"}' },
+        updateApiRequestUrl: (id, value) => `${id}:${value}`,
+        updateApiRequestBody: (id, value) => `${id}:${value}`,
+        sendApiRequest: request => request.id,
+        apiResponses: {
+          'create-user': {
+            loading: false,
+            status: '201 Created',
+            body: '{"id":"user-1"}',
+            error: '',
+          },
+        },
+      },
+      interactiveHtml,
+    )
+
+    expect(rendered).not.toBeNull()
+    if (rendered === null) return
+    for (const selector of [
+      '[data-component="ApiPlayground"]',
+      '[data-component="AsyncApiPlayground"]',
+      '.fd-video',
+      '.fd-audio',
+      '.fd-embed',
+    ])
+      expect(Option.isSome(Scene.find(rendered, selector))).toBe(true)
+    expect(Scene.textContent(rendered)).toContain('201 Created')
+    expect(Scene.textContent(rendered)).toContain('users/created')
+    expect(Option.isSome(Scene.find(rendered, '.fd-api-url-input'))).toBe(true)
   })
 })

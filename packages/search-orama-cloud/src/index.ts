@@ -116,11 +116,25 @@ export const createOramaCloudSearchClient = (
                   : typeof document.content === 'string'
                     ? document.content
                     : ''
+              const type =
+                document.type === 'section' ? ('section' as const) : undefined
+              const pageTitle =
+                typeof document.pageTitle === 'string'
+                  ? document.pageTitle
+                  : undefined
+              const breadcrumbs = Array.isArray(document.breadcrumbs)
+                ? document.breadcrumbs.filter(
+                    (value): value is string => typeof value === 'string',
+                  )
+                : undefined
               return [
                 {
                   id: hit.id,
                   url,
                   title,
+                  ...(type === undefined ? {} : { type }),
+                  ...(pageTitle === undefined ? {} : { pageTitle }),
+                  ...(breadcrumbs === undefined ? {} : { breadcrumbs }),
                   excerpt: excerpt(content, query),
                   score: hit.score ?? 0,
                 },

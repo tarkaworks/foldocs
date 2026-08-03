@@ -22,6 +22,7 @@ import {
   type MarkdownIslands,
   type MdxComponents,
   docsLayout,
+  initAiDialog,
   landingLayout,
 } from 'foldocs-ui'
 
@@ -216,7 +217,9 @@ const collapsedNavigationGroups = (
     if (node._tag !== 'Folder') return []
     const key = `${parentKey}/${node.segment}`
     return [
-      ...(node.defaultOpen || expandedGroups.has(key) ? [] : [key]),
+      ...(node.defaultOpen || !node.collapsible || expandedGroups.has(key)
+        ? []
+        : [key]),
       ...collapsedNavigationGroups(node.children, expandedGroups, key),
     ]
   })
@@ -343,6 +346,18 @@ const renderRouteBody = (
         bannerDismissed: false,
         ...(config.feedback === undefined ? {} : { feedback: config.feedback }),
         feedbackStatus: 'idle',
+        ...(config.ai.enabled
+          ? {
+              ai: {
+                open: false,
+                input: '',
+                loading: false,
+                error: '',
+                messages: [],
+              },
+              aiDialog: initAiDialog(),
+            }
+          : {}),
         copyMarkdownStatus: 'idle',
         ...search,
         actions: {
@@ -358,6 +373,15 @@ const renderRouteBody = (
           openImage: () => staticMessage,
           closeImage: staticMessage,
           submitFeedback: () => staticMessage,
+          ...(config.ai.enabled
+            ? {
+                openAi: staticMessage,
+                closeAi: staticMessage,
+                updateAiInput: () => staticMessage,
+                submitAi: staticMessage,
+                gotAiDialogMessage: () => staticMessage,
+              }
+            : {}),
         },
         markdown: {
           ...(islands === undefined ? {} : { islands }),
@@ -369,6 +393,12 @@ const renderRouteBody = (
           copiedLabel: definition.ui.copied,
           copyAriaLabel: definition.ui.copyCode,
           copiedAriaLabel: definition.ui.codeCopied,
+          apiResponses: {},
+          apiRequestUrls: {},
+          apiRequestBodies: {},
+          updateApiRequestUrl: () => staticMessage,
+          updateApiRequestBody: () => staticMessage,
+          sendApiRequest: () => staticMessage,
         },
       },
       staticHtml,

@@ -62,6 +62,7 @@ export const foldocsLogoSvg =
 /** Generic interface icons use the same Lucide nodes as Fumadocs. */
 export const icons = {
   search: lucideSvg(Search),
+  sparkles: lucideSvg(Sparkles),
   menu: lucideSvg(Menu),
   close: lucideSvg(X),
   chevron: lucideSvg(ChevronDown),

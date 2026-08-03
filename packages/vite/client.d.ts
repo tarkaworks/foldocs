@@ -24,6 +24,7 @@ declare module 'virtual:foldocs' {
   export const banner: import('foldocs-core').BannerConfig | undefined
   export const feedback: import('foldocs-core').FeedbackConfig | undefined
   export const markdown: boolean
+  export const ai: import('foldocs-core').ResolvedFoldocsConfig['ai']
   export const searchIndexUrls: Readonly<Record<string, string>>
   export const landingSocialImages: Readonly<Record<string, string>>
   export default manifest

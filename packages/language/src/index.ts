@@ -11,6 +11,19 @@ const pack = (
   dir: 'ltr' | 'rtl' = 'ltr',
 ): LanguagePack => ({ locale, name, dir, ui })
 
+/** Compose maintained packs, product vocabulary, and page-specific overrides. */
+export const composeTranslations = (
+  ...layers: ReadonlyArray<UiTranslations | undefined>
+): UiTranslations => Object.assign({}, ...layers.filter(Boolean))
+
+/** Define a reusable locale pack with full type checking and optional RTL. */
+export const defineLanguagePack = (
+  locale: string,
+  name: string,
+  ui: UiTranslations,
+  dir: 'ltr' | 'rtl' = 'ltr',
+): LanguagePack => pack(locale, name, ui, dir)
+
 const spanishUi = {
   home: 'inicio',
   selectLanguage: 'Seleccionar idioma',
@@ -180,3 +193,96 @@ export const simplifiedChinese = (): LanguagePack =>
 
 export const traditionalChinese = (): LanguagePack =>
   pack('zh-TW', '繁體中文', traditionalChineseUi)
+
+const compactPack = (
+  locale: string,
+  name: string,
+  values: Readonly<{
+    search: string
+    documentation: string
+    onThisPage: string
+    previous: string
+    next: string
+    askAi: string
+  }>,
+  dir: 'ltr' | 'rtl' = 'ltr',
+): LanguagePack =>
+  pack(
+    locale,
+    name,
+    {
+      search: values.search,
+      searchDocumentation: values.search,
+      documentation: values.documentation,
+      onThisPage: values.onThisPage,
+      previousPage: values.previous,
+      nextPage: values.next,
+      askAi: values.askAi,
+    },
+    dir,
+  )
+
+export const french = (): LanguagePack =>
+  compactPack('fr', 'Français', {
+    search: 'Rechercher',
+    documentation: 'Documentation',
+    onThisPage: 'Sur cette page',
+    previous: 'Précédent',
+    next: 'Suivant',
+    askAi: 'Demander à l’IA',
+  })
+
+export const german = (): LanguagePack =>
+  compactPack('de', 'Deutsch', {
+    search: 'Suchen',
+    documentation: 'Dokumentation',
+    onThisPage: 'Auf dieser Seite',
+    previous: 'Zurück',
+    next: 'Weiter',
+    askAi: 'KI fragen',
+  })
+
+export const japanese = (): LanguagePack =>
+  compactPack('ja', '日本語', {
+    search: '検索',
+    documentation: 'ドキュメント',
+    onThisPage: 'このページ',
+    previous: '前へ',
+    next: '次へ',
+    askAi: 'AI に質問',
+  })
+
+export const korean = (): LanguagePack =>
+  compactPack('ko', '한국어', {
+    search: '검색',
+    documentation: '문서',
+    onThisPage: '이 페이지에서',
+    previous: '이전',
+    next: '다음',
+    askAi: 'AI에게 질문',
+  })
+
+export const portuguese = (): LanguagePack =>
+  compactPack('pt-BR', 'Português (Brasil)', {
+    search: 'Pesquisar',
+    documentation: 'Documentação',
+    onThisPage: 'Nesta página',
+    previous: 'Anterior',
+    next: 'Próximo',
+    askAi: 'Perguntar à IA',
+  })
+
+export const arabic = (): LanguagePack =>
+  compactPack(
+    'ar',
+    'العربية',
+    {
+      search: 'بحث',
+      documentation: 'التوثيق',
+      onThisPage: 'في هذه الصفحة',
+      previous: 'السابق',
+      next: 'التالي',
+      askAi: 'اسأل الذكاء الاصطناعي',
+    },
+    'rtl',
+  )

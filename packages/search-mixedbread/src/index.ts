@@ -20,6 +20,9 @@ export interface MixedbreadSearchItem {
     title?: string
     description?: string
     url?: string
+    type?: 'page' | 'section'
+    pageTitle?: string
+    breadcrumbs?: ReadonlyArray<string>
   }>
 }
 
@@ -74,6 +77,15 @@ export const createMixedbreadSearchClient = (
                   id: `${item.file_id}-${String(item.chunk_index)}`,
                   url: metadata.url,
                   title: metadata.title ?? 'Untitled',
+                  ...(metadata.type === undefined
+                    ? {}
+                    : { type: metadata.type }),
+                  ...(metadata.pageTitle === undefined
+                    ? {}
+                    : { pageTitle: metadata.pageTitle }),
+                  ...(metadata.breadcrumbs === undefined
+                    ? {}
+                    : { breadcrumbs: [...metadata.breadcrumbs] }),
                   excerpt: excerpt(
                     metadata.description ?? item.text ?? '',
                     query,

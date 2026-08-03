@@ -9,14 +9,18 @@ import {
   localeFromPathname,
   localeHomePath,
   localizedPathname,
+  navigationContextForUrl,
   openGraphLocale,
   resolveConfig,
   robotsContent,
 } from 'foldocs-core'
 import {
   type CodeHighlighter,
+  type CompileOptions,
   type CompiledPage,
+  type DocumentPlugin,
   type MarkdownPluginOptions,
+  type ProcessorPlugins,
   compile,
 } from 'foldocs-mdx'
 import type { MarkdownIslands, MdxComponents } from 'foldocs-ui'
@@ -32,6 +36,7 @@ import {
   type PageMetadata,
   decodeContentFile,
 } from '@foldocs/content'
+import { generateTypeTable, transpileTypeScript } from '@foldocs/typescript'
 
 import {
   isMarkdownPreferred,
@@ -82,6 +87,12 @@ export interface FoldocsPluginOptions extends FoldocsConfig {
   readonly islands?: MarkdownIslands
   /** Official @foldkit/markdown options used to validate `.md` islands. */
   readonly markdownOptions?: MarkdownPluginOptions
+  /** Unified Remark plugins composed with the default Foldocs preset. */
+  readonly remarkPlugins?: ProcessorPlugins
+  /** Typed transforms applied after parsing and before manifest generation. */
+  readonly documentPlugins?: ReadonlyArray<DocumentPlugin>
+  /** Reusable Markdown/MDX and code-file include behavior. */
+  readonly include?: CompileOptions['include']
   /** Optional compiler-aware build-time code highlighter such as @foldocs/twoslash. */
   readonly highlightCode?: CodeHighlighter
 }
@@ -260,6 +271,11 @@ const discoverNavigationMeta = async (
       )
         throw new TypeError(`${metaPath} defaultOpen must be a boolean.`)
       if (
+        value.collapsible !== undefined &&
+        typeof value.collapsible !== 'boolean'
+      )
+        throw new TypeError(`${metaPath} collapsible must be a boolean.`)
+      if (
         value.pages !== undefined &&
         (!Array.isArray(value.pages) ||
           !value.pages.every(entry => typeof entry === 'string'))
@@ -267,6 +283,11 @@ const discoverNavigationMeta = async (
         throw new TypeError(`${metaPath} pages must be an array of strings.`)
       if (value.root !== undefined && typeof value.root !== 'boolean')
         throw new TypeError(`${metaPath} root must be a boolean.`)
+      if (
+        value.pagesIndex !== undefined &&
+        typeof value.pagesIndex !== 'string'
+      )
+        throw new TypeError(`${metaPath} pagesIndex must be a string.`)
       const meta: NavigationMeta = {
         ...(typeof value.title === 'string' ? { title: value.title } : {}),
         ...(typeof value.description === 'string'
@@ -276,7 +297,13 @@ const discoverNavigationMeta = async (
         ...(typeof value.defaultOpen === 'boolean'
           ? { defaultOpen: value.defaultOpen }
           : {}),
+        ...(typeof value.collapsible === 'boolean'
+          ? { collapsible: value.collapsible }
+          : {}),
         ...(typeof value.root === 'boolean' ? { root: value.root } : {}),
+        ...(typeof value.pagesIndex === 'string'
+          ? { pagesIndex: value.pagesIndex }
+          : {}),
         ...(Array.isArray(value.pages)
           ? { pages: value.pages as string[] }
           : {}),
@@ -325,20 +352,48 @@ export const searchIndexAssetPath = (
   locale: string,
 ): string => `${localized ? `${locale}/` : ''}search-index.json`
 
-const searchDocumentsFromPages = (pages: ReadonlyArray<DiscoveredPage>) =>
-  pages.map(({ metadata }) => ({
-    id: metadata.id,
-    url: metadata.url,
-    title: metadata.frontmatter.title,
-    ...(metadata.frontmatter.description === undefined
-      ? {}
-      : { description: metadata.frontmatter.description }),
-    content: metadata.plainText,
-    locale: metadata.locale,
-    ...(metadata.frontmatter.tags === undefined
-      ? {}
-      : { tags: metadata.frontmatter.tags }),
-  }))
+const searchDocumentsFromPages = (
+  pages: ReadonlyArray<DiscoveredPage>,
+  navigations: Readonly<Record<string, ReadonlyArray<NavigationNode>>> = {},
+) =>
+  pages.flatMap(({ metadata, compiled }) => {
+    const navigation = navigations[metadata.locale ?? ''] ?? []
+    const context = navigationContextForUrl(navigation, metadata.url) ?? []
+    const structuredData = compiled.structuredData ?? []
+    const sections =
+      structuredData.length === 0
+        ? [
+            {
+              id: '',
+              title: metadata.frontmatter.title,
+              content: metadata.plainText,
+            },
+          ]
+        : structuredData
+    return sections.map(section => {
+      const isPage = section.id.length === 0
+      return {
+        id: isPage ? metadata.id : `${metadata.id}#${section.id}`,
+        url: isPage ? metadata.url : `${metadata.url}#${section.id}`,
+        title: section.title,
+        type: isPage ? ('page' as const) : ('section' as const),
+        pageId: metadata.id,
+        pageTitle: metadata.frontmatter.title,
+        ...(isPage ? {} : { sectionId: section.id }),
+        breadcrumbs: isPage
+          ? [...context]
+          : [...context, metadata.frontmatter.title],
+        ...(metadata.frontmatter.description === undefined || !isPage
+          ? {}
+          : { description: metadata.frontmatter.description }),
+        content: section.content,
+        locale: metadata.locale,
+        ...(metadata.frontmatter.tags === undefined
+          ? {}
+          : { tags: metadata.frontmatter.tags }),
+      }
+    })
+  })
 
 const metadataWithoutPageContent = (metadata: PageMetadata): PageMetadata => ({
   id: metadata.id,
@@ -355,6 +410,8 @@ const metadataWithoutPageContent = (metadata: PageMetadata): PageMetadata => ({
   frontmatter: metadata.frontmatter,
   toc: [],
   plainText: '',
+  structuredData: [],
+  references: metadata.references ?? [],
 })
 
 const navigationWithoutPageContent = (
@@ -366,7 +423,7 @@ const navigationWithoutPageContent = (
       : node._tag === 'Folder'
         ? {
             ...node,
-            ...(node.index === undefined
+            ...(node.index === undefined || node.index._tag === 'Link'
               ? {}
               : {
                   index: {
@@ -745,6 +802,24 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     { readonly source: string; readonly filePath: string }
   >()
 
+  const resolveAutoTypeTable: NonNullable<
+    CompileOptions['resolveAutoTypeTable']
+  > = async ({ source, name, tsconfig, filePath }) => {
+    const baseDirectory =
+      filePath === undefined || filePath.includes(':')
+        ? viteConfig.root
+        : path.dirname(filePath)
+    return generateTypeTable(path.resolve(baseDirectory, source), name, {
+      ...(tsconfig === undefined
+        ? {}
+        : { tsconfig: path.resolve(baseDirectory, tsconfig) }),
+    })
+  }
+  const transformTypeScriptExample: NonNullable<
+    CompileOptions['transformTypeScript']
+  > = ({ value, language }) =>
+    transpileTypeScript(value, { jsx: /tsx/iu.test(language) })
+
   const compileFile = (
     file: string,
     highlight: boolean,
@@ -759,6 +834,15 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
         ...(options.markdownOptions === undefined
           ? {}
           : { markdown: options.markdownOptions }),
+        ...(options.remarkPlugins === undefined
+          ? {}
+          : { remarkPlugins: options.remarkPlugins }),
+        ...(options.documentPlugins === undefined
+          ? {}
+          : { documentPlugins: options.documentPlugins }),
+        ...(options.include === undefined ? {} : { include: options.include }),
+        resolveAutoTypeTable,
+        transformTypeScript: transformTypeScriptExample,
         ...(options.highlightCode === undefined
           ? {}
           : { highlightCode: options.highlightCode }),
@@ -859,6 +943,12 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
                       : compiled.frontmatter,
                   toc: compiled.toc,
                   plainText: compiled.plainText,
+                  ...(compiled.structuredData === undefined
+                    ? {}
+                    : { structuredData: compiled.structuredData }),
+                  ...(compiled.references === undefined
+                    ? {}
+                    : { references: compiled.references }),
                 },
               }
             }),
@@ -923,6 +1013,17 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
                 ...(options.markdownOptions === undefined
                   ? {}
                   : { markdown: options.markdownOptions }),
+                ...(options.remarkPlugins === undefined
+                  ? {}
+                  : { remarkPlugins: options.remarkPlugins }),
+                ...(options.documentPlugins === undefined
+                  ? {}
+                  : { documentPlugins: options.documentPlugins }),
+                ...(options.include === undefined
+                  ? {}
+                  : { include: options.include }),
+                resolveAutoTypeTable,
+                transformTypeScript: transformTypeScriptExample,
                 ...(options.highlightCode === undefined
                   ? {}
                   : { highlightCode: options.highlightCode }),
@@ -972,6 +1073,12 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
                       : compiled.frontmatter,
                   toc: compiled.toc,
                   plainText: compiled.plainText,
+                  ...(compiled.structuredData === undefined
+                    ? {}
+                    : { structuredData: compiled.structuredData }),
+                  ...(compiled.references === undefined
+                    ? {}
+                    : { references: compiled.references }),
                 },
               }
             }),
@@ -1179,7 +1286,10 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
       const pages = (await discover(false)).filter(
         ({ metadata }) => metadata.locale === locale,
       )
-      const source = JSON.stringify(searchDocumentsFromPages(pages))
+      const { navigations } = await discoverNavigationData(pages)
+      const source = JSON.stringify(
+        searchDocumentsFromPages(pages, navigations),
+      )
       response.statusCode = 200
       response.setHeader('Content-Type', 'application/json; charset=utf-8')
       response.setHeader('Content-Language', locale)
@@ -1389,6 +1499,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           `export const seo = ${JSON.stringify(config.seo)};`,
           `export const og = ${JSON.stringify({ enabled: config.og.enabled, directory: config.og.directory, width: config.og.width, height: config.og.height })};`,
           `export const markdown = ${JSON.stringify(config.markdown)};`,
+          `export const ai = ${JSON.stringify(config.ai)};`,
           `export const searchIndexUrls = ${JSON.stringify(searchIndexUrls)};`,
           `export const landingSocialImages = ${JSON.stringify(landingSocialImages)};`,
           `export const navigationMeta = ${JSON.stringify(navigationMeta)};`,
@@ -1409,6 +1520,17 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           ...(options.markdownOptions === undefined
             ? {}
             : { markdown: options.markdownOptions }),
+          ...(options.remarkPlugins === undefined
+            ? {}
+            : { remarkPlugins: options.remarkPlugins }),
+          ...(options.documentPlugins === undefined
+            ? {}
+            : { documentPlugins: options.documentPlugins }),
+          ...(options.include === undefined
+            ? {}
+            : { include: options.include }),
+          resolveAutoTypeTable,
+          transformTypeScript: transformTypeScriptExample,
           ...(options.highlightCode === undefined
             ? {}
             : { highlightCode: options.highlightCode }),
@@ -1458,6 +1580,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     },
     async generateBundle() {
       const pages = await discover(false)
+      const { navigations } = await discoverNavigationData(pages)
       for (const { locale } of config.i18n.locales) {
         const roots =
           config.i18n.enabled && config.i18n.parser === 'dir'
@@ -1504,7 +1627,9 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           this.emitFile({
             type: 'asset',
             fileName: searchIndexAssetPath(config.i18n.enabled, locale),
-            source: JSON.stringify(searchDocumentsFromPages(localizedPages)),
+            source: JSON.stringify(
+              searchDocumentsFromPages(localizedPages, navigations),
+            ),
           })
         }
       }

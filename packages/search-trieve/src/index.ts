@@ -16,6 +16,9 @@ export interface TrieveHit {
   readonly id: string
   readonly url: string
   readonly title: string
+  readonly type?: 'page' | 'section'
+  readonly pageTitle?: string
+  readonly breadcrumbs?: ReadonlyArray<string>
   readonly content?: string
   readonly score?: number
 }
@@ -59,6 +62,13 @@ export const createTrieveSearchClient = (
               id: hit.id,
               url: hit.url,
               title: hit.title,
+              ...(hit.type === undefined ? {} : { type: hit.type }),
+              ...(hit.pageTitle === undefined
+                ? {}
+                : { pageTitle: hit.pageTitle }),
+              ...(hit.breadcrumbs === undefined
+                ? {}
+                : { breadcrumbs: [...hit.breadcrumbs] }),
               excerpt: excerpt(hit.content ?? '', query),
               score: hit.score ?? 0,
             })),

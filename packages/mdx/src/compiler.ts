@@ -22,7 +22,7 @@ import remarkMath from 'remark-math'
 import remarkMdx from 'remark-mdx'
 import remarkParse from 'remark-parse'
 import { codeToHtml } from 'shiki'
-import { unified } from 'unified'
+import { type PluggableList, unified } from 'unified'
 import { parse as parseYaml } from 'yaml'
 
 import type * as FoldkitMarkdown from '@foldkit/markdown'
@@ -32,9 +32,20 @@ import {
 } from '@foldkit/markdown/vite'
 import {
   type PageFrontmatter as PageFrontmatterType,
+  type PageReference,
+  type StructuredDataSection,
   type TocItem as TocItemType,
   decodePageFrontmatter,
 } from '@foldocs/content'
+import {
+  transformerMetaHighlight,
+  transformerMetaWordHighlight,
+  transformerNotationDiff,
+  transformerNotationErrorLevel,
+  transformerNotationFocus,
+  transformerNotationHighlight,
+  transformerNotationWordHighlight,
+} from '@shikijs/transformers'
 
 import type {
   Block,
@@ -48,14 +59,35 @@ import type {
 } from './ast.js'
 import { CompiledPage } from './ast.js'
 
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkFrontmatter, ['yaml'])
-  .use(remarkGfm)
-  .use(remarkMath)
-  .use(remarkDirective)
-  .use(remarkMdx)
-  .freeze()
+export type ProcessorPlugins =
+  PluggableList | ((defaults: PluggableList) => PluggableList)
+
+export type DocumentPlugin = (
+  page: CompiledPageType,
+  context: Readonly<{ filePath?: string }>,
+) => CompiledPageType | Promise<CompiledPageType>
+
+const defaultRemarkPlugins: PluggableList = [
+  remarkParse,
+  [remarkFrontmatter, ['yaml']],
+  remarkGfm,
+  remarkMath,
+  remarkDirective,
+  remarkMdx,
+]
+
+const resolvePlugins = (
+  plugins: ProcessorPlugins | undefined,
+  defaults: PluggableList,
+): PluggableList => {
+  if (plugins === undefined) return defaults
+  return typeof plugins === 'function'
+    ? plugins(defaults)
+    : [...defaults, ...plugins]
+}
+
+const markdownProcessor = (options: CompileOptions) =>
+  unified().use(resolvePlugins(options.remarkPlugins, defaultRemarkPlugins))
 
 export interface CompileOptions {
   readonly filePath?: string
@@ -66,6 +98,42 @@ export interface CompileOptions {
    * schemas validate directive names and attributes during compilation.
    */
   readonly markdown?: MarkdownPluginOptions
+  /** Unified Remark plugins appended to, or composed around, Foldocs defaults. */
+  readonly remarkPlugins?: ProcessorPlugins
+  /** Typed post-compile transforms for the serialized Foldkit document. */
+  readonly documentPlugins?: ReadonlyArray<DocumentPlugin>
+  /** Configure reusable file includes. Enabled by default when filePath is known. */
+  readonly include?:
+    | boolean
+    | {
+        /** Root used by `<include cwd>`. Defaults to process.cwd(). */
+        readonly cwd?: string
+      }
+  /** Build-time resolver used by the built-in AutoTypeTable component. */
+  readonly resolveAutoTypeTable?: (
+    input: Readonly<{
+      source: string
+      name: string
+      tsconfig?: string
+      filePath?: string
+    }>,
+  ) => Promise<ReadonlyArray<AutoTypeTableProperty>>
+  /** Optional build-time TypeScript transformer used by `showJs` code blocks. */
+  readonly transformTypeScript?: (
+    input: Readonly<{
+      value: string
+      language: string
+      filePath?: string
+    }>,
+  ) => Promise<string> | string
+}
+
+export interface AutoTypeTableProperty {
+  readonly name: string
+  readonly type: string
+  readonly description: string
+  readonly default?: string
+  readonly required: boolean
 }
 
 export type { MarkdownPluginOptions } from '@foldkit/markdown/vite'
@@ -136,11 +204,18 @@ const attributesFromMdx = (
   const attributes: Record<string, string> = {}
   for (const attribute of node.attributes ?? []) {
     if (attribute.type !== 'mdxJsxAttribute' || !('name' in attribute)) {
-      unsupported(
-        { type: attribute.type },
-        filePath,
-        'Spread attributes are not deterministic and cannot be statically indexed.',
-      )
+      const expression =
+        'value' in attribute && typeof attribute.value === 'string'
+          ? staticExpressionObject(attribute.value)
+          : undefined
+      if (expression === undefined)
+        unsupported(
+          { type: attribute.type },
+          filePath,
+          'Spread attributes must be a JSON object so they remain deterministic.',
+        )
+      Object.assign(attributes, expression)
+      continue
     }
     const literalAttribute = attribute as {
       readonly type: 'mdxJsxAttribute'
@@ -152,16 +227,64 @@ const attributesFromMdx = (
       literalAttribute.value !== null &&
       typeof literalAttribute.value !== 'string'
     ) {
-      unsupported(
-        { type: 'mdx attribute expression' },
-        filePath,
-        'Use a literal string attribute. Interactive values belong in a Foldkit component model.',
-      )
+      const expression = literalAttribute.value as Readonly<{ value?: unknown }>
+      const expressionSource = expression.value
+      if (typeof expressionSource !== 'string')
+        return unsupported(
+          { type: 'mdx attribute expression' },
+          filePath,
+          'Attribute expressions must be JSON literals.',
+        )
+      const value = staticExpressionValue(expressionSource)
+      if (value === undefined)
+        return unsupported(
+          { type: 'mdx attribute expression' },
+          filePath,
+          'Attribute expressions must be JSON literals.',
+        )
+      attributes[literalAttribute.name] = value
+      continue
     }
     attributes[literalAttribute.name] =
       typeof literalAttribute.value === 'string' ? literalAttribute.value : ''
   }
   return attributes
+}
+
+const staticExpressionValue = (source: string): string | undefined => {
+  const normalized = source.trim()
+  if (normalized.length === 0) return ''
+  try {
+    const value: unknown = JSON.parse(normalized)
+    if (value === null) return 'null'
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    )
+      return String(value)
+    return JSON.stringify(value)
+  } catch {
+    return undefined
+  }
+}
+
+const staticExpressionObject = (
+  source: string,
+): Readonly<Record<string, string>> | undefined => {
+  try {
+    const value: unknown = JSON.parse(source.trim())
+    if (typeof value !== 'object' || value === null || Array.isArray(value))
+      return undefined
+    return Object.fromEntries(
+      Object.entries(value).map(([name, entry]) => [
+        name,
+        typeof entry === 'string' ? entry : JSON.stringify(entry),
+      ]),
+    )
+  } catch {
+    return undefined
+  }
 }
 
 const attributesFromDirective = (
@@ -280,12 +403,15 @@ const normalizeInline = (
       }
       return component
     }
-    case 'mdxTextExpression':
+    case 'mdxTextExpression': {
+      const value = staticExpressionValue(String(node.value ?? ''))
+      if (value !== undefined) return { _tag: 'Text', value }
       return unsupported(
         node as NodeWithPosition,
         filePath,
-        'JavaScript expressions are not serializable. Use a registered Foldkit component.',
+        'Only JSON literal expressions are serializable. Use a registered Foldkit component for runtime state.',
       )
+    }
     default:
       return unsupported(node as NodeWithPosition, filePath)
   }
@@ -333,6 +459,19 @@ const withCodeLineNumbers = (highlightedHtml: string): string => {
   return numbered.replace('<pre ', `<pre data-line-digits="${digits}" `)
 }
 
+const codeMetaValue = (
+  meta: string | undefined,
+  key: string,
+): string | undefined => {
+  if (meta === undefined) return undefined
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const match = new RegExp(
+    `(?:^|\\s)${escaped}=(?:"([^"]*)"|'([^']*)'|([^\\s]+))`,
+    'u',
+  ).exec(meta)
+  return match?.[1] ?? match?.[2] ?? match?.[3]
+}
+
 const normalizeCodeBlock = async (
   value: string,
   language: string | undefined,
@@ -340,6 +479,9 @@ const normalizeCodeBlock = async (
   options: CompileOptions,
 ): Promise<Extract<Block, { _tag: 'CodeBlock' }>> => {
   let highlightedHtml: string | undefined
+  const title = codeMetaValue(meta, 'title')
+  const icon = codeMetaValue(meta, 'icon')
+  const tab = codeMetaValue(meta, 'tab')
   if (options.highlight !== false) {
     try {
       const custom = await options.highlightCode?.({
@@ -356,6 +498,16 @@ const normalizeCodeBlock = async (
             lang: language ?? 'text',
             themes: { light: 'github-light', dark: 'github-dark' },
             defaultColor: false,
+            meta: { __raw: meta ?? '' },
+            transformers: [
+              transformerMetaHighlight(),
+              transformerMetaWordHighlight(),
+              transformerNotationDiff(),
+              transformerNotationErrorLevel(),
+              transformerNotationFocus(),
+              transformerNotationHighlight(),
+              transformerNotationWordHighlight(),
+            ],
           })),
       )
     } catch {
@@ -367,6 +519,9 @@ const normalizeCodeBlock = async (
     value,
     ...(language === undefined ? {} : { language }),
     ...(meta === undefined ? {} : { meta }),
+    ...(title === undefined ? {} : { title }),
+    ...(icon === undefined ? {} : { icon }),
+    ...(tab === undefined ? {} : { tab }),
     ...(highlightedHtml === undefined ? {} : { highlightedHtml }),
   }
 }
@@ -462,12 +617,55 @@ const normalizeBlock = async (
           typeof node.meta === 'string' ? node.meta : undefined,
           options,
         )
-      return normalizeCodeBlock(
+      const code = await normalizeCodeBlock(
         value,
         language,
         typeof node.meta === 'string' ? node.meta : undefined,
         options,
       )
+      const meta = typeof node.meta === 'string' ? node.meta : ''
+      if (
+        options.transformTypeScript !== undefined &&
+        /^(?:ts|tsx|typescript)$/iu.test(language ?? '') &&
+        /(?:^|\s)showJs(?:\s|$)/u.test(meta)
+      ) {
+        const javascript = await options.transformTypeScript({
+          value,
+          language: language ?? 'ts',
+          ...(options.filePath === undefined
+            ? {}
+            : { filePath: options.filePath }),
+        })
+        const js = await normalizeCodeBlock(
+          javascript,
+          'js',
+          meta.replace(/(?:^|\s)showJs(?=\s|$)/u, '').trim(),
+          options,
+        )
+        return {
+          _tag: 'BlockComponent',
+          name: 'Tabs',
+          attributes: {
+            groupId: 'typescript-javascript',
+            persist: 'true',
+          },
+          blocks: [
+            {
+              _tag: 'BlockComponent',
+              name: 'Tab',
+              attributes: { title: 'TypeScript', value: 'typescript' },
+              blocks: [code],
+            },
+            {
+              _tag: 'BlockComponent',
+              name: 'Tab',
+              attributes: { title: 'JavaScript', value: 'javascript' },
+              blocks: [js],
+            },
+          ],
+        }
+      }
+      return code
     }
     case 'math': {
       const value = String(node.value)
@@ -540,6 +738,46 @@ const normalizeBlock = async (
           options,
         )
       }
+      if (node.name === 'AutoTypeTable') {
+        const attributes = attributesFromMdx(node as never, filePath)
+        const source = attributes.source ?? attributes.path
+        const name = attributes.name ?? attributes.type
+        if (source === undefined || name === undefined)
+          throw new Error(
+            `AutoTypeTable requires source and name attributes${location(node as NodeWithPosition, filePath)}.`,
+          )
+        if (options.resolveAutoTypeTable === undefined)
+          throw new Error(
+            `AutoTypeTable requires a compiler resolver${location(node as NodeWithPosition, filePath)}. Use the @foldocs/vite integration or provide resolveAutoTypeTable.`,
+          )
+        const properties = await options.resolveAutoTypeTable({
+          source,
+          name,
+          ...(attributes.tsconfig === undefined
+            ? {}
+            : { tsconfig: attributes.tsconfig }),
+          ...(filePath === undefined ? {} : { filePath }),
+        })
+        return {
+          _tag: 'BlockComponent',
+          name: 'TypeTable',
+          attributes: {},
+          blocks: properties.map(property => ({
+            _tag: 'BlockComponent',
+            name: 'TypeTableItem',
+            attributes: {
+              name: property.name,
+              type: property.type,
+              description: property.description,
+              required: String(property.required),
+              ...(property.default === undefined
+                ? {}
+                : { default: property.default }),
+            },
+            blocks: [],
+          })),
+        }
+      }
       return {
         _tag: 'BlockComponent',
         name: node.name,
@@ -551,13 +789,26 @@ const normalizeBlock = async (
         ),
       }
     }
-    case 'mdxFlowExpression':
-    case 'mdxjsEsm':
+    case 'mdxFlowExpression': {
+      const value = staticExpressionValue(String(node.value ?? ''))
+      if (value !== undefined)
+        return {
+          _tag: 'Paragraph',
+          content: [{ _tag: 'Text', value }],
+        }
       return unsupported(
         node as NodeWithPosition,
         filePath,
-        'Foldocs MDX is deterministic: register a Foldkit component instead of executing module code.',
+        'Only JSON literal expressions are serializable. Use a registered Foldkit component for runtime state.',
       )
+    }
+    case 'mdxjsEsm':
+      return {
+        _tag: 'BlockComponent',
+        name: 'MdxModule',
+        attributes: {},
+        blocks: [],
+      }
     case 'html':
       return unsupported(
         node as NodeWithPosition,
@@ -751,6 +1002,98 @@ const blockText = (block: Block): string => {
   }
 }
 
+const linearizeBlocks = (blocks: ReadonlyArray<Block>): ReadonlyArray<Block> =>
+  blocks.flatMap(block => {
+    if (block._tag === 'Blockquote' || block._tag === 'BlockComponent')
+      return linearizeBlocks(block.blocks)
+    if (block._tag === 'List')
+      return block.items.flatMap(item => linearizeBlocks(item.blocks))
+    return [block]
+  })
+
+const structuredDataFromBlocks = (
+  blocks: ReadonlyArray<Block>,
+  title: string,
+  description?: string,
+): ReadonlyArray<StructuredDataSection> => {
+  const sections: Array<{
+    id: string
+    title: string
+    depth: number
+    content: string[]
+  }> = [
+    {
+      id: '',
+      title,
+      depth: 1,
+      content: description === undefined ? [] : [description],
+    },
+  ]
+  let current = sections[0]!
+  for (const block of linearizeBlocks(blocks)) {
+    if (block._tag === 'Heading' && block.level >= 2 && block.level <= 4) {
+      current = {
+        id: block.id,
+        title: inlineText(block.content),
+        depth: block.level,
+        content: [],
+      }
+      sections.push(current)
+      continue
+    }
+    if (block._tag === 'Heading' && block.level === 1) continue
+    const text = blockText(block).replace(/\s+/gu, ' ').trim()
+    if (text.length > 0) current.content.push(text)
+  }
+  return sections.map(section => ({
+    id: section.id,
+    title: section.title,
+    depth: section.depth,
+    content: section.content.join('\n'),
+  }))
+}
+
+const inlineReferences = (
+  content: ReadonlyArray<Inline>,
+): ReadonlyArray<PageReference> =>
+  content.flatMap(inline => {
+    if (inline._tag === 'Link')
+      return [
+        {
+          url: inline.url,
+          label: inlineText(inline.content) || inline.url,
+        },
+        ...inlineReferences(inline.content),
+      ]
+    if (
+      inline._tag === 'Emphasis' ||
+      inline._tag === 'Strong' ||
+      inline._tag === 'Strikethrough' ||
+      inline._tag === 'InlineComponent'
+    )
+      return inlineReferences(inline.content)
+    return []
+  })
+
+const referencesFromBlocks = (
+  blocks: ReadonlyArray<Block>,
+): ReadonlyArray<PageReference> => {
+  const references = linearizeBlocks(blocks).flatMap(block => {
+    if (block._tag === 'Heading' || block._tag === 'Paragraph')
+      return inlineReferences(block.content)
+    if (block._tag === 'Table')
+      return [block.header, ...block.rows].flatMap(row =>
+        row.cells.flatMap(cell => inlineReferences(cell.content)),
+      )
+    return []
+  })
+  return [
+    ...new Map(
+      references.map(reference => [reference.url, reference]),
+    ).values(),
+  ]
+}
+
 const frontmatterFromRoot = (
   root: Root,
   filePath?: string,
@@ -784,7 +1127,27 @@ const resolveFrontmatter = (
       `Document${filePath === undefined ? '' : ` ${filePath}`} needs a frontmatter title or heading.`,
     )
   }
-  return decodePageFrontmatter({ ...raw, title })
+  const standardKeys = new Set([
+    'title',
+    'description',
+    'icon',
+    'label',
+    'order',
+    'index',
+    'draft',
+    'hidden',
+    'keywords',
+    'tags',
+    'socialImage',
+  ])
+  const data = Object.fromEntries(
+    Object.entries(raw).filter(([name]) => !standardKeys.has(name)),
+  )
+  return decodePageFrontmatter({
+    ...raw,
+    title,
+    ...(Object.keys(data).length === 0 ? {} : { data }),
+  })
 }
 
 const markdownSourceWithoutFrontmatter = (
@@ -800,14 +1163,55 @@ const markdownSourceWithoutFrontmatter = (
   return `${source.slice(0, endOffset).replace(/[^\r\n]/gu, ' ')}${source.slice(endOffset)}`
 }
 
+const groupTabbedCodeBlocks = (
+  blocks: ReadonlyArray<Block>,
+): ReadonlyArray<Block> => {
+  const grouped: Block[] = []
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index]!
+    if (block._tag !== 'CodeBlock' || block.tab === undefined) {
+      grouped.push(block)
+      continue
+    }
+    const tabs: Array<Extract<Block, { _tag: 'CodeBlock' }>> = [block]
+    while (index + 1 < blocks.length) {
+      const candidate = blocks[index + 1]!
+      if (candidate._tag !== 'CodeBlock' || candidate.tab === undefined) break
+      tabs.push(candidate)
+      index += 1
+    }
+    if (tabs.length === 1) {
+      grouped.push(block)
+      continue
+    }
+    grouped.push({
+      _tag: 'BlockComponent',
+      name: 'Tabs',
+      attributes: { groupId: 'code-language', persist: 'true' },
+      blocks: tabs.map(tab => ({
+        _tag: 'BlockComponent',
+        name: 'Tab',
+        attributes: { title: tab.tab! },
+        blocks: [tab],
+      })),
+    })
+  }
+  return grouped
+}
+
 const finishCompiledPage = (
   source: string,
   blocks: ReadonlyArray<Block>,
   rawFrontmatter: Readonly<Record<string, unknown>>,
   filePath?: string,
 ): CompiledPageType => {
-  const frontmatter = resolveFrontmatter(rawFrontmatter, blocks, filePath)
-  const toc: TocItemType[] = blocks
+  const groupedBlocks = groupTabbedCodeBlocks(blocks)
+  const frontmatter = resolveFrontmatter(
+    rawFrontmatter,
+    groupedBlocks,
+    filePath,
+  )
+  const toc: TocItemType[] = groupedBlocks
     .filter(
       (block): block is Extract<Block, { _tag: 'Heading' }> =>
         block._tag === 'Heading' && block.level >= 2 && block.level <= 4,
@@ -819,16 +1223,22 @@ const finishCompiledPage = (
     }))
   return {
     frontmatter,
-    document: { blocks },
+    document: { blocks: groupedBlocks },
     toc,
     source,
     plainText: [
       frontmatter.title,
       frontmatter.description ?? '',
-      ...blocks.map(blockText),
+      ...groupedBlocks.map(blockText),
     ]
       .filter(Boolean)
       .join('\n'),
+    structuredData: structuredDataFromBlocks(
+      groupedBlocks,
+      frontmatter.title,
+      frontmatter.description,
+    ),
+    references: referencesFromBlocks(groupedBlocks),
   }
 }
 
@@ -983,6 +1393,208 @@ const isTaskListExtensionError = (error: unknown): boolean =>
 const withoutTaskListMarkers = (source: string): string =>
   source.replace(/^(\s*(?:[-+*]|\d+[.)])\s+)\[[ xX]\](?=\s)/gmu, '$1')
 
+const includeAttributes = (
+  source: string,
+): Readonly<Record<string, string>> => {
+  const attributes: Record<string, string> = {}
+  for (const match of source.matchAll(
+    /([:\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gu,
+  )) {
+    const name = match[1]
+    if (name !== undefined)
+      attributes[name] = match[2] ?? match[3] ?? match[4] ?? ''
+  }
+  return attributes
+}
+
+const withoutIncludedFrontmatter = (source: string): string =>
+  source.replace(/^---\s*\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/u, '')
+
+const fencedCode = (value: string, language: string, meta?: string): string => {
+  const longest = Math.max(
+    3,
+    ...[...value.matchAll(/`+/gu)].map(match => match[0].length + 1),
+  )
+  const fence = '`'.repeat(longest)
+  return `${fence}${[language, meta].filter(Boolean).join(' ')}\n${value.replace(/\n+$/u, '')}\n${fence}`
+}
+
+const extractCodeRegion = (
+  source: string,
+  region: string,
+): string | undefined => {
+  const escaped = region.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const expression = new RegExp(
+    `^[^\\n]*#region\\s+${escaped}\\s*$\\r?\\n([\\s\\S]*?)^[^\\n]*#endregion(?:\\s+${escaped})?\\s*$`,
+    'mu',
+  )
+  return expression.exec(source)?.[1]
+}
+
+const extractNamedSection = (
+  source: string,
+  section: string,
+): string | undefined => {
+  const escaped = section.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const mdx = new RegExp(
+    `<section\\s+[^>]*id=["']${escaped}["'][^>]*>([\\s\\S]*?)<\\/section>`,
+    'iu',
+  ).exec(source)?.[1]
+  if (mdx !== undefined) return mdx
+  return new RegExp(
+    `^:::section\\{#${escaped}\\}\\s*$\\r?\\n([\\s\\S]*?)^:::\\s*$`,
+    'mu',
+  ).exec(source)?.[1]
+}
+
+const extractHeadingSection = (
+  source: string,
+  headingId: string,
+): string | undefined => {
+  const lines = source.split(/\r?\n/u)
+  const slugger = new GithubSlugger()
+  let start = -1
+  let depth = 0
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = /^(#{1,6})\s+(.+?)\s*#*\s*$/u.exec(lines[index] ?? '')
+    if (match === null) continue
+    const id = slugger.slug(match[2]!)
+    if (id !== headingId) continue
+    start = index + 1
+    depth = match[1]!.length
+    break
+  }
+  if (start === -1) return undefined
+  let end = lines.length
+  for (let index = start; index < lines.length; index += 1) {
+    const match = /^(#{1,6})\s+/u.exec(lines[index] ?? '')
+    if (match !== null && match[1]!.length <= depth) {
+      end = index
+      break
+    }
+  }
+  return lines.slice(start, end).join('\n')
+}
+
+const extractIncludedFragment = (
+  source: string,
+  fragment: string | undefined,
+): string => {
+  if (fragment === undefined || fragment.length === 0) return source
+  const decoded = decodeURIComponent(fragment)
+  const extracted =
+    extractCodeRegion(source, decoded) ??
+    extractNamedSection(source, decoded) ??
+    extractHeadingSection(source, decoded)
+  if (extracted === undefined)
+    throw new Error(
+      `Unable to find included region, section, or heading #${decoded}.`,
+    )
+  return extracted
+}
+
+interface SourceRange {
+  readonly start: number
+  readonly end: number
+}
+
+/** Locate Markdown fences so documentation examples are never expanded. */
+const fencedSourceRanges = (source: string): ReadonlyArray<SourceRange> => {
+  const ranges: SourceRange[] = []
+  let open:
+    | {
+        readonly start: number
+        readonly marker: '`' | '~'
+        readonly size: number
+      }
+    | undefined
+  let offset = 0
+  for (const line of source.match(/.*(?:\r?\n|$)/gu) ?? []) {
+    const content = line.replace(/\r?\n$/u, '')
+    const fence = /^ {0,3}(`{3,}|~{3,})(.*)$/u.exec(content)
+    if (open === undefined) {
+      if (fence !== null) {
+        const sequence = fence[1]!
+        open = {
+          start: offset,
+          marker: sequence[0] as '`' | '~',
+          size: sequence.length,
+        }
+      }
+    } else {
+      const closing = /^ {0,3}(`+|~+)\s*$/u.exec(content)?.[1]
+      if (
+        closing !== undefined &&
+        closing[0] === open.marker &&
+        closing.length >= open.size
+      ) {
+        ranges.push({ start: open.start, end: offset + line.length })
+        open = undefined
+      }
+    }
+    offset += line.length
+    if (line.length === 0) break
+  }
+  if (open !== undefined) ranges.push({ start: open.start, end: source.length })
+  return ranges
+}
+
+const resolveIncludes = async (
+  source: string,
+  options: CompileOptions,
+  stack: ReadonlyArray<string> = [],
+): Promise<string> => {
+  if (options.include === false || options.filePath === undefined) return source
+  const pattern = /<include\b([^>]*?)(?:\/>|>([\s\S]*?)<\/include>)/giu
+  const ignored = fencedSourceRanges(source)
+  let result = ''
+  let offset = 0
+  for (const match of source.matchAll(pattern)) {
+    const index = match.index
+    if (index === undefined) continue
+    if (ignored.some(range => index >= range.start && index < range.end))
+      continue
+    result += source.slice(offset, index)
+    const attributes = includeAttributes(match[1] ?? '')
+    const requested = (attributes.src ?? match[2] ?? '').trim()
+    if (requested.length === 0)
+      throw new Error(
+        `Include needs a relative path${location({ type: 'include' }, options.filePath)}.`,
+      )
+    const [requestedPath = '', fragment] = requested.split('#', 2)
+    const cwd =
+      'cwd' in attributes
+        ? typeof options.include === 'object' &&
+          options.include.cwd !== undefined
+          ? options.include.cwd
+          : process.cwd()
+        : path.dirname(options.filePath)
+    const includedPath = path.resolve(cwd, requestedPath)
+    if (stack.includes(includedPath) || includedPath === options.filePath)
+      throw new Error(
+        `Circular include detected: ${[...stack, options.filePath, includedPath].join(' -> ')}`,
+      )
+    const includedSource = await fs.readFile(includedPath, 'utf8')
+    const extracted = extractIncludedFragment(includedSource, fragment)
+    const extension = path.extname(includedPath).slice(1).toLowerCase()
+    if (extension === 'md' || extension === 'mdx') {
+      result += await resolveIncludes(
+        withoutIncludedFrontmatter(extracted),
+        { ...options, filePath: includedPath },
+        [...stack, options.filePath],
+      )
+    } else {
+      result += fencedCode(
+        extracted,
+        attributes.lang || extension || 'text',
+        attributes.meta,
+      )
+    }
+    offset = index + match[0].length
+  }
+  return result + source.slice(offset)
+}
+
 const needsDeterministicMarkdownExtensions = (root: Root): boolean =>
   root.children.some(node => {
     if (node.type === 'math') return true
@@ -993,15 +1605,36 @@ export const compile = async (
   source: string,
   options: CompileOptions = {},
 ): Promise<CompiledPageType> => {
-  const root = processor.parse(source) as Root
+  const applyDocumentPlugins = async (
+    page: CompiledPageType,
+  ): Promise<CompiledPageType> => {
+    let transformed = page
+    for (const plugin of options.documentPlugins ?? [])
+      transformed = await plugin(transformed, {
+        ...(options.filePath === undefined
+          ? {}
+          : { filePath: options.filePath }),
+      })
+    return transformed
+  }
+  const resolvedSource = await resolveIncludes(source, options)
+  const processor = markdownProcessor(options)
+  const parsed = processor.parse(resolvedSource) as Root
+  const root = (await processor.run(parsed)) as Root
   if (!options.filePath?.toLowerCase().endsWith('.md'))
-    return compileDeterministicMdx(source, root, options)
+    return applyDocumentPlugins(
+      await compileDeterministicMdx(resolvedSource, root, options),
+    )
 
   if (needsDeterministicMarkdownExtensions(root))
-    return compileDeterministicMdx(source, root, options)
+    return applyDocumentPlugins(
+      await compileDeterministicMdx(resolvedSource, root, options),
+    )
 
   try {
-    return await compileFoldkitMarkdown(source, root, options)
+    return applyDocumentPlugins(
+      await compileFoldkitMarkdown(resolvedSource, root, options),
+    )
   } catch (error) {
     // Foldocs historically supported GFM task lists. Keep that one explicit
     // extension while all standard `.md` pages use @foldkit/markdown as their
@@ -1010,10 +1643,14 @@ export const compile = async (
       // Re-run the official validation with only checkbox markers removed so
       // task-list pages cannot bypass URL, vocabulary, or island validation.
       parseMarkdown(
-        withoutTaskListMarkers(markdownSourceWithoutFrontmatter(source, root)),
+        withoutTaskListMarkers(
+          markdownSourceWithoutFrontmatter(resolvedSource, root),
+        ),
         options.markdown,
       )
-      return compileDeterministicMdx(source, root, options)
+      return applyDocumentPlugins(
+        await compileDeterministicMdx(resolvedSource, root, options),
+      )
     }
     throw error
   }

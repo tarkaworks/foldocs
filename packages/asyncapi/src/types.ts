@@ -28,6 +28,8 @@ export interface AsyncApiGenerationOptions {
   readonly baseUrl?: string
   readonly includeIndex?: boolean
   readonly root?: boolean
+  /** Emit a payload playground for each operation. Defaults to true. */
+  readonly playground?: boolean
 }
 
 export interface GenerateFilesOptions extends AsyncApiGenerationOptions {

@@ -1,42 +1,47 @@
 ---
 title: Reuse content
-description: Share typed presentation and generated source without hidden textual includes.
+description: Include Markdown, MDX, code files, regions, sections, and headings without duplicating source.
 ---
 
 # Reuse content
 
-Fumadocs MDX includes a textual `<include>` transform. Foldocs deliberately uses
-typed components and content adapters instead, keeping dependencies visible and
-every input valid before prerendering.
+Foldocs expands includes at build time, records the dependency in the compiler
+pipeline, and rejects recursive include cycles.
+
+## Include a document
+
+```mdx
+<include>./shared/introduction.mdx</include>
+```
+
+Frontmatter is removed from included documents. Relative includes resolve from
+the current page, while `cwd` resolves from the configured project root.
+
+```mdx
+<include cwd>content/shared/compatibility.md</include>
+```
+
+## Include code
+
+```mdx
+<include lang="ts" meta='title="config.ts"'>
+  ../../../src/config.ts
+</include>
+```
+
+Use a fragment to select a named code region, an HTML/Markdown section, or a
+heading and its body:
+
+```mdx
+<include lang="ts">../../../src/config.ts#public-api</include>
+<include>./guide.md#deployment</include>
+```
+
+Supported region markers include `#region`, `<section id="...">`, directive
+sections, and heading slugs.
 
 ## Reuse presentation
 
-Define a deterministic MDX component when several pages share the same visual or
-semantic pattern:
-
-```mdx
-<Compatibility runtime="Node.js 24" status="supported" />
-```
-
-Register its Foldkit renderer once through `components`. Literal attributes stay
-in the portable AST and remain available to HTML, Markdown, and search consumers.
-
-## Reuse generated content
-
-When multiple pages share source data, generate complete Markdown files or
-return virtual files from a `ContentAdapter`. This is appropriate for API
-references, release notes, and CMS records.
-
-## Reuse code examples
-
-Keep executable examples in checked source files and generate documentation from
-them during the adapter or code-generation step. The resulting page remains a
-self-contained build input rather than reading arbitrary files during render.
-
-## Why there is no include tag
-
-Implicit includes introduce dependency graphs, region-marker conventions, and
-watch invalidation outside the page manifest. Foldocs does not currently expand
-`<include>` or `:::include` directives. A future implementation would need cycle
-detection, path confinement, dependency watching, and portable serialization
-before it could be enabled safely.
+For shared interactive behavior, use a registered Foldkit component instead of
+a textual include. Components remain typed and portable across prerendered HTML,
+search, Markdown routes, and other consumers.

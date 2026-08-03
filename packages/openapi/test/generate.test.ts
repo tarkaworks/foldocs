@@ -67,6 +67,7 @@ describe('OpenAPI generation', () => {
     expect(files[2]?.content).toContain('`GET /pets/{petId}`')
     expect(files[2]?.content).toContain('Stable pet identifier')
     expect(files[2]?.content).toContain('https://pets.example.com/pets/{petId}')
+    expect(files[2]?.content).toContain('<ApiPlayground')
     await Promise.all(
       files
         .filter(file => file.path.endsWith('.mdx'))
@@ -78,6 +79,18 @@ describe('OpenAPI generation', () => {
     expect(() => parseOpenApi('title: nope')).toThrow(
       'info.title, info.version, and a paths object',
     )
+  })
+
+  it('emits selected language samples and can disable the playground', () => {
+    const operation = generateOpenApiFiles(parseOpenApi(source), {
+      codeSamples: ['curl', 'python', 'go'],
+      playground: false,
+    }).find(file => file.path === 'getpet.mdx')
+
+    expect(operation?.content).toContain('tab="cURL"')
+    expect(operation?.content).toContain('tab="Python"')
+    expect(operation?.content).toContain('tab="Go"')
+    expect(operation?.content).not.toContain('<ApiPlayground')
   })
 
   it('removes only stale files owned by a previous generation', async () => {

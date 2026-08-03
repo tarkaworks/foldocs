@@ -1,6 +1,7 @@
 {
   "name": "foldocs-core",
   "version": "0.1.1",
+  "description": "Typed configuration, navigation, manifests, sources, internationalization, and SEO for Foldocs.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -28,6 +29,10 @@
     "./navigation": {
       "types": "./dist/navigation.d.ts",
       "import": "./dist/navigation.js"
+    },
+    "./source": {
+      "types": "./dist/source.d.ts",
+      "import": "./dist/source.js"
     }
   },
   "scripts": {

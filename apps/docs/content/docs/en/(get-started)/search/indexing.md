@@ -7,9 +7,11 @@ description: Keep local and hosted indexes synchronized with the same build snap
 
 ## Search documents
 
-Every search document contains a stable id, URL, title, optional description,
-plain text, locale, and tags. The compiler derives it from the same typed page
-manifest used by routing and navigation.
+Every heading becomes a structured search document with a stable page id,
+section id, hash URL, page title, section title, navigation breadcrumbs, locale,
+tags, and linearized section text. Pages without headings receive one page-level
+record. The compiler derives all records from the same typed manifest used by
+routing and navigation.
 
 ## Local and hosted indexes
 

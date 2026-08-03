@@ -1,7 +1,13 @@
 {
   "name": "@foldocs/search-mixedbread",
   "version": "0.0.0",
-  "private": true,
+  "description": "Mixedbread semantic search and ingestion adapter for Foldocs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/search-mixedbread"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -24,5 +30,8 @@
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.102"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

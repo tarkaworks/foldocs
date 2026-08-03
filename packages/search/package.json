@@ -1,6 +1,7 @@
 {
   "name": "@foldocs/search",
   "version": "0.1.0",
+  "description": "Provider-neutral Effect interfaces and synchronization utilities for Foldocs search.",
   "license": "MIT",
   "repository": {
     "type": "git",

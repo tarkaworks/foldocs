@@ -1,6 +1,7 @@
 {
   "name": "@foldocs/language",
   "version": "0.1.1",
+  "description": "Ready-to-use locale and UI translation packs for Foldocs.",
   "license": "MIT",
   "repository": {
     "type": "git",

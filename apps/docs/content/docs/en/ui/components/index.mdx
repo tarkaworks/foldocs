@@ -71,8 +71,9 @@ guide line, spacing, and responsive alignment.
 
 ## Tabs
 
-Tabs are rendered with native radio controls and CSS, so they remain usable in
-prerendered output without client-side component state.
+Tabs use accessible tab, tablist, and tabpanel semantics. The active value is
+stored in the Foldkit model, can be shared by `groupId`, and remains usable in
+prerendered output before hydration.
 
 <Tabs>
   <Tab title="pnpm">

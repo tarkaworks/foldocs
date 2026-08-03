@@ -52,6 +52,7 @@ import {
   type MdxComponents,
   docsLayout,
   headerLanguageMenuId,
+  initAiDialog,
   initDocsMenu,
   initLandingCopyTooltip,
   initLanguageMenu,
@@ -64,12 +65,15 @@ import {
 } from 'foldocs-ui'
 
 import { Dialog, Menu, Tooltip } from '@foldkit/ui'
+import type { AiClient } from '@foldocs/ai'
 import {
   type SearchClient,
   SearchDocument,
   SearchError,
   SearchResult,
 } from '@foldocs/search'
+
+export { createAiClient } from '@foldocs/ai'
 
 const LanguageMenu = Menu.create<string>()
 const LayoutTabsMenu = Menu.create<string>()
@@ -92,6 +96,8 @@ export interface DocsProgramOptions {
   readonly i18n?: ResolvedI18nConfig
   readonly basePath?: string
   readonly search?: SearchClient
+  /** Optional server-backed assistant. Provider credentials stay behind its endpoint. */
+  readonly ai?: Readonly<{ readonly client: AiClient }>
   readonly markdown?: boolean
   /** Typed `.md` directive views produced by @foldkit/markdown `islandsFor`. */
   readonly islands?: MarkdownIslands
@@ -215,7 +221,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           continue
         }
         const key = `${parentKey}/${node.segment}`
-        if (!node.defaultOpen) groups.push(key)
+        if (node.collapsible && !node.defaultOpen) groups.push(key)
         visit(node.children, key)
       }
     }
@@ -230,19 +236,40 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     manifest.find(page => (page.locale ?? i18n.defaultLocale) === locale)
       ?.url ??
     localizedPathname(i18n, locale, basePath)
-  const searchDocuments: ReadonlyArray<SearchDocument> = manifest.map(page => ({
-    id: page.id,
-    url: page.url,
-    title: page.frontmatter.title,
-    ...(page.frontmatter.description === undefined
-      ? {}
-      : { description: page.frontmatter.description }),
-    content: page.plainText,
-    locale: page.locale ?? i18n.defaultLocale,
-    ...(page.frontmatter.tags === undefined
-      ? {}
-      : { tags: page.frontmatter.tags }),
-  }))
+  const searchDocuments: ReadonlyArray<SearchDocument> = manifest.flatMap(
+    page => {
+      const sections =
+        page.structuredData === undefined || page.structuredData.length === 0
+          ? [
+              {
+                id: '',
+                title: page.frontmatter.title,
+                content: page.plainText,
+              },
+            ]
+          : page.structuredData
+      return sections.map(section => {
+        const isPage = section.id.length === 0
+        return {
+          id: isPage ? page.id : `${page.id}#${section.id}`,
+          url: isPage ? page.url : `${page.url}#${section.id}`,
+          title: section.title,
+          type: isPage ? ('page' as const) : ('section' as const),
+          pageId: page.id,
+          pageTitle: page.frontmatter.title,
+          ...(isPage ? {} : { sectionId: section.id }),
+          ...(page.frontmatter.description === undefined || !isPage
+            ? {}
+            : { description: page.frontmatter.description }),
+          content: section.content,
+          locale: page.locale ?? i18n.defaultLocale,
+          ...(page.frontmatter.tags === undefined
+            ? {}
+            : { tags: page.frontmatter.tags }),
+        }
+      })
+    },
+  )
   const localSearch = new Map<string, Promise<SearchClient>>()
   const loadSearchDocuments = async (
     locale: string,
@@ -285,6 +312,63 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   }
   const searchClient = options.search ?? defaultSearch
 
+  const referencedPageUrl = (
+    fromUrl: string,
+    reference: string,
+  ): string | undefined => {
+    if (/^(?:[a-z]+:|#)/iu.test(reference)) return undefined
+    try {
+      const url = new URL(reference, `https://foldocs.local${fromUrl}`)
+      return url.pathname.replace(/\/+$/u, '') || '/'
+    } catch {
+      return undefined
+    }
+  }
+  const graphFor = (pathname: string) => {
+    const current = findPageByUrl(manifest, pathname)
+    if (current === undefined) return undefined
+    const outgoing = (current.references ?? []).flatMap(reference => {
+      const url = referencedPageUrl(current.url, reference.url)
+      const target =
+        url === undefined ? undefined : findPageByUrl(manifest, url)
+      return target === undefined || target.url === current.url
+        ? []
+        : [
+            {
+              url: target.url,
+              title: target.frontmatter.title,
+              direction: 'outgoing' as const,
+            },
+          ]
+    })
+    const backlinks = manifest.flatMap(page => {
+      if (page.url === current.url) return []
+      const linksHere = (page.references ?? []).some(
+        reference => referencedPageUrl(page.url, reference.url) === current.url,
+      )
+      return linksHere
+        ? [
+            {
+              url: page.url,
+              title: page.frontmatter.title,
+              direction: 'backlink' as const,
+            },
+          ]
+        : []
+    })
+    return {
+      currentTitle: current.frontmatter.title,
+      links: [
+        ...new Map(
+          [...outgoing, ...backlinks].map(link => [
+            `${link.direction}:${link.url}`,
+            link,
+          ]),
+        ).values(),
+      ],
+    }
+  }
+
   const PageLoading = m('PageLoading', { pathname: S.String })
   const PageHome = m('PageHome')
   const PageReady = m('PageReady', { pathname: S.String, page: CompiledPage })
@@ -311,6 +395,31 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     systemTheme: S.Literals(['light', 'dark']),
     themePreference: S.Literals(['light', 'system', 'dark']),
     packageManager: S.Literals(['npm', 'pnpm', 'yarn', 'bun']),
+    selectedTabs: S.Record(S.String, S.String),
+    aiOpen: S.Boolean,
+    aiInput: S.String,
+    aiLoading: S.Boolean,
+    aiError: S.String,
+    aiMessages: S.Array(
+      S.Struct({
+        role: S.Literals(['user', 'assistant']),
+        content: S.String,
+        sources: S.optionalKey(
+          S.Array(S.Struct({ title: S.String, url: S.String })),
+        ),
+      }),
+    ),
+    apiResponses: S.Record(
+      S.String,
+      S.Struct({
+        loading: S.Boolean,
+        status: S.String,
+        body: S.String,
+        error: S.String,
+      }),
+    ),
+    apiRequestUrls: S.Record(S.String, S.String),
+    apiRequestBodies: S.Record(S.String, S.String),
     copiedText: S.String,
     copyMarkdownStatus: S.Literals(['idle', 'loading', 'copied', 'error']),
     bannerDismissed: S.Boolean,
@@ -324,6 +433,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     landingCopyTooltip: Tooltip.Model,
     searchDialog: FoldocsDialogModel,
     sidebarDialog: FoldocsDialogModel,
+    aiDialog: FoldocsDialogModel,
   })
   type Model = typeof Model.Type
 
@@ -402,6 +512,47 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     manager: S.Literals(['npm', 'pnpm', 'yarn', 'bun']),
   })
   const CompletedSavePackageManager = m('CompletedSavePackageManager')
+  const SelectedTab = m('SelectedTab', {
+    groupId: S.String,
+    value: S.String,
+    persist: S.Boolean,
+    updateAnchor: S.Boolean,
+  })
+  const LoadedTabs = m('LoadedTabs', {
+    selected: S.Record(S.String, S.String),
+  })
+  const CompletedSaveTabs = m('CompletedSaveTabs')
+  const OpenedAi = m('OpenedAi')
+  const ClosedAi = m('ClosedAi')
+  const ChangedAiInput = m('ChangedAiInput', { value: S.String })
+  const SubmittedAi = m('SubmittedAi')
+  const SucceededAi = m('SucceededAi', {
+    content: S.String,
+    sources: S.Array(S.Struct({ title: S.String, url: S.String })),
+  })
+  const FailedAi = m('FailedAi', { reason: S.String })
+  const AiResult = S.Union([SucceededAi, FailedAi])
+  const RequestedApi = m('RequestedApi', {
+    id: S.String,
+    url: S.String,
+    method: S.String,
+    body: S.String,
+  })
+  const ChangedApiRequestUrl = m('ChangedApiRequestUrl', {
+    id: S.String,
+    value: S.String,
+  })
+  const ChangedApiRequestBody = m('ChangedApiRequestBody', {
+    id: S.String,
+    value: S.String,
+  })
+  const SucceededApi = m('SucceededApi', {
+    id: S.String,
+    status: S.String,
+    body: S.String,
+  })
+  const FailedApi = m('FailedApi', { id: S.String, reason: S.String })
+  const ApiResult = S.Union([SucceededApi, FailedApi])
   const ClickedCopyText = m('ClickedCopyText', { value: S.String })
   const CompletedCopyText = m('CompletedCopyText', { value: S.String })
   const ClickedCopyMarkdown = m('ClickedCopyMarkdown', { url: S.String })
@@ -438,6 +589,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     message: FoldocsDialogMessage,
   })
   const GotSidebarDialogMessage = m('GotSidebarDialogMessage', {
+    message: FoldocsDialogMessage,
+  })
+  const GotAiDialogMessage = m('GotAiDialogMessage', {
     message: FoldocsDialogMessage,
   })
 
@@ -484,6 +638,20 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     CompletedSaveTheme,
     SelectedPackageManager,
     CompletedSavePackageManager,
+    SelectedTab,
+    LoadedTabs,
+    CompletedSaveTabs,
+    OpenedAi,
+    ClosedAi,
+    ChangedAiInput,
+    SubmittedAi,
+    SucceededAi,
+    FailedAi,
+    RequestedApi,
+    ChangedApiRequestUrl,
+    ChangedApiRequestBody,
+    SucceededApi,
+    FailedApi,
     ClickedCopyText,
     CompletedCopyText,
     ClickedCopyMarkdown,
@@ -498,6 +666,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     GotLandingCopyTooltipMessage,
     GotSearchDialogMessage,
     GotSidebarDialogMessage,
+    GotAiDialogMessage,
   ])
   type Message = typeof Message.Type
 
@@ -590,6 +759,92 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         ),
   })
 
+  const AskAi = Command.define('AskAi', {
+    args: {
+      messages: S.Array(
+        S.Struct({
+          role: S.Literals(['user', 'assistant']),
+          content: S.String,
+        }),
+      ),
+      locale: S.String,
+      pathname: S.String,
+      title: S.String,
+      description: S.String,
+      content: S.String,
+      url: S.String,
+    },
+    messages: [AiResult],
+    execute: request => {
+      if (options.ai === undefined)
+        return Effect.succeed(
+          FailedAi({ reason: 'The AI assistant is not configured.' }),
+        )
+      return options.ai.client
+        .chat({
+          messages: request.messages,
+          locale: request.locale,
+          pathname: request.pathname,
+          page: {
+            title: request.title,
+            ...(request.description.length === 0
+              ? {}
+              : { description: request.description }),
+            content: request.content,
+            url: request.url,
+          },
+        })
+        .pipe(
+          Effect.map(response =>
+            SucceededAi({
+              content: response.message,
+              sources: [...(response.sources ?? [])],
+            }),
+          ),
+          Effect.catch(error =>
+            Effect.succeed(FailedAi({ reason: messageFromError(error) })),
+          ),
+        )
+    },
+  })
+
+  const SendApiRequest = Command.define('SendApiRequest', {
+    args: {
+      id: S.String,
+      url: S.String,
+      method: S.String,
+      body: S.String,
+    },
+    messages: [ApiResult],
+    execute: request =>
+      Effect.tryPromise({
+        try: async () => {
+          const method = request.method.toUpperCase()
+          const permitsBody = method !== 'GET' && method !== 'HEAD'
+          const response = await fetch(request.url, {
+            method: request.method,
+            ...(!permitsBody || request.body.length === 0
+              ? {}
+              : {
+                  headers: { 'content-type': 'application/json' },
+                  body: request.body,
+                }),
+          })
+          const body = (await response.text()).slice(0, 200_000)
+          return SucceededApi({
+            id: request.id,
+            status: `${String(response.status)} ${response.statusText}`.trim(),
+            body,
+          })
+        },
+        catch: messageFromError,
+      }).pipe(
+        Effect.catch(reason =>
+          Effect.succeed(FailedApi({ id: request.id, reason })),
+        ),
+      ),
+  })
+
   const ScrollSearchResult = Command.define('ScrollSearchResult', {
     args: { index: S.Number },
     messages: [CompletedScrollSearchResult],
@@ -677,6 +932,72 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           // Storage can be unavailable in private or embedded browsing contexts.
         }
         return CompletedSavePackageManager()
+      }),
+  })
+
+  const ReadTabs = Command.define('ReadTabs', {
+    messages: [LoadedTabs],
+    execute: Effect.sync(() => {
+      let selected: Record<string, string> = {}
+      try {
+        const stored = globalThis.localStorage?.getItem('foldocs-tabs')
+        const parsed: unknown = stored == null ? {} : JSON.parse(stored)
+        if (
+          typeof parsed === 'object' &&
+          parsed !== null &&
+          !Array.isArray(parsed)
+        )
+          selected = Object.fromEntries(
+            Object.entries(parsed).filter(
+              (entry): entry is [string, string] =>
+                typeof entry[1] === 'string',
+            ),
+          )
+      } catch {
+        selected = {}
+      }
+      const hash = globalThis.location?.hash ?? ''
+      if (hash.startsWith('#tab=')) {
+        const [groupId, value] = hash.slice('#tab='.length).split(':', 2)
+        if (groupId !== undefined && value !== undefined) {
+          try {
+            selected[decodeURIComponent(groupId)] = decodeURIComponent(value)
+          } catch {
+            // Ignore malformed tab anchors and retain persisted selections.
+          }
+        }
+      }
+      return LoadedTabs({ selected })
+    }),
+  })
+
+  const SaveTabs = Command.define('SaveTabs', {
+    args: {
+      selected: S.Record(S.String, S.String),
+      persist: S.Boolean,
+      groupId: S.String,
+      value: S.String,
+      updateAnchor: S.Boolean,
+    },
+    messages: [CompletedSaveTabs],
+    execute: ({ selected, persist, groupId, value, updateAnchor }) =>
+      Effect.sync(() => {
+        if (persist) {
+          try {
+            globalThis.localStorage?.setItem(
+              'foldocs-tabs',
+              JSON.stringify(selected),
+            )
+          } catch {
+            // Storage can be unavailable in private or embedded contexts.
+          }
+        }
+        if (updateAnchor && globalThis.history !== undefined) {
+          const url = new URL(globalThis.location.href)
+          url.hash = `tab=${encodeURIComponent(groupId)}:${encodeURIComponent(value)}`
+          globalThis.history.replaceState(globalThis.history.state, '', url)
+        }
+        return CompletedSaveTabs()
       }),
   })
 
@@ -1308,6 +1629,15 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         systemTheme,
         themePreference,
         packageManager: readPackageManager(),
+        selectedTabs: {},
+        aiOpen: false,
+        aiInput: '',
+        aiLoading: false,
+        aiError: '',
+        aiMessages: [],
+        apiResponses: {},
+        apiRequestUrls: {},
+        apiRequestBodies: {},
         copiedText: '',
         copyMarkdownStatus: 'idle',
         bannerDismissed: readBannerDismissed(),
@@ -1321,10 +1651,12 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         landingCopyTooltip: initLandingCopyTooltip(),
         searchDialog: initSearchDialog(),
         sidebarDialog: initSidebarDialog(),
+        aiDialog: initAiDialog(),
       },
       [
         ...commands,
         ReadTheme(),
+        ReadTabs(),
         ReadSidebarGroups({ pathname }),
         ApplyLocaleMetadata({ pathname }),
         RenderMermaid({ theme }),
@@ -1345,6 +1677,10 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     Command.mapMessages(commands, message =>
       GotSidebarDialogMessage({ message }),
     )
+  const mapAiDialogCommands = (
+    commands: ReadonlyArray<Command.Command<Dialog.Message>>,
+  ): ReadonlyArray<Command.Command<Message>> =>
+    Command.mapMessages(commands, message => GotAiDialogMessage({ message }))
   const closeSearch = (model: Model): UpdateReturn => {
     const [searchDialog, commands] = Dialog.close(model.searchDialog)
     return [
@@ -1364,17 +1700,20 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   const openSearch = (model: Model): UpdateReturn => {
     const [searchDialog, searchCommands] = Dialog.open(model.searchDialog)
     const [sidebarDialog, sidebarCommands] = Dialog.close(model.sidebarDialog)
+    const [aiDialog, aiCommands] = Dialog.close(model.aiDialog)
     return [
       {
         ...model,
         searchDialog,
         sidebarDialog,
+        aiDialog,
         searchOpen: searchDialog.isOpen,
         sidebarOpen: sidebarDialog.isOpen,
       },
       [
         ...mapSearchDialogCommands(searchCommands),
         ...mapSidebarDialogCommands(sidebarCommands),
+        ...mapAiDialogCommands(aiCommands),
       ],
     ]
   }
@@ -1425,6 +1764,16 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         return [
           { ...model, sidebarDialog, sidebarOpen: sidebarDialog.isOpen },
           mapSidebarDialogCommands(commands),
+        ]
+      }
+      case 'GotAiDialogMessage': {
+        const [aiDialog, commands] = Dialog.update(
+          model.aiDialog,
+          message.message,
+        )
+        return [
+          { ...model, aiDialog, aiOpen: aiDialog.isOpen },
+          mapAiDialogCommands(commands),
         ]
       }
       case 'GotHeaderLanguageMenuMessage': {
@@ -1552,6 +1901,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         const [sidebarDialog, sidebarDialogCommands] = Dialog.close(
           model.sidebarDialog,
         )
+        const [aiDialog, aiDialogCommands] = Dialog.close(model.aiDialog)
         return [
           {
             ...model,
@@ -1566,6 +1916,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             searchOpen: false,
             searchDialog,
             sidebarDialog,
+            aiDialog,
             searchQuery: '',
             searchResults: [],
             searchError: '',
@@ -1574,6 +1925,13 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             selectedSearchTags: [],
             activeTocId: '',
             mobileTocOpen: false,
+            aiOpen: false,
+            aiInput: '',
+            aiLoading: false,
+            aiError: '',
+            apiResponses: {},
+            apiRequestUrls: {},
+            apiRequestBodies: {},
             copiedText: '',
             copyMarkdownStatus: 'idle',
             imagePreviewUrl: '',
@@ -1584,6 +1942,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             ...commands,
             ...mapSearchDialogCommands(searchDialogCommands),
             ...mapSidebarDialogCommands(sidebarDialogCommands),
+            ...mapAiDialogCommands(aiDialogCommands),
             ApplyLocaleMetadata({
               pathname,
             }),
@@ -1817,6 +2176,178 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           { ...model, packageManager: message.manager },
           [SavePackageManager({ manager: message.manager })],
         ]
+      case 'SelectedTab': {
+        const selectedTabs = {
+          ...model.selectedTabs,
+          [message.groupId]: message.value,
+        }
+        return [
+          { ...model, selectedTabs },
+          [
+            SaveTabs({
+              selected: selectedTabs,
+              persist: message.persist,
+              groupId: message.groupId,
+              value: message.value,
+              updateAnchor: message.updateAnchor,
+            }),
+          ],
+        ]
+      }
+      case 'LoadedTabs':
+        return [{ ...model, selectedTabs: message.selected }, []]
+      case 'OpenedAi': {
+        const [aiDialog, commands] = Dialog.open(model.aiDialog)
+        return [
+          { ...model, aiDialog, aiOpen: aiDialog.isOpen, aiError: '' },
+          mapAiDialogCommands(commands),
+        ]
+      }
+      case 'ClosedAi': {
+        const [aiDialog, commands] = Dialog.close(model.aiDialog)
+        return [
+          { ...model, aiDialog, aiOpen: aiDialog.isOpen },
+          mapAiDialogCommands(commands),
+        ]
+      }
+      case 'ChangedAiInput':
+        return [{ ...model, aiInput: message.value, aiError: '' }, []]
+      case 'SubmittedAi': {
+        const question = model.aiInput.trim()
+        if (
+          question.length === 0 ||
+          model.aiLoading ||
+          options.ai === undefined ||
+          model.page._tag !== 'PageReady'
+        )
+          return [model, []]
+        const userMessage = { role: 'user' as const, content: question }
+        const messages = [...model.aiMessages, userMessage]
+        return [
+          {
+            ...model,
+            aiInput: '',
+            aiLoading: true,
+            aiError: '',
+            aiMessages: messages,
+          },
+          [
+            AskAi({
+              messages: messages.map(({ role, content }) => ({
+                role,
+                content,
+              })),
+              locale: model.locale,
+              pathname: model.pathname,
+              title: model.page.page.frontmatter.title,
+              description: model.page.page.frontmatter.description ?? '',
+              content: model.page.page.plainText,
+              url:
+                options.site.baseUrl === undefined
+                  ? model.pathname
+                  : `${options.site.baseUrl.replace(/\/+$/u, '')}${model.pathname}`,
+            }),
+          ],
+        ]
+      }
+      case 'SucceededAi':
+        return [
+          {
+            ...model,
+            aiLoading: false,
+            aiError: '',
+            aiMessages: [
+              ...model.aiMessages,
+              {
+                role: 'assistant',
+                content: message.content,
+                ...(message.sources.length === 0
+                  ? {}
+                  : { sources: message.sources }),
+              },
+            ],
+          },
+          [],
+        ]
+      case 'FailedAi':
+        return [{ ...model, aiLoading: false, aiError: message.reason }, []]
+      case 'RequestedApi':
+        return [
+          {
+            ...model,
+            apiResponses: {
+              ...model.apiResponses,
+              [message.id]: {
+                loading: true,
+                status: '',
+                body: '',
+                error: '',
+              },
+            },
+          },
+          [
+            SendApiRequest({
+              id: message.id,
+              url: message.url,
+              method: message.method,
+              body: message.body,
+            }),
+          ],
+        ]
+      case 'ChangedApiRequestUrl':
+        return [
+          {
+            ...model,
+            apiRequestUrls: {
+              ...model.apiRequestUrls,
+              [message.id]: message.value,
+            },
+          },
+          [],
+        ]
+      case 'ChangedApiRequestBody':
+        return [
+          {
+            ...model,
+            apiRequestBodies: {
+              ...model.apiRequestBodies,
+              [message.id]: message.value,
+            },
+          },
+          [],
+        ]
+      case 'SucceededApi':
+        return [
+          {
+            ...model,
+            apiResponses: {
+              ...model.apiResponses,
+              [message.id]: {
+                loading: false,
+                status: message.status,
+                body: message.body,
+                error: '',
+              },
+            },
+          },
+          [],
+        ]
+      case 'FailedApi':
+        return [
+          {
+            ...model,
+            apiResponses: {
+              ...model.apiResponses,
+              [message.id]: {
+                loading: false,
+                status: '',
+                body: '',
+                error: message.reason,
+              },
+            },
+          },
+          [],
+        ]
       case 'ClickedCopyText':
         return [
           { ...model, copiedText: message.value, copyMarkdownStatus: 'idle' },
@@ -1914,11 +2445,15 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         if (message.key === 'Escape' && model.imagePreviewUrl.length > 0) {
           return [{ ...model, imagePreviewUrl: '', imagePreviewAlt: '' }, []]
         }
+        if (message.key === 'Escape' && model.aiOpen) {
+          return [{ ...model, aiOpen: false }, []]
+        }
         return [model, []]
       case 'CompletedSaveTheme':
       case 'CompletedRenderMermaid':
       case 'CompletedSaveBannerDismissal':
       case 'CompletedSavePackageManager':
+      case 'CompletedSaveTabs':
       case 'CompletedApplyTheme':
       case 'CompletedApplyLocaleMetadata':
       case 'CompletedSaveSidebarGroups':
@@ -2106,6 +2641,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
                   alt: model.imagePreviewAlt,
                 },
               }),
+          ...(options.ai === undefined
+            ? {}
+            : {
+                ai: {
+                  open: model.aiOpen,
+                  input: model.aiInput,
+                  loading: model.aiLoading,
+                  error: model.aiError,
+                  messages: model.aiMessages,
+                },
+                aiDialog: model.aiDialog,
+              }),
           copyMarkdownStatus: model.copyMarkdownStatus,
           page: model.page.page,
           ...(currentEntry?.lastModified === undefined
@@ -2146,6 +2693,16 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             openImage: (url, alt) => OpenedImagePreview({ url, alt }),
             closeImage: ClosedImagePreview(),
             submitFeedback: rating => SubmittedFeedback({ rating }),
+            ...(options.ai === undefined
+              ? {}
+              : {
+                  openAi: OpenedAi(),
+                  closeAi: ClosedAi(),
+                  updateAiInput: value => ChangedAiInput({ value }),
+                  submitAi: SubmittedAi(),
+                  gotAiDialogMessage: message =>
+                    GotAiDialogMessage({ message }),
+                }),
             gotHeaderLanguageMenuMessage: message =>
               GotHeaderLanguageMenuMessage({ message }),
             gotSidebarLanguageMenuMessage: message =>
@@ -2167,10 +2724,24 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             packageManager: model.packageManager,
             selectPackageManager: manager =>
               SelectedPackageManager({ manager }),
+            selectedTabs: model.selectedTabs,
+            selectTab: (groupId, value, persist, updateAnchor) =>
+              SelectedTab({ groupId, value, persist, updateAnchor }),
+            apiRequestUrls: model.apiRequestUrls,
+            apiRequestBodies: model.apiRequestBodies,
+            apiResponses: model.apiResponses,
+            updateApiRequestUrl: (id, value) =>
+              ChangedApiRequestUrl({ id, value }),
+            updateApiRequestBody: (id, value) =>
+              ChangedApiRequestBody({ id, value }),
+            sendApiRequest: request => RequestedApi(request),
             copyLabel: localeDefinition(i18n, model.locale).ui.copy,
             copiedLabel: localeDefinition(i18n, model.locale).ui.copied,
             copyAriaLabel: localeDefinition(i18n, model.locale).ui.copyCode,
             copiedAriaLabel: localeDefinition(i18n, model.locale).ui.codeCopied,
+            ...(graphFor(model.pathname) === undefined
+              ? {}
+              : { graph: graphFor(model.pathname)! }),
           },
         },
         h,

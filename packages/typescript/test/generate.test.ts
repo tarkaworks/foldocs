@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { generateFilesOnly } from '../src/index.js'
+import {
+  generateFilesOnly,
+  generateTypeTable,
+  transpileTypeScript,
+} from '../src/index.js'
 
 describe('TypeScript API generator', () => {
   it('emits documented, compilable pages from declarations', async () => {
@@ -38,4 +42,42 @@ export interface Options { readonly loud?: boolean }
         compile(file.content, { filePath: file.path, highlight: false }),
       ).resolves.toBeDefined()
   }, 30_000)
+
+  it('extracts inline type-table properties', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'foldocs-table-'))
+    const input = path.join(directory, 'options.ts')
+    await writeFile(
+      input,
+      `export interface Options {
+  /** Documentation root. @defaultValue "/docs" */
+  readonly basePath?: string
+  /** Enable static output. */
+  readonly prerender: boolean
+}`,
+    )
+
+    expect(generateTypeTable(input, 'Options')).toEqual([
+      {
+        name: 'basePath',
+        type: 'string | undefined',
+        description: 'Documentation root.',
+        default: '"/docs"',
+        required: false,
+      },
+      {
+        name: 'prerender',
+        type: 'boolean',
+        description: 'Enable static output.',
+        required: true,
+      },
+    ])
+  })
+
+  it('transpiles synchronized TypeScript examples to JavaScript', () => {
+    expect(
+      transpileTypeScript(
+        'interface User { name: string }\nconst user: User = { name: "Ada" }',
+      ),
+    ).toBe('const user = { name: "Ada" };')
+  })
 })

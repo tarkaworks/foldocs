@@ -2,7 +2,15 @@
 
 import { Effect } from 'effect'
 
-import { type Customization, check, customize } from './index.js'
+import {
+  type Customization,
+  type RegistryComponent,
+  addComponents,
+  check,
+  customize,
+  generateTree,
+  preview,
+} from './index.js'
 
 const help = `foldocs
 
@@ -11,10 +19,17 @@ Usage:
                    [--locales <en,es>] [--fallback-locale <locale>]
   foldocs customize [theme|layout|mdx-components|all] [root]
                     [--output <directory>] [--force]
+  foldocs add <callout|cards|files|tabs|accordion|steps|type-table|graph|story>...
+              [--output <file>] [--force]
+  foldocs tree <directory> [output.mdx|output.tsx] [--hidden]
+  foldocs preview [directory|file] [--host <host>] [--port <port>]
 
 Commands:
   check  Compile every page and report duplicate routes and broken local links
   customize  Copy project-owned theme, layout, or MDX component source
+  add  Install editable Foldkit component views into your project
+  tree  Generate a Files component from a directory
+  preview  Serve Markdown and deterministic MDX with live reload-on-refresh
 `
 
 const args = process.argv.slice(2)
@@ -23,7 +38,13 @@ if (args.includes('--help') || args.includes('-h') || args.length === 0) {
   process.exit(0)
 }
 
-if (args[0] !== 'check' && args[0] !== 'customize') {
+if (
+  args[0] !== 'check' &&
+  args[0] !== 'customize' &&
+  args[0] !== 'add' &&
+  args[0] !== 'tree' &&
+  args[0] !== 'preview'
+) {
   process.stderr.write(`${help}\nUnknown command: ${args[0] ?? ''}\n`)
   process.exit(1)
 }
@@ -31,6 +52,102 @@ if (args[0] !== 'check' && args[0] !== 'customize') {
 const valueAfter = (flag: string): string | undefined => {
   const index = args.indexOf(flag)
   return index === -1 ? undefined : args[index + 1]
+}
+
+if (args[0] === 'tree') {
+  const input = args[1]
+  if (input === undefined || input.startsWith('-')) {
+    process.stderr.write('tree requires an input directory.\n')
+    process.exit(1)
+  }
+  const output = args[2]?.startsWith('-') ? undefined : args[2]
+  try {
+    const result = await Effect.runPromise(
+      generateTree({
+        input,
+        ...(output === undefined ? {} : { output }),
+        includeHidden: args.includes('--hidden'),
+      }),
+    )
+    if (result.output === undefined) process.stdout.write(result.source)
+    else process.stdout.write(`✓ ${result.output}\n`)
+    process.exit(0)
+  } catch (error) {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    )
+    process.exit(1)
+  }
+}
+
+if (args[0] === 'add') {
+  const allowed: ReadonlyArray<RegistryComponent> = [
+    'callout',
+    'cards',
+    'files',
+    'tabs',
+    'accordion',
+    'steps',
+    'type-table',
+    'graph',
+    'story',
+  ]
+  const components = args.slice(1).filter((value, index, list) => {
+    if (value.startsWith('-')) return false
+    return list[index - 1] !== '--output'
+  })
+  const invalid = components.find(
+    component => !allowed.includes(component as RegistryComponent),
+  )
+  if (invalid !== undefined || components.length === 0) {
+    process.stderr.write(
+      invalid === undefined
+        ? `Choose one of: ${allowed.join(', ')}.\n`
+        : `Unknown component: ${invalid}.\n`,
+    )
+    process.exit(1)
+  }
+  try {
+    const result = await Effect.runPromise(
+      addComponents({
+        components: components as ReadonlyArray<RegistryComponent>,
+        ...(valueAfter('--output') === undefined
+          ? {}
+          : { output: valueAfter('--output')! }),
+        force: args.includes('--force'),
+      }),
+    )
+    process.stdout.write(`✓ ${result.file}\n`)
+    process.exit(0)
+  } catch (error) {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    )
+    process.exit(1)
+  }
+}
+
+if (args[0] === 'preview') {
+  const input = args[1]?.startsWith('-') ? '.' : (args[1] ?? '.')
+  const portValue = valueAfter('--port')
+  try {
+    const server = await preview({
+      input,
+      ...(valueAfter('--host') === undefined
+        ? {}
+        : { host: valueAfter('--host')! }),
+      ...(portValue === undefined
+        ? {}
+        : { port: Number.parseInt(portValue, 10) }),
+    })
+    process.stdout.write(`Foldocs preview: ${server.url}\n`)
+    await new Promise<void>(() => undefined)
+  } catch (error) {
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    )
+    process.exit(1)
+  }
 }
 
 const root = args.slice(1).find((argument, index, list) => {

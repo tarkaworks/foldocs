@@ -4,6 +4,7 @@
   "pages": [
     "index",
     "local-files",
+    "loaders",
     "custom-adapters",
     "remote-content",
     "validation"

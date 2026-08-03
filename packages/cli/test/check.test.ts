@@ -4,7 +4,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { check, customize } from '../src/index.js'
+import {
+  addComponents,
+  check,
+  customize,
+  generateTree,
+  preview,
+} from '../src/index.js'
 
 describe('foldocs check', () => {
   it('reports broken local documentation links', async () => {
@@ -96,5 +102,45 @@ describe('foldocs customize', () => {
     const styles = await fs.readFile(path.join(root, 'src/styles.css'), 'utf8')
     expect(styles).toContain('@import "./foldocs/theme.css";')
     expect(styles).toContain('@import "./foldocs/layout.css";')
+  })
+})
+
+describe('foldocs authoring commands', () => {
+  it('generates file trees and installs project-owned components', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'foldocs-authoring-'))
+    const source = path.join(root, 'example')
+    await fs.mkdir(path.join(source, 'src'), { recursive: true })
+    await fs.writeFile(path.join(source, 'src/index.ts'), 'export {}\n')
+
+    const tree = await Effect.runPromise(generateTree({ input: source }))
+    expect(tree.source).toContain('<Folder name="src">')
+    expect(tree.source).toContain('<File name="index.ts" />')
+
+    const installed = await Effect.runPromise(
+      addComponents({ root, components: ['callout', 'tabs'] }),
+    )
+    expect(installed.components).toEqual(['callout', 'tabs'])
+    await expect(
+      fs.readFile(path.join(root, installed.file), 'utf8'),
+    ).resolves.toContain('Project-owned component views')
+  })
+
+  it('previews Markdown and reflects edits without restarting', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'foldocs-preview-'))
+    const file = path.join(root, 'index.md')
+    await fs.writeFile(file, '# First\n\nPreview content.')
+    const server = await preview({ input: file })
+
+    try {
+      await expect(
+        fetch(server.url).then(response => response.text()),
+      ).resolves.toContain('<h1>First</h1>')
+      await fs.writeFile(file, '# Updated\n\nFresh content.')
+      await expect(
+        fetch(server.url).then(response => response.text()),
+      ).resolves.toContain('<h1>Updated</h1>')
+    } finally {
+      await server.close()
+    }
   })
 })

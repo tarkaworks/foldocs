@@ -15,6 +15,9 @@ export interface TypesenseDocument {
   readonly id?: string
   readonly url: string
   readonly title: string
+  readonly type?: 'page' | 'section'
+  readonly pageTitle?: string
+  readonly breadcrumbs?: ReadonlyArray<string>
   readonly description?: string
   readonly content?: string
   readonly locale?: string
@@ -138,6 +141,13 @@ export const createTypesenseSearchClient = (
                 id: document.id ?? document.url,
                 url: document.url,
                 title: document.title,
+                ...(document.type === undefined ? {} : { type: document.type }),
+                ...(document.pageTitle === undefined
+                  ? {}
+                  : { pageTitle: document.pageTitle }),
+                ...(document.breadcrumbs === undefined
+                  ? {}
+                  : { breadcrumbs: [...document.breadcrumbs] }),
                 excerpt: excerpt(
                   document.description ?? document.content ?? '',
                   query,

@@ -1,4 +1,7 @@
 import { Schema as S } from 'effect'
+import { mkdtemp, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { compile } from '../src/index.js'
@@ -131,7 +134,18 @@ const program = Effect.succeed(1)
         filePath: 'unsafe.mdx',
         highlight: false,
       }),
-    ).rejects.toThrow(/literal string attribute/iu)
+    ).rejects.toThrow(/JSON literals/iu)
+  })
+
+  it('accepts imports for registered components and static JSON expressions', async () => {
+    const page = await compile(
+      'import { Badge } from "./components"\n\n# Static\n\n<Badge count={3}>{"ready"}</Badge>',
+      { filePath: 'static.mdx', highlight: false },
+    )
+    expect(
+      page.document.blocks.some(block => block._tag === 'BlockComponent'),
+    ).toBe(true)
+    expect(page.plainText).toContain('ready')
   })
 
   it('rejects unsafe URL schemes', async () => {
@@ -224,5 +238,129 @@ const program = Effect.succeed(1)
     expect(
       install.commands.find(command => command.manager === 'bun')?.value,
     ).toBe('bun add foldocs --dev\nbun x create-foldocs docs')
+  })
+
+  it('composes remark plugins and emits structured sections and references', async () => {
+    const page = await compile(
+      '# Plugin page\n\nBefore plugin.\n\n## Install\n\nRead [the guide](/guide).',
+      {
+        filePath: 'plugin.mdx',
+        highlight: false,
+        remarkPlugins: [
+          () => (tree: { children?: Array<Record<string, unknown>> }) => {
+            for (const node of tree.children ?? []) {
+              if (node.type !== 'paragraph' || !Array.isArray(node.children))
+                continue
+              for (const child of node.children as Array<
+                Record<string, unknown>
+              >) {
+                if (child.type === 'text' && child.value === 'Before plugin.')
+                  child.value = 'After plugin.'
+              }
+            }
+          },
+        ],
+      },
+    )
+
+    expect(page.plainText).toContain('After plugin.')
+    expect(page.structuredData).toMatchObject([
+      { id: '', title: 'Plugin page' },
+      { id: 'install', title: 'Install' },
+    ])
+    expect(page.references).toEqual([{ url: '/guide', label: 'the guide' }])
+  })
+
+  it('runs typed document plugins after compilation', async () => {
+    const page = await compile('# Original\n\nContent.', {
+      filePath: 'plugin.mdx',
+      highlight: false,
+      documentPlugins: [
+        (compiled, context) => ({
+          ...compiled,
+          frontmatter: {
+            ...compiled.frontmatter,
+            description: `Transformed ${context.filePath ?? 'unknown'}`,
+          },
+        }),
+      ],
+    })
+
+    expect(page.frontmatter.description).toBe('Transformed plugin.mdx')
+  })
+
+  it('creates persistent TypeScript and JavaScript tabs from showJs fences', async () => {
+    const page = await compile(
+      '# Client\n\n```ts showJs title="client.ts"\nconst value: number = 1\n```',
+      {
+        filePath: 'client.mdx',
+        highlight: false,
+        transformTypeScript: ({ value }) => value.replace(': number', ''),
+      },
+    )
+    const tabs = page.document.blocks.find(
+      block => block._tag === 'BlockComponent' && block.name === 'Tabs',
+    )
+
+    expect(tabs).toMatchObject({
+      _tag: 'BlockComponent',
+      name: 'Tabs',
+      attributes: {
+        groupId: 'typescript-javascript',
+        persist: 'true',
+      },
+    })
+    if (tabs?._tag !== 'BlockComponent') return
+    expect(tabs.blocks).toHaveLength(2)
+    expect(page.plainText).toContain('const value = 1')
+  })
+
+  it('preserves custom frontmatter fields as collection data', async () => {
+    const page = await compile(
+      '---\ntitle: Reference\ncategory: runtime\nstability: stable\n---\n\n# Reference',
+      { filePath: 'reference.mdx', highlight: false },
+    )
+
+    expect(page.frontmatter.data).toEqual({
+      category: 'runtime',
+      stability: 'stable',
+    })
+  })
+
+  it('includes Markdown sections and code regions from local files', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'foldocs-include-'))
+    const pagePath = path.join(directory, 'page.mdx')
+    await writeFile(
+      path.join(directory, 'shared.mdx'),
+      '# Shared\n\n<section id="reused">Included **content**.</section>\n\nNot included.',
+    )
+    await writeFile(
+      path.join(directory, 'example.ts'),
+      'const before = true\n//#region demo\nconst included = true\n//#endregion\n',
+    )
+    const page = await compile(
+      '# Includes\n\n<include>./shared.mdx#reused</include>\n\n<include lang="ts" meta=\'title="example.ts"\'>./example.ts#demo</include>',
+      { filePath: pagePath, highlight: false },
+    )
+
+    expect(page.plainText).toContain('Included content')
+    expect(page.plainText).toContain('const included = true')
+    expect(page.plainText).not.toContain('Not included')
+    expect(page.plainText).not.toContain('const before')
+  })
+
+  it('leaves include examples inside fenced code untouched', async () => {
+    const directory = await mkdtemp(
+      path.join(tmpdir(), 'foldocs-include-docs-'),
+    )
+    const page = await compile(
+      '# Includes\n\n```mdx\n<include>./missing.mdx</include>\n```',
+      {
+        filePath: path.join(directory, 'page.md'),
+        highlight: false,
+      },
+    )
+
+    expect(page.plainText).toContain('<include>./missing.mdx</include>')
   })
 })

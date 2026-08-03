@@ -47,6 +47,7 @@ export const initLandingCopyTooltip = (): Tooltip.Model =>
   Tooltip.init({ id: landingCopyTooltipId, showDelay: 300 })
 export const searchDialogId = 'foldocs-search'
 export const sidebarDialogId = 'foldocs-sidebar-dialog'
+export const aiDialogId = 'foldocs-ai-dialog'
 export const LanguageMenuModel = Menu.Model
 export type LanguageMenuModel = Menu.Model
 export const LanguageMenuMessage = Menu.Message
@@ -73,6 +74,12 @@ export const initSidebarDialog = (): FoldocsDialogModel =>
     id: sidebarDialogId,
     isAnimated: true,
     focusSelector: '#fd-sidebar a[href]',
+  })
+export const initAiDialog = (): FoldocsDialogModel =>
+  Dialog.init({
+    id: aiDialogId,
+    isAnimated: true,
+    focusSelector: '#fd-ai-input',
   })
 
 interface SearchActions<Message> {
@@ -107,6 +114,25 @@ export interface LocaleLink {
   readonly current: boolean
 }
 
+export interface DocsAiSource {
+  readonly title: string
+  readonly url: string
+}
+
+export interface DocsAiMessage {
+  readonly role: 'user' | 'assistant'
+  readonly content: string
+  readonly sources?: ReadonlyArray<DocsAiSource>
+}
+
+export interface DocsAiState {
+  readonly open: boolean
+  readonly input: string
+  readonly loading: boolean
+  readonly error: string
+  readonly messages: ReadonlyArray<DocsAiMessage>
+}
+
 export interface DocsLayoutActions<Message> extends SearchActions<Message> {
   readonly toggleSidebar: Message
   readonly closeSidebar: Message
@@ -119,6 +145,11 @@ export interface DocsLayoutActions<Message> extends SearchActions<Message> {
   readonly openImage: (url: string, alt: string) => Message
   readonly closeImage: Message
   readonly submitFeedback: (rating: 'positive' | 'negative') => Message
+  readonly openAi?: Message
+  readonly closeAi?: Message
+  readonly updateAiInput?: (value: string) => Message
+  readonly submitAi?: Message
+  readonly gotAiDialogMessage?: (message: FoldocsDialogMessage) => Message
   readonly gotSidebarDialogMessage?: (message: FoldocsDialogMessage) => Message
   readonly gotHeaderLanguageMenuMessage?: (
     message: LanguageMenuMessage,
@@ -164,6 +195,8 @@ export interface DocsLayoutOptions<Message> extends SearchOptions<Message> {
   readonly feedback?: FeedbackConfig
   readonly feedbackStatus: 'idle' | 'submitting' | 'submitted' | 'error'
   readonly imagePreview?: { readonly url: string; readonly alt: string }
+  readonly ai?: DocsAiState
+  readonly aiDialog?: FoldocsDialogModel
   readonly copyMarkdownStatus: 'idle' | 'loading' | 'copied' | 'error'
   readonly actions: DocsLayoutActions<Message>
   readonly markdown?: MarkdownViewOptions<Message>
@@ -679,15 +712,21 @@ const navigationView = <Message>(
   parentKey = '',
   depth = 0,
 ): ReadonlyArray<Html> => {
+  const externalUrl = (url: string): boolean => /^(?:https?:)?\/\//iu.test(url)
   return nodes.map(node => {
     if (node._tag === 'Separator') {
       return h.li(
-        [h.Class('fd-sidebar-section'), h.Role('presentation')],
-        [h.span([h.Class('fd-sidebar-section-label')], [node.label])],
+        [h.Class('fd-sidebar-section')],
+        [
+          navigationIcon(node.icon, customIcons, h),
+          h.span([h.Class('fd-sidebar-section-label')], [node.label]),
+        ],
       )
     }
-    if (node._tag === 'Page') {
+    if (node._tag === 'Page' || node._tag === 'Link') {
       const active = node.url === currentUrl
+      const external =
+        node._tag === 'Link' && (node.external || externalUrl(node.url))
       return h.li(
         [],
         [
@@ -699,6 +738,9 @@ const navigationView = <Message>(
               ),
               h.DataAttribute('depth', String(depth)),
               h.OnClick(closeSidebar),
+              ...(external
+                ? [h.Target('_blank'), h.Rel('noreferrer noopener')]
+                : []),
               ...(active ? [h.AriaCurrent('page')] : []),
             ],
             [
@@ -712,7 +754,7 @@ const navigationView = <Message>(
     const key = `${parentKey}/${node.segment}`
     const disclosureId = `fd-sidebar-folder-${key.replace(/[^a-z0-9_-]+/giu, '-')}`
     const folderIndexActive = node.index?.url === currentUrl
-    const collapsed = collapsedGroups.includes(key)
+    const collapsed = node.collapsible && collapsedGroups.includes(key)
     return h.li(
       [
         h.Class(
@@ -725,7 +767,7 @@ const navigationView = <Message>(
             id: disclosureId,
             isOpen: !collapsed,
             onToggle: () => toggleGroup(key),
-            isDisabled: false,
+            isDisabled: !node.collapsible,
             toView: ({ button, panel, animatePanel }) =>
               h.div(
                 [],
@@ -748,7 +790,9 @@ const navigationView = <Message>(
                               ),
                             ],
                           ),
-                          icon('chevron', h, 'fd-sidebar-chevron'),
+                          ...(node.collapsible
+                            ? [icon('chevron', h, 'fd-sidebar-chevron')]
+                            : []),
                         ],
                       )
                     : h.a(
@@ -761,7 +805,9 @@ const navigationView = <Message>(
                           h.DataAttribute('depth', String(depth)),
                           h.AriaExpanded(!collapsed),
                           h.AriaControls(`${disclosureId}-panel`),
-                          h.OnClick(toggleGroup(key)),
+                          ...(node.collapsible
+                            ? [h.OnClick(toggleGroup(key))]
+                            : []),
                           h.OnClick(closeSidebar),
                           ...(!collapsed ? [h.DataAttribute('open', '')] : []),
                           ...(node.index.url === currentUrl
@@ -779,12 +825,18 @@ const navigationView = <Message>(
                               ),
                             ],
                           ),
-                          icon('chevron', h, 'fd-sidebar-chevron'),
+                          ...(node.collapsible
+                            ? [icon('chevron', h, 'fd-sidebar-chevron')]
+                            : []),
                         ],
                       ),
                   animatePanel(
                     h.div(
-                      [...panel, h.Class('fd-sidebar-group-panel')],
+                      [
+                        ...panel,
+                        h.Class('fd-sidebar-group-panel'),
+                        ...(collapsed ? [h.Attribute('inert', '')] : []),
+                      ],
                       [
                         h.ul(
                           [],
@@ -1225,6 +1277,24 @@ const searchDialogView = <Message>(
                                               ),
                                             ],
                                             [
+                                              ...(result.breadcrumbs ===
+                                                undefined ||
+                                              result.breadcrumbs.length === 0
+                                                ? []
+                                                : [
+                                                    h.span(
+                                                      [
+                                                        h.Class(
+                                                          'fd-search-breadcrumbs',
+                                                        ),
+                                                      ],
+                                                      [
+                                                        result.breadcrumbs.join(
+                                                          ' / ',
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ]),
                                               h.strong([], [result.title]),
                                               h.span(
                                                 [],
@@ -1281,12 +1351,12 @@ const pageFileForUrl = (
   currentUrl: string,
 ): string | undefined => {
   for (const node of nodes) {
-    if (node._tag === 'Separator') continue
+    if (node._tag === 'Separator' || node._tag === 'Link') continue
     if (node._tag === 'Page') {
       if (node.url === currentUrl) return node.page.file || node.page.id
       continue
     }
-    if (node.index?.url === currentUrl)
+    if (node.index?._tag === 'Page' && node.index.url === currentUrl)
       return node.index.page.file || node.index.page.id
     const nested = pageFileForUrl(node.children, currentUrl)
     if (nested !== undefined) return nested
@@ -1333,7 +1403,7 @@ const pageActionsView = <Message>(
   h: HtmlBuilder<Message>,
 ): Html => {
   const t = options.translations
-  if (!options.markdownEnabled) return h.empty
+  if (!options.markdownEnabled && options.ai === undefined) return h.empty
   const sourceUrl = markdownDocumentUrl(options.site, options.markdownUrl)
   const prompt = interpolateTranslation(t.askAiAboutPage, { url: sourceUrl })
   const githubUrl = githubDocumentUrl(
@@ -1459,33 +1529,231 @@ const pageActionsView = <Message>(
   return h.div(
     [h.Class('fd-page-actions')],
     [
-      Button.view(
-        {
-          onClick: options.actions.copyMarkdown,
-          toView: ({ button }) =>
-            h.button(
-              [
-                ...button,
-                h.Disabled(options.copyMarkdownStatus === 'loading'),
-                h.AriaLabel(copyAriaLabel),
-                h.Class(
-                  'fd-control fd-control-outline fd-control-sm fd-page-action',
-                ),
-              ],
-              [
-                icon(
-                  options.copyMarkdownStatus === 'copied' ? 'check' : 'copy',
-                  h,
-                ),
-                t.copyMarkdown,
-              ],
+      ...(options.ai === undefined || options.actions.openAi === undefined
+        ? []
+        : [
+            Button.view(
+              {
+                onClick: options.actions.openAi,
+                toView: ({ button }) =>
+                  h.button(
+                    [
+                      ...button,
+                      h.Class(
+                        'fd-control fd-control-outline fd-control-sm fd-page-action',
+                      ),
+                    ],
+                    [icon('sparkles', h), t.askAi],
+                  ),
+              },
+              h,
             ),
-        },
-        h,
-      ),
-      openMenu,
+          ]),
+      ...(options.markdownEnabled
+        ? [
+            Button.view(
+              {
+                onClick: options.actions.copyMarkdown,
+                toView: ({ button }) =>
+                  h.button(
+                    [
+                      ...button,
+                      h.Disabled(options.copyMarkdownStatus === 'loading'),
+                      h.AriaLabel(copyAriaLabel),
+                      h.Class(
+                        'fd-control fd-control-outline fd-control-sm fd-page-action',
+                      ),
+                    ],
+                    [
+                      icon(
+                        options.copyMarkdownStatus === 'copied'
+                          ? 'check'
+                          : 'copy',
+                        h,
+                      ),
+                      t.copyMarkdown,
+                    ],
+                  ),
+              },
+              h,
+            ),
+            openMenu,
+          ]
+        : []),
     ],
   )
+}
+
+const aiDialogView = <Message>(
+  options: DocsLayoutOptions<Message>,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const ai = options.ai
+  if (
+    ai === undefined ||
+    !ai.open ||
+    options.aiDialog === undefined ||
+    options.actions.gotAiDialogMessage === undefined ||
+    options.actions.closeAi === undefined ||
+    options.actions.updateAiInput === undefined ||
+    options.actions.submitAi === undefined
+  )
+    return h.empty
+  const t = options.translations
+  const closeAi = options.actions.closeAi
+  const updateAiInput = options.actions.updateAiInput
+  const submitAi = options.actions.submitAi
+  const gotAiDialogMessage = options.actions.gotAiDialogMessage
+  return h.submodel({
+    slotId: options.aiDialog.id,
+    model: options.aiDialog,
+    view: Dialog.view,
+    viewInputs: {
+      toView: ({
+        dialog,
+        backdrop,
+        panel,
+        title,
+        description,
+        initialFocus,
+        isVisible,
+      }) =>
+        h.dialog(
+          [...dialog, h.Class('fd-ai-layer')],
+          isVisible
+            ? [
+                h.div(
+                  [...backdrop, h.Class('fd-ai-backdrop'), h.AriaHidden(true)],
+                  [],
+                ),
+                h.section(
+                  [...panel, h.Class('fd-ai-dialog')],
+                  [
+                    h.header(
+                      [h.Class('fd-ai-header')],
+                      [
+                        h.div(
+                          [],
+                          [
+                            h.h2([...title, h.Id('fd-ai-title')], [t.aiTitle]),
+                            h.p(
+                              [...description, h.Id('fd-ai-description')],
+                              [t.aiDescription],
+                            ),
+                          ],
+                        ),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.Class(
+                              'fd-control fd-control-ghost fd-control-icon',
+                            ),
+                            h.OnClick(closeAi),
+                            h.AriaLabel(t.closeAi),
+                            h.Title(t.closeAi),
+                          ],
+                          [icon('close', h)],
+                        ),
+                      ],
+                    ),
+                    h.div(
+                      [h.Class('fd-ai-messages'), h.AriaLive('polite')],
+                      [
+                        ...(ai.messages.length === 0
+                          ? [h.p([h.Class('fd-ai-empty')], [t.aiDescription])]
+                          : ai.messages.map((message, index) =>
+                              h.div(
+                                [
+                                  h.Class(
+                                    `fd-ai-message fd-ai-message-${message.role}`,
+                                  ),
+                                  h.DataAttribute(
+                                    'message-index',
+                                    String(index),
+                                  ),
+                                ],
+                                [
+                                  h.p([], [message.content]),
+                                  ...(message.sources === undefined ||
+                                  message.sources.length === 0
+                                    ? []
+                                    : [
+                                        h.div(
+                                          [h.Class('fd-ai-sources')],
+                                          [
+                                            h.strong([], [t.aiSources]),
+                                            h.ul(
+                                              [],
+                                              message.sources.map(source =>
+                                                h.li(
+                                                  [],
+                                                  [
+                                                    h.a(
+                                                      [h.Href(source.url)],
+                                                      [source.title],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ]),
+                                ],
+                              ),
+                            )),
+                        ...(ai.loading
+                          ? [h.p([h.Class('fd-ai-thinking')], [t.aiThinking])]
+                          : []),
+                        ...(ai.error.length === 0
+                          ? []
+                          : [
+                              h.p(
+                                [h.Class('fd-ai-error')],
+                                [ai.error || t.aiUnavailable],
+                              ),
+                            ]),
+                      ],
+                    ),
+                    h.div(
+                      [h.Class('fd-ai-composer')],
+                      [
+                        h.textarea(
+                          [
+                            ...initialFocus,
+                            h.Id('fd-ai-input'),
+                            h.Value(ai.input),
+                            h.OnInput(updateAiInput),
+                            h.Placeholder(t.aiPlaceholder),
+                            h.AriaLabel(t.aiPlaceholder),
+                            h.Disabled(ai.loading),
+                            h.Attribute('rows', '3'),
+                          ],
+                          [],
+                        ),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.Class(
+                              'fd-control fd-control-outline fd-control-sm',
+                            ),
+                            h.OnClick(submitAi),
+                            h.Disabled(
+                              ai.loading || ai.input.trim().length === 0,
+                            ),
+                          ],
+                          [t.aiSend],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ]
+            : [],
+        ),
+    },
+    toParentMessage: gotAiDialogMessage,
+  })
 }
 
 export const docsLayout = <Message>(
@@ -1497,9 +1765,10 @@ export const docsLayout = <Message>(
     navigationContextForUrl(options.navigation, options.currentUrl)?.filter(
       (label, index, labels) => index === 0 || labels[index - 1] !== label,
     ) ?? []
-  const backgroundDisabled = options.searchOpen
-    ? [h.AriaHidden(true), h.Attribute('inert', '')]
-    : []
+  const backgroundDisabled =
+    options.searchOpen || options.ai?.open === true
+      ? [h.AriaHidden(true), h.Attribute('inert', '')]
+      : []
   const sidebarBackgroundDisabled =
     options.narrowViewport && options.sidebarOpen
       ? [h.AriaHidden(true), h.Attribute('inert', '')]
@@ -1947,6 +2216,7 @@ export const docsLayout = <Message>(
         h,
       ),
       searchDialogView(options, h),
+      aiDialogView(options, h),
       ...(options.imagePreview === undefined
         ? []
         : [

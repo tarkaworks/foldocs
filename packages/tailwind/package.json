@@ -1,6 +1,7 @@
 {
   "name": "@foldocs/tailwind",
   "version": "0.1.1",
+  "description": "Foldocs theme tokens, component styles, Inter, JetBrains Mono, and KaTeX CSS.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -1,7 +1,13 @@
 {
   "name": "@foldocs/obsidian",
   "version": "0.0.0",
-  "private": true,
+  "description": "Convert an Obsidian vault into deterministic Foldocs Markdown pages.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/obsidian"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -23,5 +29,8 @@
   },
   "devDependencies": {
     "foldocs-mdx": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

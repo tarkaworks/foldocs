@@ -1,6 +1,7 @@
 {
   "name": "foldocs-mdx",
   "version": "0.1.0",
+  "description": "Compile Markdown and deterministic MDX into typed, serializable Foldocs documents.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -34,6 +35,7 @@
   "dependencies": {
     "@foldkit/markdown": "0.2.1",
     "@foldocs/content": "workspace:*",
+    "@shikijs/transformers": "^4.4.1",
     "@types/mdast": "^4.0.4",
     "effect": "4.0.0-beta.102",
     "github-slugger": "^2.0.0",

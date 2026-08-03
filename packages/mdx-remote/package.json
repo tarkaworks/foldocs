@@ -1,7 +1,13 @@
 {
   "name": "@foldocs/mdx-remote",
   "version": "0.0.0",
-  "private": true,
+  "description": "Load validated Markdown and MDX files from remote JSON endpoints at build time.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarkaworks/foldocs",
+    "directory": "packages/mdx-remote"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -24,5 +30,8 @@
   },
   "peerDependencies": {
     "effect": "4.0.0-beta.102"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

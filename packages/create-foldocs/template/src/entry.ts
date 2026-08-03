@@ -1,6 +1,7 @@
 import { Runtime } from 'foldkit'
-import { createDocsProgram, preloadDocsPage } from 'foldocs'
+import { createAiClient, createDocsProgram, preloadDocsPage } from 'foldocs'
 import {
+  ai,
   banner,
   basePath,
   feedback,
@@ -45,6 +46,9 @@ const program = createDocsProgram({
   islands: markdownIslands,
   components: mdxComponents,
   searchIndexUrls,
+  ...(ai.enabled
+    ? { ai: { client: createAiClient({ endpoint: ai.endpoint }) } }
+    : {}),
   ...(preloadedPage === undefined ? {} : { preloadedPage }),
 })
 

@@ -14,6 +14,8 @@ export const PageFrontmatter = S.Struct({
   keywords: S.optionalKey(S.Array(S.String)),
   tags: S.optionalKey(S.Array(S.String)),
   socialImage: S.optionalKey(S.String),
+  /** Custom collection fields preserved after the standard page keys are decoded. */
+  data: S.optionalKey(S.Record(S.String, S.Unknown)),
 })
 export type PageFrontmatter = typeof PageFrontmatter.Type
 
@@ -23,6 +25,22 @@ export const TocItem = S.Struct({
   depth: S.Number,
 })
 export type TocItem = typeof TocItem.Type
+
+/** Searchable section extracted from a page in document order. */
+export const StructuredDataSection = S.Struct({
+  id: S.String,
+  title: S.String,
+  depth: S.Number,
+  content: S.String,
+})
+export type StructuredDataSection = typeof StructuredDataSection.Type
+
+/** An authored link extracted at build time for graph and backlink views. */
+export const PageReference = S.Struct({
+  url: S.String,
+  label: S.String,
+})
+export type PageReference = typeof PageReference.Type
 
 /** Serializable metadata kept in the eagerly loaded document manifest. */
 export const PageMetadata = S.Struct({
@@ -39,6 +57,8 @@ export const PageMetadata = S.Struct({
   frontmatter: PageFrontmatter,
   toc: S.Array(TocItem),
   plainText: S.String,
+  structuredData: S.optionalKey(S.Array(StructuredDataSection)),
+  references: S.optionalKey(S.Array(PageReference)),
 })
 export type PageMetadata = typeof PageMetadata.Type
 
@@ -52,6 +72,22 @@ export interface ContentSource<Data> {
   readonly name: string
   readonly load: () => Promise<ReadonlyArray<ContentPage<Data>>>
 }
+
+export interface CollectionDefinition<Output> {
+  readonly name: string
+  readonly directory?: string
+  readonly parse: (value: Readonly<Record<string, unknown>>) => Output
+}
+
+/** Define typed custom frontmatter without coupling the content layer to a framework. */
+export const defineCollection = <Output>(
+  definition: CollectionDefinition<Output>,
+): CollectionDefinition<Output> => definition
+
+export const parseCollectionFrontmatter = <Output>(
+  collection: CollectionDefinition<Output>,
+  frontmatter: PageFrontmatter,
+): Output => collection.parse(frontmatter.data ?? {})
 
 /** A Markdown/MDX file supplied by a remote service or CMS. */
 export const ContentFile = S.Struct({

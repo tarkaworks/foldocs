@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/ai" },
     { "path": "packages/asyncapi" },
     { "path": "packages/basehub" },
     { "path": "packages/content" },
