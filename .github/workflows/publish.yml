@@ -68,10 +68,15 @@ jobs:
       - name: Test documentation end to end
         run: pnpm test:e2e
 
+      - name: Detect version request
+        id: release-mode
+        run: echo "verify-published=${{ hashFiles('.tegami/*.md') == '' }}" >> "$GITHUB_OUTPUT"
+
       - name: Version and publish packages
         run: pnpm tegami ci
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Verify packages on npm
+        if: steps.release-mode.outputs.verify-published == 'true'
         run: pnpm release:verify-published
