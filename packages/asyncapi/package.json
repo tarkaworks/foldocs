@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/asyncapi",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Generate deterministic Foldocs reference pages from AsyncAPI documents.",
   "license": "MIT",
   "repository": {

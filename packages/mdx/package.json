@@ -1,6 +1,6 @@
 {
   "name": "foldocs-mdx",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Compile Markdown and deterministic MDX into typed, serializable Foldocs documents.",
   "license": "MIT",
   "repository": {

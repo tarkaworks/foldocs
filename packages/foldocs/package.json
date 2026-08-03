@@ -1,6 +1,6 @@
 {
   "name": "foldocs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "The beautiful and flexible Foldkit documentation framework, powered by Effect.",
   "license": "MIT",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/basehub",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Build-time BaseHub content source adapter for Foldocs.",
   "license": "MIT",
   "repository": {

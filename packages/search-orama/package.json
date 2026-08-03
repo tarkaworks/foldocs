@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/search-orama",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Zero-configuration local full-text search provider for Foldocs.",
   "license": "MIT",
   "repository": {

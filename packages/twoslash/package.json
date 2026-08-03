@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/twoslash",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript Twoslash-powered Shiki highlighting for Foldocs code blocks.",
   "license": "MIT",
   "repository": {

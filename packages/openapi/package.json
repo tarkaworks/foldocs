@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/openapi",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Generate searchable Foldocs API reference pages and request playgrounds from OpenAPI documents.",
   "license": "MIT",
   "repository": {
