@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/vite",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Vite plugin for Foldocs content compilation, routes, SEO assets, search indices, and static output.",
   "license": "MIT",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/ai",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Effect-native, provider-neutral AI client and server helpers for Foldocs.",
   "license": "MIT",
   "repository": {

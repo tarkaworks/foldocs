@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/epub",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Export Foldocs Markdown and MDX content as a portable EPUB publication.",
   "license": "MIT",
   "repository": {

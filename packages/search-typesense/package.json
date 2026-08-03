@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/search-typesense",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Typesense search and collection synchronization adapter for Foldocs.",
   "license": "MIT",
   "repository": {

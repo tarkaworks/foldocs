@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/search-trieve",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Trieve search and ingestion adapter for Foldocs.",
   "license": "MIT",
   "repository": {

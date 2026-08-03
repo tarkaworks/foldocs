@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/search-algolia",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Algolia search and index synchronization adapter for Foldocs.",
   "license": "MIT",
   "repository": {

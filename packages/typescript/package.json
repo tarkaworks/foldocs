@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/typescript",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Generate Foldocs API references and type tables from TypeScript declarations.",
   "license": "MIT",
   "repository": {

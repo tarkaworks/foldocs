@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/search-flexsearch",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "In-browser FlexSearch provider for structured Foldocs search records.",
   "license": "MIT",
   "repository": {

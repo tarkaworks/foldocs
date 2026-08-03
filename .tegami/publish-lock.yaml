@@ -1,57 +1,151 @@
 core:changelogs:
-  - content: "---\npackages:\n  npm:foldocs-core:\n    type: patch\n  npm:create-foldocs:\n    type: patch\n  npm:foldocs:\n    type: patch\n  npm:@foldocs/tailwind:\n    type: patch\n  npm:foldocs-ui:\n    type: patch\n  npm:@foldocs/vite:\n    type: patch\n---\n\n## Improve documentation UI and SEO\n\nPolish outline controls, theme toggles, sidebar spacing, tooltips, source links, generated templates, and English/Spanish documentation parity. Add configurable route metadata, static Open Graph images, JSON-LD, canonical and alternate links, robots output, and richer sitemaps.\n"
-    filename: 2026-08-03-msd2ciju.md
+  - content: "---\npackages:\n  npm:@foldocs/ai:\n    type: minor\n  npm:@foldocs/asyncapi:\n    type: minor\n  npm:@foldocs/basehub:\n    type: minor\n  npm:@foldocs/cli:\n    type: patch\n  npm:@foldocs/content:\n    type: patch\n  npm:@foldocs/epub:\n    type: minor\n  npm:@foldocs/language:\n    type: patch\n  npm:@foldocs/mdx-remote:\n    type: minor\n  npm:@foldocs/obsidian:\n    type: minor\n  npm:@foldocs/openapi:\n    type: minor\n  npm:@foldocs/python:\n    type: minor\n  npm:@foldocs/sanity:\n    type: minor\n  npm:@foldocs/search:\n    type: patch\n  npm:@foldocs/search-algolia:\n    type: minor\n  npm:@foldocs/search-flexsearch:\n    type: minor\n  npm:@foldocs/search-mixedbread:\n    type: minor\n  npm:@foldocs/search-orama:\n    type: patch\n  npm:@foldocs/search-orama-cloud:\n    type: minor\n  npm:@foldocs/search-trieve:\n    type: minor\n  npm:@foldocs/search-typesense:\n    type: minor\n  npm:@foldocs/typescript:\n    type: minor\n  npm:foldocs-core:\n    type: patch\n  npm:create-foldocs:\n    type: patch\n  npm:foldocs:\n    type: patch\n  npm:foldocs-mdx:\n    type: patch\n  npm:@foldocs/tailwind:\n    type: patch\n  npm:@foldocs/twoslash:\n    type: patch\n  npm:foldocs-ui:\n    type: patch\n  npm:@foldocs/vite:\n    type: patch\n---\n\n## Complete the production documentation surface\n\nPolish the documentation UI, generated templates, and English/Spanish content.\nAdd complete route metadata, static Open Graph images, Schema.org JSON-LD,\ncanonical and alternate links, robots output, and richer sitemaps. Ship typed\ncontent collections, source loaders, reusable MDX includes, synchronized\nTypeScript/JavaScript examples, structured search, provider adapters, OpenAPI\nand AsyncAPI playgrounds, media components, an Effect-native AI integration,\nexpanded translations, and the `add`, `tree`, and `preview` CLI workflows.\nDocument every public npm package with package-specific installation, usage,\ndocumentation, and license information, and expose concise package descriptions\nin npm registry metadata.\n"
+    filename: 2026-08-03-x3p7k9vq.md
     v: 0.0.0
 core:packages:
-  - id: npm:@foldocs/cli
-    updated: true
-  - id: npm:@foldocs/content
-    updated: false
   - changelogIds:
-      - 2026-08-03-msd2ciju.md
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/ai
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/asyncapi
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/basehub
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/cli
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/content
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
     id: npm:foldocs-core
     updated: true
   - changelogIds:
-      - 2026-08-03-msd2ciju.md
+      - 2026-08-03-x3p7k9vq.md
     id: npm:create-foldocs
     updated: true
-  - id: npm:@foldocs/language
-    updated: true
-  - id: npm:foldocs-mdx
-    updated: false
   - changelogIds:
-      - 2026-08-03-msd2ciju.md
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/epub
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
     id: npm:foldocs
     updated: true
-  - id: npm:@foldocs/search
-    updated: false
-  - id: npm:@foldocs/search-orama
-    updated: false
-  - id: npm:@foldocs/twoslash
-    updated: false
   - changelogIds:
-      - 2026-08-03-msd2ciju.md
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/language
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:foldocs-mdx
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/mdx-remote
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/obsidian
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/python
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/openapi
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/sanity
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-algolia
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-flexsearch
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-mixedbread
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-orama-cloud
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-orama
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-trieve
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/search-typesense
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
     id: npm:@foldocs/tailwind
     updated: true
   - changelogIds:
-      - 2026-08-03-msd2ciju.md
-    id: npm:@foldocs/vite
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/twoslash
     updated: true
   - changelogIds:
-      - 2026-08-03-msd2ciju.md
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/typescript
+    updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
     id: npm:foldocs-ui
     updated: true
+  - changelogIds:
+      - 2026-08-03-x3p7k9vq.md
+    id: npm:@foldocs/vite
+    updated: true
 npm:packages:
+  - id: npm:@foldocs/ai
+  - id: npm:@foldocs/asyncapi
+  - id: npm:@foldocs/basehub
   - id: npm:@foldocs/cli
   - id: npm:@foldocs/content
   - id: npm:foldocs-core
   - id: npm:create-foldocs
+  - id: npm:@foldocs/epub
+  - id: npm:foldocs
   - id: npm:@foldocs/language
   - id: npm:foldocs-mdx
-  - id: npm:foldocs
+  - id: npm:@foldocs/mdx-remote
+  - id: npm:@foldocs/obsidian
+  - id: npm:@foldocs/python
+  - id: npm:@foldocs/openapi
+  - id: npm:@foldocs/sanity
   - id: npm:@foldocs/search
+  - id: npm:@foldocs/search-algolia
+  - id: npm:@foldocs/search-flexsearch
+  - id: npm:@foldocs/search-mixedbread
+  - id: npm:@foldocs/search-orama-cloud
   - id: npm:@foldocs/search-orama
-  - id: npm:@foldocs/twoslash
+  - id: npm:@foldocs/search-trieve
+  - id: npm:@foldocs/search-typesense
   - id: npm:@foldocs/tailwind
-  - id: npm:@foldocs/vite
+  - id: npm:@foldocs/twoslash
+  - id: npm:@foldocs/typescript
   - id: npm:foldocs-ui
+  - id: npm:@foldocs/vite

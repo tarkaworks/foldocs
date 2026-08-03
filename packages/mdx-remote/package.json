@@ -1,6 +1,6 @@
 {
   "name": "@foldocs/mdx-remote",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Load validated Markdown and MDX files from remote JSON endpoints at build time.",
   "license": "MIT",
   "repository": {
