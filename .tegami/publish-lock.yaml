@@ -1,71 +1,57 @@
 core:changelogs:
-  - content: "---\npackages:\n  \"@foldocs/cli\":\n    type: minor\n  \"@foldocs/content\":\n    type: minor\n  \"@foldocs/language\":\n    type: minor\n  \"@foldocs/search\":\n    type: minor\n  \"@foldocs/search-orama\":\n    type: minor\n  \"@foldocs/tailwind\":\n    type: minor\n  \"@foldocs/twoslash\":\n    type: minor\n  \"@foldocs/vite\":\n    type: minor\n  create-foldocs:\n    type: minor\n  foldocs:\n    type: minor\n  foldocs-core:\n    type: minor\n  foldocs-mdx:\n    type: minor\n  foldocs-ui:\n    type: minor\n---\n\n## Initial public release\n\nShip the Foldkit-native documentation framework, application generator, UI,\ncontent pipeline, local search, Vite integration, and authoring tools.\n"
-    filename: initial-release.md
+  - content: "---\npackages:\n  npm:foldocs-core:\n    type: patch\n  npm:create-foldocs:\n    type: patch\n  npm:foldocs:\n    type: patch\n  npm:@foldocs/tailwind:\n    type: patch\n  npm:foldocs-ui:\n    type: patch\n  npm:@foldocs/vite:\n    type: patch\n---\n\n## Improve documentation UI and SEO\n\nPolish outline controls, theme toggles, sidebar spacing, tooltips, source links, generated templates, and English/Spanish documentation parity. Add configurable route metadata, static Open Graph images, JSON-LD, canonical and alternate links, robots output, and richer sitemaps.\n"
+    filename: 2026-08-03-msd2ciju.md
     v: 0.0.0
 core:packages:
-  - changelogIds:
-      - initial-release.md
-    id: npm:@foldocs/cli
+  - id: npm:@foldocs/cli
     updated: true
+  - id: npm:@foldocs/content
+    updated: false
   - changelogIds:
-      - initial-release.md
+      - 2026-08-03-msd2ciju.md
     id: npm:foldocs-core
     updated: true
   - changelogIds:
-      - initial-release.md
-    id: npm:@foldocs/content
-    updated: true
-  - changelogIds:
-      - initial-release.md
+      - 2026-08-03-msd2ciju.md
     id: npm:create-foldocs
     updated: true
+  - id: npm:@foldocs/language
+    updated: true
+  - id: npm:foldocs-mdx
+    updated: false
   - changelogIds:
-      - initial-release.md
+      - 2026-08-03-msd2ciju.md
     id: npm:foldocs
     updated: true
+  - id: npm:@foldocs/search
+    updated: false
+  - id: npm:@foldocs/search-orama
+    updated: false
+  - id: npm:@foldocs/twoslash
+    updated: false
   - changelogIds:
-      - initial-release.md
-    id: npm:@foldocs/language
-    updated: true
-  - changelogIds:
-      - initial-release.md
-    id: npm:foldocs-mdx
-    updated: true
-  - changelogIds:
-      - initial-release.md
-    id: npm:@foldocs/search
-    updated: true
-  - changelogIds:
-      - initial-release.md
-    id: npm:@foldocs/search-orama
-    updated: true
-  - changelogIds:
-      - initial-release.md
+      - 2026-08-03-msd2ciju.md
     id: npm:@foldocs/tailwind
     updated: true
   - changelogIds:
-      - initial-release.md
-    id: npm:@foldocs/twoslash
-    updated: true
-  - changelogIds:
-      - initial-release.md
-    id: npm:foldocs-ui
-    updated: true
-  - changelogIds:
-      - initial-release.md
+      - 2026-08-03-msd2ciju.md
     id: npm:@foldocs/vite
+    updated: true
+  - changelogIds:
+      - 2026-08-03-msd2ciju.md
+    id: npm:foldocs-ui
     updated: true
 npm:packages:
   - id: npm:@foldocs/cli
-  - id: npm:foldocs-core
   - id: npm:@foldocs/content
+  - id: npm:foldocs-core
   - id: npm:create-foldocs
-  - id: npm:foldocs
   - id: npm:@foldocs/language
   - id: npm:foldocs-mdx
+  - id: npm:foldocs
   - id: npm:@foldocs/search
   - id: npm:@foldocs/search-orama
-  - id: npm:@foldocs/tailwind
   - id: npm:@foldocs/twoslash
-  - id: npm:foldocs-ui
+  - id: npm:@foldocs/tailwind
   - id: npm:@foldocs/vite
+  - id: npm:foldocs-ui
