@@ -89,6 +89,9 @@ describe('create-foldocs', () => {
       fs.stat(path.join(result.directory, 'foldocs.config.ts')),
     ).resolves.toBeDefined()
     await expect(
+      fs.readFile(path.join(result.directory, 'foldocs.config.ts'), 'utf8'),
+    ).resolves.toContain('og: true')
+    await expect(
       fs.readFile(path.join(result.directory, 'src/entry.ts'), 'utf8'),
     ).resolves.toContain('navigation')
     await expect(

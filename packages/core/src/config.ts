@@ -262,6 +262,44 @@ export const SiteConfig = S.Struct({
 })
 export type SiteConfig = typeof SiteConfig.Type
 
+export const SeoEntityConfig = S.Struct({
+  type: S.optionalKey(S.Literals(['Organization', 'Person'])),
+  name: S.String,
+  url: S.optionalKey(S.String),
+  logo: S.optionalKey(S.String),
+})
+export type SeoEntityConfig = typeof SeoEntityConfig.Type
+
+export const SeoConfig = S.Struct({
+  /** Page title format. `%s` is replaced with the page title. */
+  titleTemplate: S.optionalKey(S.String),
+  author: S.optionalKey(SeoEntityConfig),
+  publisher: S.optionalKey(SeoEntityConfig),
+  twitterSite: S.optionalKey(S.String),
+  twitterCreator: S.optionalKey(S.String),
+  robots: S.optionalKey(
+    S.Struct({
+      index: S.optionalKey(S.Boolean),
+      follow: S.optionalKey(S.Boolean),
+    }),
+  ),
+  jsonLd: S.optionalKey(S.Boolean),
+})
+export type SeoConfig = typeof SeoConfig.Type
+
+export interface ResolvedSeoConfig {
+  readonly titleTemplate: string
+  readonly author: SeoEntityConfig
+  readonly publisher: SeoEntityConfig
+  readonly twitterSite?: string
+  readonly twitterCreator?: string
+  readonly robots: {
+    readonly index: boolean
+    readonly follow: boolean
+  }
+  readonly jsonLd: boolean
+}
+
 export const LayoutPreset = S.Literals(['docs', 'notebook', 'flux', 'glass'])
 export type LayoutPreset = typeof LayoutPreset.Type
 
@@ -323,8 +361,50 @@ export interface ResolvedLandingConfig {
   readonly footer?: LandingFooterConfig
 }
 
+export type OgImageKind = 'landing' | 'page'
+
+export interface OgImageTemplateContext {
+  readonly kind: OgImageKind
+  readonly site: SiteConfig
+  readonly title: string
+  readonly description?: string
+  readonly locale: string
+  readonly slug: string
+  readonly width: number
+  readonly height: number
+  /** SVG markup used by the default template and available to custom templates. */
+  readonly logoSvg: string
+}
+
+/** HTML rendered to a PNG by Takumi during the production build. */
+export type OgImageTemplate = (
+  context: OgImageTemplateContext,
+) => string | Promise<string>
+
+export interface OgImageConfig {
+  readonly directory?: string
+  readonly width?: number
+  readonly height?: number
+  readonly logoSvg?: string
+  readonly template?: OgImageTemplate
+}
+
+export interface ResolvedOgImageConfig {
+  readonly enabled: boolean
+  readonly directory: string
+  readonly width: number
+  readonly height: number
+  readonly logoSvg?: string
+  readonly template?: OgImageTemplate
+}
+
+export const defineOgTemplate = <Template extends OgImageTemplate>(
+  template: Template,
+): Template => template
+
 export interface FoldocsConfig {
   readonly site: SiteConfig
+  readonly seo?: SeoConfig
   readonly i18n?: I18nConfig
   readonly content?: {
     readonly dir?: string
@@ -348,7 +428,7 @@ export interface FoldocsConfig {
         readonly title?: string
         readonly description?: string
       }
-  readonly og?: boolean | { readonly directory?: string }
+  readonly og?: boolean | OgImageConfig
   readonly prerender?: boolean
   readonly search?: {
     readonly staticIndex?: boolean
@@ -357,6 +437,7 @@ export interface FoldocsConfig {
 
 export interface ResolvedFoldocsConfig {
   readonly site: SiteConfig
+  readonly seo: ResolvedSeoConfig
   readonly i18n: ResolvedI18nConfig
   readonly content: {
     readonly dir: string
@@ -379,7 +460,7 @@ export interface ResolvedFoldocsConfig {
     readonly title: string
     readonly description?: string
   }
-  readonly og: { readonly enabled: boolean; readonly directory: string }
+  readonly og: ResolvedOgImageConfig
   readonly prerender: boolean
   readonly search: {
     readonly staticIndex: boolean
@@ -520,6 +601,59 @@ export const defineConfig = <const Config extends FoldocsConfig>(
   config: Config,
 ): Config => config
 
+const twitterHandle = (value: string | undefined): string | undefined => {
+  if (value === undefined) return undefined
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return undefined
+  if (trimmed.startsWith('@')) return trimmed
+  try {
+    const handle = new URL(trimmed).pathname.split('/').filter(Boolean).at(0)
+    return handle === undefined ? undefined : `@${handle}`
+  } catch {
+    return `@${trimmed}`
+  }
+}
+
+export const resolveSeoConfig = (
+  value: SeoConfig | undefined,
+  site: SiteConfig,
+): ResolvedSeoConfig => {
+  const seo = S.decodeUnknownSync(SeoConfig)(value ?? {})
+  const titleTemplate = seo.titleTemplate ?? `%s | ${site.title}`
+  if (!titleTemplate.includes('%s'))
+    throw new TypeError('Foldocs seo.titleTemplate must include `%s`.')
+  const publisher = seo.publisher ?? {
+    name: site.title,
+    ...(site.baseUrl === undefined ? {} : { url: site.baseUrl }),
+    ...(site.favicon === undefined ? {} : { logo: site.favicon }),
+  }
+  const twitterSite = twitterHandle(seo.twitterSite)
+  const twitterCreator = twitterHandle(seo.twitterCreator)
+  return {
+    titleTemplate,
+    author: seo.author ?? publisher,
+    publisher,
+    ...(twitterSite === undefined ? {} : { twitterSite }),
+    ...(twitterCreator === undefined ? {} : { twitterCreator }),
+    robots: {
+      index: seo.robots?.index ?? true,
+      follow: seo.robots?.follow ?? true,
+    },
+    jsonLd: seo.jsonLd ?? true,
+  }
+}
+
+const ogDimension = (
+  value: number | undefined,
+  fallback: number,
+  name: 'width' | 'height',
+): number => {
+  const resolved = value ?? fallback
+  if (!Number.isInteger(resolved) || resolved <= 0)
+    throw new TypeError(`Foldocs og.${name} must be a positive integer.`)
+  return resolved
+}
+
 export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
   const site = S.decodeUnknownSync(SiteConfig)(config.site)
   const i18n = resolveI18n(config.i18n, site.locale)
@@ -545,6 +679,7 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
     throw new TypeError('Foldocs landing.sections must not contain duplicates.')
   return {
     site: { ...site, locale: i18n.defaultLocale },
+    seo: resolveSeoConfig(config.seo, site),
     i18n,
     content: {
       dir: config.content?.dir ?? 'content/docs',
@@ -593,6 +728,22 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
         typeof config.og === 'object'
           ? (config.og.directory ?? 'og').replace(/^\/+|\/+$/gu, '')
           : 'og',
+      width: ogDimension(
+        typeof config.og === 'object' ? config.og.width : undefined,
+        1200,
+        'width',
+      ),
+      height: ogDimension(
+        typeof config.og === 'object' ? config.og.height : undefined,
+        630,
+        'height',
+      ),
+      ...(typeof config.og === 'object' && config.og.logoSvg !== undefined
+        ? { logoSvg: config.og.logoSvg }
+        : {}),
+      ...(typeof config.og === 'object' && config.og.template !== undefined
+        ? { template: config.og.template }
+        : {}),
     },
     prerender: config.prerender ?? true,
     search: {

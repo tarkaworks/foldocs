@@ -26,6 +26,29 @@ Cada página puede sobrescribir `description`, `keywords` y `socialImage` en su
 frontmatter. Foldocs mantiene esos valores sincronizados durante la navegación
 del cliente y los emite directamente en el HTML de producción de esa ruta.
 
+Foldocs también emite enlaces canónicos y alternativos por idioma, tarjetas
+Open Graph y Twitter completas, directivas para rastreadores, `robots.txt`,
+valores `lastmod` del sitemap y JSON-LD de Schema.org para el sitio, artículos,
+imágenes, autores, editores y migas de pan. Personaliza la propiedad y los
+títulos con el bloque tipado `seo`:
+
+```ts
+seo: {
+  titleTemplate: '%s | Documentación de Acme',
+  author: { type: 'Person', name: 'Ada', url: 'https://example.com/ada' },
+  publisher: { name: 'Acme', url: 'https://example.com' },
+  twitterSite: '@acme',
+}
+```
+
+Usa `seo.robots.index`, `seo.robots.follow` o `seo.jsonLd` solo cuando necesites
+cambiar los valores de producción predeterminados.
+
+`og: true` genera con Takumi una tarjeta de inicio de 1200×630 y una tarjeta por
+página durante la compilación de producción. Usa `og.directory`, `width`,
+`height`, `logoSvg` o un callback de `defineOgTemplate` para personalizar la
+salida estática.
+
 `logoText`, `badge` y `tagline` personalizan la página de inicio y la interfaz de
 documentación integradas con el estilo de Foldkit. Añade `githubUrl`,
 `discordUrl`, `xUrl` o `npmUrl` para mostrar los enlaces correspondientes en el

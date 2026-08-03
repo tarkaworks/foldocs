@@ -9,7 +9,9 @@ import {
   localeFromPathname,
   localeHomePath,
   localizedPathname,
+  openGraphLocale,
   resolveConfig,
+  robotsContent,
 } from 'foldocs-core'
 import {
   type CodeHighlighter,
@@ -38,6 +40,7 @@ import {
   markdownAssetPath,
   pageUrlFromMarkdownPath,
 } from './markdown.js'
+import { renderOgImage } from './og.js'
 import {
   type PrerenderRoute,
   prerenderRouteHtml,
@@ -51,6 +54,7 @@ export {
   markdownAssetPath,
   pageUrlFromMarkdownPath,
 } from './markdown.js'
+export { defaultOgImageTemplate, renderOgImage } from './og.js'
 export {
   prerenderRouteHtml,
   routeHtmlFile,
@@ -442,28 +446,13 @@ const makeRss = (
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${xmlEscape(config.rss.title)}</title><link>${xmlEscape(channelUrl)}</link>${config.rss.description === undefined ? '' : `<description>${xmlEscape(config.rss.description)}</description>`}<language>${xmlEscape(locale)}</language>\n${items}\n</channel></rss>\n`
 }
 
-const ogSvg = (
-  siteTitle: string,
-  pageTitle: string,
-  description: string | undefined,
-): string => {
-  const titleWords = pageTitle.split(/\s+/u)
-  const lines: string[] = []
-  for (const word of titleWords) {
-    const current = lines.at(-1)
-    if (current === undefined || `${current} ${word}`.length > 34)
-      lines.push(word)
-    else lines[lines.length - 1] = `${current} ${word}`
-  }
-  const titleLines = lines.slice(0, 3)
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#1c1a20"/><rect x="56" y="56" width="1088" height="518" rx="28" fill="#232127" stroke="#3d3944"/><circle cx="104" cy="108" r="18" fill="#9bd32e"/><text x="140" y="119" fill="#f7f5f8" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="600">${xmlEscape(siteTitle)}</text>${titleLines.map((line, index) => `<text x="96" y="${String(250 + index * 70)}" fill="#ffffff" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="500">${xmlEscape(line)}</text>`).join('')}${description === undefined ? '' : `<text x="96" y="500" fill="#aaa4b2" font-family="Inter,Arial,sans-serif" font-size="26">${xmlEscape(description.slice(0, 90))}</text>`}</svg>`
-}
-
 const headTags = (
   config: ResolvedFoldocsConfig,
 ): ReadonlyArray<HtmlTagDescriptor> => {
   const { site } = config
   const image = socialImageUrl(config)
+  const imageAlt = `${site.title} social preview`
+  const robotDirectives = robotsContent(config.seo)
   return [
     ...(site.description === undefined
       ? []
@@ -498,7 +487,40 @@ const headTags = (
         ]),
     {
       tag: 'meta',
+      attrs: { name: 'generator', content: 'Foldocs' },
+      injectTo: 'head' as const,
+    },
+    {
+      tag: 'meta',
+      attrs: { name: 'author', content: config.seo.author.name },
+      injectTo: 'head' as const,
+    },
+    {
+      tag: 'meta',
+      attrs: { name: 'robots', content: robotDirectives },
+      injectTo: 'head' as const,
+    },
+    {
+      tag: 'meta',
+      attrs: { name: 'googlebot', content: robotDirectives },
+      injectTo: 'head' as const,
+    },
+    {
+      tag: 'meta',
       attrs: { property: 'og:title', content: site.title },
+      injectTo: 'head' as const,
+    },
+    {
+      tag: 'meta',
+      attrs: { property: 'og:site_name', content: site.title },
+      injectTo: 'head' as const,
+    },
+    {
+      tag: 'meta',
+      attrs: {
+        property: 'og:locale',
+        content: openGraphLocale(config.i18n.defaultLocale),
+      },
       injectTo: 'head' as const,
     },
     {
@@ -506,6 +528,27 @@ const headTags = (
       attrs: { property: 'og:type', content: 'website' },
       injectTo: 'head' as const,
     },
+    ...(config.seo.twitterSite === undefined
+      ? []
+      : [
+          {
+            tag: 'meta',
+            attrs: { name: 'twitter:site', content: config.seo.twitterSite },
+            injectTo: 'head' as const,
+          },
+        ]),
+    ...(config.seo.twitterCreator === undefined
+      ? []
+      : [
+          {
+            tag: 'meta',
+            attrs: {
+              name: 'twitter:creator',
+              content: config.seo.twitterCreator,
+            },
+            injectTo: 'head' as const,
+          },
+        ]),
     {
       tag: 'meta',
       attrs: { name: 'twitter:title', content: site.title },
@@ -529,7 +572,42 @@ const headTags = (
           },
           {
             tag: 'meta',
+            attrs: { property: 'og:image:alt', content: imageAlt },
+            injectTo: 'head' as const,
+          },
+          ...(site.socialImage === undefined && config.og.enabled
+            ? [
+                {
+                  tag: 'meta',
+                  attrs: {
+                    property: 'og:image:width',
+                    content: String(config.og.width),
+                  },
+                  injectTo: 'head' as const,
+                },
+                {
+                  tag: 'meta',
+                  attrs: {
+                    property: 'og:image:height',
+                    content: String(config.og.height),
+                  },
+                  injectTo: 'head' as const,
+                },
+                {
+                  tag: 'meta',
+                  attrs: { property: 'og:image:type', content: 'image/png' },
+                  injectTo: 'head' as const,
+                },
+              ]
+            : []),
+          {
+            tag: 'meta',
             attrs: { name: 'twitter:image', content: image },
+            injectTo: 'head' as const,
+          },
+          {
+            tag: 'meta',
+            attrs: { name: 'twitter:image:alt', content: imageAlt },
             injectTo: 'head' as const,
           },
         ]),
@@ -649,6 +727,14 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
       locale,
       `/${searchIndexAssetPath(config.i18n.enabled, locale)}`,
     ]),
+  )
+  const landingSocialImages = Object.fromEntries(
+    config.i18n.locales.flatMap(({ locale }) => {
+      const image =
+        config.site.socialImage ??
+        (config.og.enabled ? ogLandingPath(config, locale) : undefined)
+      return image === undefined ? [] : [[locale, image]]
+    }),
   )
   let viteConfig: ResolvedConfig
   let contentRoot = ''
@@ -1300,8 +1386,11 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           `export const banner = ${JSON.stringify(config.banner)};`,
           `export const feedback = ${JSON.stringify(config.feedback)};`,
           `export const i18n = ${JSON.stringify(config.i18n)};`,
+          `export const seo = ${JSON.stringify(config.seo)};`,
+          `export const og = ${JSON.stringify({ enabled: config.og.enabled, directory: config.og.directory, width: config.og.width, height: config.og.height })};`,
           `export const markdown = ${JSON.stringify(config.markdown)};`,
           `export const searchIndexUrls = ${JSON.stringify(searchIndexUrls)};`,
+          `export const landingSocialImages = ${JSON.stringify(landingSocialImages)};`,
           `export const navigationMeta = ${JSON.stringify(navigationMeta)};`,
           `export const navigationMetas = ${JSON.stringify(navigationMetas)};`,
           `export const manifest = [${entries.join(',\n')}];`,
@@ -1518,22 +1607,30 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
         }
       }
       if (config.og.enabled) {
-        const { default: sharp } = await import('sharp')
+        const landingDescription =
+          config.landing.description ?? config.site.description
         for (const { locale } of config.i18n.locales) {
           this.emitFile({
             type: 'asset',
             fileName: ogLandingPath(config, locale).replace(/^\/+/, ''),
-            source: await sharp(
-              Buffer.from(
-                ogSvg(
-                  config.site.title,
-                  config.landing.headline ?? config.site.title,
-                  config.landing.description ?? config.site.description,
-                ),
-              ),
-            )
-              .png()
-              .toBuffer(),
+            source: await renderOgImage(
+              {
+                kind: 'landing',
+                site: config.site,
+                title: config.site.logoText ?? config.site.title,
+                ...(landingDescription === undefined
+                  ? {}
+                  : { description: landingDescription }),
+                locale,
+                slug: '',
+                width: config.og.width,
+                height: config.og.height,
+                ...(config.og.logoSvg === undefined
+                  ? {}
+                  : { logoSvg: config.og.logoSvg }),
+              },
+              config.og.template,
+            ),
           })
         }
         for (const { metadata } of pages) {
@@ -1543,17 +1640,24 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           this.emitFile({
             type: 'asset',
             fileName: generatedPath.replace(/^\/+/, ''),
-            source: await sharp(
-              Buffer.from(
-                ogSvg(
-                  config.site.title,
-                  metadata.frontmatter.title,
-                  metadata.frontmatter.description,
-                ),
-              ),
-            )
-              .png()
-              .toBuffer(),
+            source: await renderOgImage(
+              {
+                kind: 'page',
+                site: config.site,
+                title: metadata.frontmatter.title,
+                ...(metadata.frontmatter.description === undefined
+                  ? {}
+                  : { description: metadata.frontmatter.description }),
+                locale,
+                slug: metadata.slug,
+                width: config.og.width,
+                height: config.og.height,
+                ...(config.og.logoSvg === undefined
+                  ? {}
+                  : { logoSvg: config.og.logoSvg }),
+              },
+              config.og.template,
+            ),
           })
         }
       }
@@ -1563,10 +1667,29 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             'Foldocs skipped sitemap.xml because site.baseUrl is not configured.',
           )
         } else {
-          const routeGroups = new Map<string, Map<string, string>>()
-          const addRoute = (key: string, locale: string, url: string): void => {
-            const routes = routeGroups.get(key) ?? new Map<string, string>()
-            routes.set(locale, url)
+          const routeGroups = new Map<
+            string,
+            Map<
+              string,
+              { readonly url: string; readonly lastModified?: string }
+            >
+          >()
+          const addRoute = (
+            key: string,
+            locale: string,
+            url: string,
+            lastModified?: string,
+          ): void => {
+            const routes =
+              routeGroups.get(key) ??
+              new Map<
+                string,
+                { readonly url: string; readonly lastModified?: string }
+              >()
+            routes.set(locale, {
+              url,
+              ...(lastModified === undefined ? {} : { lastModified }),
+            })
             routeGroups.set(key, routes)
           }
           for (const { locale } of config.i18n.locales)
@@ -1576,29 +1699,30 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
               metadata.translationKey ?? metadata.slug,
               metadata.locale ?? config.i18n.defaultLocale,
               metadata.url,
+              metadata.lastModified,
             )
           const urls = [...routeGroups.values()]
             .flatMap(routes => {
               const alternateLinks = config.i18n.enabled
                 ? [
                     ...config.i18n.locales.flatMap(({ locale }) => {
-                      const url = routes.get(locale)
-                      return url === undefined
+                      const route = routes.get(locale)
+                      return route === undefined
                         ? []
                         : [
-                            `<xhtml:link rel="alternate" hreflang="${xmlEscape(locale)}" href="${xmlEscape(absoluteUrl(config.site.baseUrl!, url))}"/>`,
+                            `<xhtml:link rel="alternate" hreflang="${xmlEscape(locale)}" href="${xmlEscape(absoluteUrl(config.site.baseUrl!, route.url))}"/>`,
                           ]
                     }),
                     ...(routes.get(config.i18n.defaultLocale) === undefined
                       ? []
                       : [
-                          `<xhtml:link rel="alternate" hreflang="x-default" href="${xmlEscape(absoluteUrl(config.site.baseUrl!, routes.get(config.i18n.defaultLocale)!))}"/>`,
+                          `<xhtml:link rel="alternate" hreflang="x-default" href="${xmlEscape(absoluteUrl(config.site.baseUrl!, routes.get(config.i18n.defaultLocale)!.url))}"/>`,
                         ]),
                   ].join('')
                 : ''
               return [...routes.values()].map(
-                url =>
-                  `  <url><loc>${xmlEscape(absoluteUrl(config.site.baseUrl!, url))}</loc>${alternateLinks}</url>`,
+                route =>
+                  `  <url><loc>${xmlEscape(absoluteUrl(config.site.baseUrl!, route.url))}</loc>${route.lastModified === undefined ? '' : `<lastmod>${xmlEscape(route.lastModified)}</lastmod>`}${alternateLinks}</url>`,
               )
             })
             .join('\n')
@@ -1606,6 +1730,11 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             type: 'asset',
             fileName: 'sitemap.xml',
             source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls}\n</urlset>\n`,
+          })
+          this.emitFile({
+            type: 'asset',
+            fileName: 'robots.txt',
+            source: `User-agent: *\nAllow: /\n\nSitemap: ${absoluteUrl(config.site.baseUrl, '/sitemap.xml')}\n`,
           })
         }
       }

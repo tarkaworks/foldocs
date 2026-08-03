@@ -54,6 +54,27 @@ test('prerendered homepage, localized docs, Markdown, and remote content agree',
   })
   await page.goto('/')
   await expect(page).toHaveURL(/\/en$/u)
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    'content',
+    'https://foldocs.vercel.app/og/en/home.png',
+  )
+  await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
+    'content',
+    'https://foldocs.vercel.app/og/en/home.png',
+  )
+  await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute(
+    'content',
+    'Foldocs',
+  )
+  await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute(
+    'content',
+    'en_US',
+  )
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    'content',
+    /max-image-preview:large/u,
+  )
+  await expect(page.locator('#foldocs-json-ld')).toHaveCount(1)
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
     'documentation framework',
   )
@@ -73,6 +94,17 @@ test('prerendered homepage, localized docs, Markdown, and remote content agree',
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Quick Start',
   )
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    'content',
+    'https://foldocs.vercel.app/og/en/index.png',
+  )
+  const jsonLd = JSON.parse(
+    (await page.locator('#foldocs-json-ld').textContent()) ?? '{}',
+  ) as { '@graph'?: ReadonlyArray<{ '@type'?: string }> }
+  expect(jsonLd['@graph']?.some(node => node['@type'] === 'Article')).toBe(true)
+  expect(
+    jsonLd['@graph']?.some(node => node['@type'] === 'BreadcrumbList'),
+  ).toBe(true)
   expect(
     await page.evaluate(
       () =>
@@ -143,6 +175,14 @@ test('prerendered homepage, localized docs, Markdown, and remote content agree',
   const staticSource = await staticHtml.text()
   expect(staticSource).toContain('Quick Start')
   expect(staticSource).not.toContain('Loading documentation')
+  expect(staticSource).toContain('id="foldocs-json-ld"')
+  expect(staticSource).toContain('TechArticle')
+
+  const robots = await request.get('/robots.txt')
+  expect(robots.ok()).toBe(true)
+  expect(await robots.text()).toContain(
+    'Sitemap: https://foldocs.vercel.app/sitemap.xml',
+  )
 
   const localizedAsset = await request.get(
     '/es/docs/guides/_assets/portable.svg',

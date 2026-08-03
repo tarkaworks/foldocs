@@ -19,8 +19,21 @@ export default defineConfig({
   },
   basePath: '/docs',
   layout: { preset: 'docs' },
+  seo: {
+    author: { type: 'Person', name: 'Ada', url: 'https://example.com/ada' },
+    publisher: { name: 'Acme', url: 'https://example.com' },
+  },
 })
 ```
+
+## Search metadata and structured data
+
+The resolved `seo` configuration controls the page-title template, author,
+publisher, Twitter accounts, crawler directives, and JSON-LD. Production pages
+receive route-specific canonical URLs, locale alternates, Open Graph and Twitter
+images, Schema.org `WebSite`, `WebPage`, `Article`/`TechArticle`, `ImageObject`, and
+`BreadcrumbList` nodes. Foldocs also emits `robots.txt` and sitemap `lastmod`
+values when `site.baseUrl` and `sitemap` are enabled.
 
 ## Site icons
 

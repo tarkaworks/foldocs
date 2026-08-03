@@ -4,12 +4,17 @@ import {
   type PageManifest,
   type ResolvedFoldocsConfig,
   adjacentPages,
+  buildSeoJsonLd,
+  formatSeoTitle,
   localeDefinition,
   localeHomePath,
   localizedPathname,
   navigationFolderKeysForUrl,
   navigationForUrl,
   navigationTabsForUrl,
+  openGraphLocale,
+  robotsContent,
+  serializeJsonLd,
 } from 'foldocs-core'
 import type { CompiledPage } from 'foldocs-mdx'
 import {
@@ -375,11 +380,15 @@ const stripRouteMetadata = (html: string): string =>
   html
     .replace(/<title>[^<]*<\/title>\s*/giu, '')
     .replace(
-      /<meta\b(?=[^>]*(?:name|property)=["'](?:description|keywords|og:title|og:description|og:type|og:url|og:image|twitter:title|twitter:description|twitter:image|twitter:card)["'])[^>]*>\s*/giu,
+      /<meta\b(?=[^>]*(?:name|property)=["'](?:description|keywords|author|generator|robots|googlebot|og:title|og:description|og:type|og:url|og:site_name|og:locale|og:locale:alternate|og:image|og:image:alt|og:image:width|og:image:height|og:image:type|article:modified_time|article:tag|twitter:title|twitter:description|twitter:image|twitter:image:alt|twitter:card|twitter:site|twitter:creator)["'])[^>]*>\s*/giu,
       '',
     )
     .replace(
       /<link\b(?=[^>]*rel=["'](?:canonical|alternate)["'])[^>]*>\s*/giu,
+      '',
+    )
+    .replace(
+      /<script\b(?=[^>]*(?:id=["']foldocs-json-ld["']|data-foldocs-json-ld))[\s\S]*?<\/script>\s*/giu,
       '',
     )
 
@@ -405,10 +414,15 @@ export const prerenderRouteHtml = (
   const definition = localeDefinition(config.i18n, route.locale)
   const contentPath =
     route.canonicalUrl ?? route.page?.metadata.url ?? route.url
-  const title =
+  const routeTitle =
     route.page === undefined
       ? config.site.title
-      : `${route.page.metadata.frontmatter.title} | ${config.site.title}`
+      : route.page.metadata.frontmatter.title
+  const title = formatSeoTitle(
+    routeTitle,
+    config.site.title,
+    config.seo.titleTemplate,
+  )
   const description =
     route.page?.metadata.frontmatter.description ?? config.site.description
   const keywords =
@@ -432,6 +446,75 @@ export const prerenderRouteHtml = (
       ? configuredImage
       : absoluteUrl(config.site.baseUrl, configuredImage)
   const localeLinks = localeLinksFor(config, pages, route)
+  const imageAlt =
+    route.page === undefined
+      ? `${config.site.title} social preview`
+      : `${routeTitle} — ${config.site.title}`
+  const generatedImage =
+    configuredImage !== undefined &&
+    config.og.enabled &&
+    configuredImage.replace(/^\/+/, '').startsWith(`${config.og.directory}/`)
+  const routeLocale = openGraphLocale(route.locale)
+  const alternateOgLocales = localeLinks
+    .filter(link => link.locale !== route.locale)
+    .map(link => openGraphLocale(link.locale))
+  const pageAncestors =
+    route.page === undefined
+      ? []
+      : pages
+          .filter(
+            page =>
+              page.metadata.locale === route.locale &&
+              page.metadata.url !== route.page?.metadata.url &&
+              route.page?.metadata.url.startsWith(`${page.metadata.url}/`),
+          )
+          .sort(
+            (left, right) =>
+              left.metadata.url.length - right.metadata.url.length,
+          )
+  const breadcrumbs =
+    route.page === undefined
+      ? undefined
+      : [
+          {
+            name: config.site.title,
+            url: localeHomePath(config.i18n, route.locale),
+          },
+          ...pageAncestors.map(page => ({
+            name: page.metadata.frontmatter.title,
+            url: page.metadata.url,
+          })),
+          {
+            name: route.page.metadata.frontmatter.title,
+            url: route.page.metadata.url,
+          },
+        ]
+  const jsonLd = buildSeoJsonLd({
+    kind: route.page === undefined ? 'landing' : 'page',
+    site: config.site,
+    seo: config.seo,
+    title: routeTitle,
+    ...(description === undefined ? {} : { description }),
+    ...(canonical === undefined ? {} : { url: canonical }),
+    ...(image === undefined ? {} : { image }),
+    locale: route.locale,
+    locales: config.i18n.locales.map(locale => locale.locale),
+    ...(route.page?.metadata.lastModified === undefined
+      ? {}
+      : { lastModified: route.page.metadata.lastModified }),
+    ...((keywords === undefined || keywords.length === 0) &&
+    (route.page?.metadata.frontmatter.tags === undefined ||
+      route.page.metadata.frontmatter.tags.length === 0)
+      ? {}
+      : {
+          keywords: [
+            ...(keywords ?? []),
+            ...(route.page?.metadata.frontmatter.tags ?? []),
+          ],
+        }),
+    ...(breadcrumbs === undefined ? {} : { breadcrumbs }),
+  })
+  const robotDirectives = robotsContent(config.seo)
   const metadata = [
     `<title>${escapeText(title)}</title>`,
     ...(description === undefined
@@ -446,16 +529,53 @@ export const prerenderRouteHtml = (
       : [
           `<meta name="keywords" content="${escapeAttribute(keywords.join(', '))}">`,
         ]),
+    `<meta name="generator" content="Foldocs">`,
+    `<meta name="author" content="${escapeAttribute(config.seo.author.name)}">`,
+    `<meta name="robots" content="${escapeAttribute(robotDirectives)}">`,
+    `<meta name="googlebot" content="${escapeAttribute(robotDirectives)}">`,
     `<meta property="og:title" content="${escapeAttribute(title)}">`,
     `<meta property="og:type" content="${route.page === undefined ? 'website' : 'article'}">`,
+    `<meta property="og:site_name" content="${escapeAttribute(config.site.title)}">`,
+    `<meta property="og:locale" content="${escapeAttribute(routeLocale)}">`,
+    ...alternateOgLocales.map(
+      locale =>
+        `<meta property="og:locale:alternate" content="${escapeAttribute(locale)}">`,
+    ),
     `<meta name="twitter:title" content="${escapeAttribute(title)}">`,
     `<meta name="twitter:card" content="${image === undefined ? 'summary' : 'summary_large_image'}">`,
+    ...(config.seo.twitterSite === undefined
+      ? []
+      : [
+          `<meta name="twitter:site" content="${escapeAttribute(config.seo.twitterSite)}">`,
+        ]),
+    ...(config.seo.twitterCreator === undefined
+      ? []
+      : [
+          `<meta name="twitter:creator" content="${escapeAttribute(config.seo.twitterCreator)}">`,
+        ]),
     ...(image === undefined
       ? []
       : [
           `<meta property="og:image" content="${escapeAttribute(image)}">`,
+          `<meta property="og:image:alt" content="${escapeAttribute(imageAlt)}">`,
+          ...(generatedImage
+            ? [
+                `<meta property="og:image:width" content="${String(config.og.width)}">`,
+                `<meta property="og:image:height" content="${String(config.og.height)}">`,
+                `<meta property="og:image:type" content="image/png">`,
+              ]
+            : []),
           `<meta name="twitter:image" content="${escapeAttribute(image)}">`,
+          `<meta name="twitter:image:alt" content="${escapeAttribute(imageAlt)}">`,
         ]),
+    ...(route.page?.metadata.lastModified === undefined
+      ? []
+      : [
+          `<meta property="article:modified_time" content="${escapeAttribute(route.page.metadata.lastModified)}">`,
+        ]),
+    ...(route.page?.metadata.frontmatter.tags ?? []).map(
+      tag => `<meta property="article:tag" content="${escapeAttribute(tag)}">`,
+    ),
     ...(canonical === undefined
       ? []
       : [
@@ -469,9 +589,14 @@ export const prerenderRouteHtml = (
         ]),
     ...(config.rss.enabled && config.site.baseUrl !== undefined
       ? [
-          `<link rel="alternate" type="application/rss+xml" title="${escapeAttribute(config.rss.title)}" href="/${escapeAttribute(`${config.i18n.enabled && route.locale !== config.i18n.defaultLocale ? `${route.locale}/` : ''}${config.rss.path}`)}">`,
+          `<link rel="alternate" type="application/rss+xml" title="${escapeAttribute(config.rss.title)}" href="${escapeAttribute(absoluteUrl(config.site.baseUrl, `/${config.i18n.enabled && route.locale !== config.i18n.defaultLocale ? `${route.locale}/` : ''}${config.rss.path}`))}">`,
         ]
       : []),
+    ...(jsonLd === undefined
+      ? []
+      : [
+          `<script id="foldocs-json-ld" type="application/ld+json" data-foldocs-json-ld>${serializeJsonLd(jsonLd)}</script>`,
+        ]),
   ].join('\n    ')
   const localized = stripRouteMetadata(template).replace(
     /<html(?:\s+lang="[^"]*")?(?:\s+dir="[^"]*")?\s*>/iu,

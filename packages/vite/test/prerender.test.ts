@@ -44,6 +44,11 @@ describe('route prerendering', () => {
         baseUrl: 'https://example.com',
         githubUrl: 'https://github.com/example/docs',
       },
+      seo: {
+        author: { type: 'Person', name: 'Ada', url: '/about' },
+        publisher: { name: 'Example', url: 'https://example.com' },
+        twitterSite: '@example',
+      },
       i18n: {
         defaultLocale: 'en',
         locales: [
@@ -70,6 +75,7 @@ describe('route prerendering', () => {
         sourceLocale: 'en',
         translationKey: 'static',
         navigationPath: 'static.mdx',
+        lastModified: '2026-08-03T12:00:00.000Z',
         frontmatter: compiled.frontmatter,
         toc: compiled.toc,
         plainText: compiled.plainText,
@@ -87,6 +93,16 @@ describe('route prerendering', () => {
     expect(html).toContain('<title>Static page | Example</title>')
     expect(html).toContain('content="Page-specific description."')
     expect(html).toContain('content="https://example.com/static-page.png"')
+    expect(html).toContain('property="og:site_name" content="Example"')
+    expect(html).toContain('property="og:locale" content="en_US"')
+    expect(html).toContain('name="twitter:site" content="@example"')
+    expect(html).toContain('name="robots" content="index, follow,')
+    expect(html).toContain(
+      'property="article:modified_time" content="2026-08-03T12:00:00.000Z"',
+    )
+    expect(html).toContain('id="foldocs-json-ld"')
+    expect(html).toContain('TechArticle')
+    expect(html).toContain('BreadcrumbList')
     expect(html).toContain(
       'rel="canonical" href="https://example.com/en/docs/static"',
     )

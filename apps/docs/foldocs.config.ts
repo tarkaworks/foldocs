@@ -49,6 +49,21 @@ export default defineConfig({
     favicon: '/favicon.svg',
     locale: 'en',
   },
+  seo: {
+    author: {
+      type: 'Person',
+      name: 'Aniket Pawar',
+      url: 'https://aniketpawar.com',
+    },
+    publisher: {
+      type: 'Organization',
+      name: 'TarkaWorks',
+      url: 'https://github.com/tarkaworks',
+      logo: '/favicon.svg',
+    },
+    twitterSite: '@tarkaworks',
+    twitterCreator: '@tarkaworks',
+  },
   i18n: {
     defaultLocale: 'en',
     fallbackLocale: 'en',

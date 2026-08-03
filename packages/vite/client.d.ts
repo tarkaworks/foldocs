@@ -13,6 +13,11 @@ declare module 'virtual:foldocs' {
   >
   export const siteConfig: import('foldocs-core').SiteConfig
   export const i18n: import('foldocs-core').ResolvedI18nConfig
+  export const seo: import('foldocs-core').ResolvedSeoConfig
+  export const og: Pick<
+    import('foldocs-core').ResolvedOgImageConfig,
+    'enabled' | 'directory' | 'width' | 'height'
+  >
   export const basePath: string
   export const layout: import('foldocs-core').ResolvedFoldocsConfig['layout']
   export const landing: import('foldocs-core').ResolvedLandingConfig
@@ -20,5 +25,6 @@ declare module 'virtual:foldocs' {
   export const feedback: import('foldocs-core').FeedbackConfig | undefined
   export const markdown: boolean
   export const searchIndexUrls: Readonly<Record<string, string>>
+  export const landingSocialImages: Readonly<Record<string, string>>
   export default manifest
 }

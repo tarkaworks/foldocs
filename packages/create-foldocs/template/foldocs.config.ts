@@ -31,6 +31,7 @@ export default defineConfig({
   llms: true,
   markdown: true,
   sitemap: true,
+  og: true,
   prerender: true,
   search: { staticIndex: true },
 })

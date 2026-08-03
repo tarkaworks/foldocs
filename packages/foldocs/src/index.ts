@@ -13,12 +13,16 @@ import {
   type PageManifest,
   type ResolvedI18nConfig,
   type ResolvedLandingConfig,
+  type ResolvedOgImageConfig,
+  type ResolvedSeoConfig,
   type SiteConfig,
   adjacentPages,
   buildNavigation,
+  buildSeoJsonLd,
   defaultLandingSections,
   defaultUiTranslations,
   findPageByUrl,
+  formatSeoTitle,
   localeDefinition,
   localeFromPathname,
   localeHomePath,
@@ -26,6 +30,10 @@ import {
   navigationFolderKeysForUrl,
   navigationForUrl,
   navigationTabsForUrl,
+  openGraphLocale,
+  resolveSeoConfig,
+  robotsContent,
+  serializeJsonLd,
   stripLocalePrefix,
 } from 'foldocs-core'
 import {
@@ -72,6 +80,11 @@ export interface DocsProgramOptions {
   readonly navigation?: ReadonlyArray<NavigationNode>
   readonly navigations?: Readonly<Record<string, ReadonlyArray<NavigationNode>>>
   readonly site: SiteConfig
+  readonly seo?: ResolvedSeoConfig
+  readonly og?: Pick<
+    ResolvedOgImageConfig,
+    'enabled' | 'directory' | 'width' | 'height'
+  >
   readonly layoutPreset?: LayoutPreset
   readonly landing?: ResolvedLandingConfig
   readonly banner?: BannerConfig
@@ -86,6 +99,8 @@ export interface DocsProgramOptions {
   readonly components?: MdxComponents
   /** Per-locale JSON indexes emitted by the Foldocs Vite plugin. */
   readonly searchIndexUrls?: Readonly<Record<string, string>>
+  /** Per-locale landing social images emitted by the Foldocs Vite plugin. */
+  readonly landingSocialImages?: Readonly<Record<string, string>>
   /**
    * Page module loaded before the Foldkit runtime starts. Production entry
    * points use this to adopt prerendered HTML without briefly rendering the
@@ -162,6 +177,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     ],
   }
   const basePath = options.basePath ?? '/docs'
+  const seo = options.seo ?? resolveSeoConfig(undefined, options.site)
   const landing = options.landing ?? {
     sections: defaultLandingSections,
     command: 'pnpm create foldocs@latest',
@@ -805,21 +821,46 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         const document = globalThis.document
         if (document === undefined) return CompletedApplyLocaleMetadata()
         const currentPage = findPageByUrl(manifest, pathname)
-        const pageTitle =
-          currentPage === undefined
-            ? options.site.title
-            : `${currentPage.frontmatter.title} | ${options.site.title}`
+        const locale = localeFromPathname(i18n, pathname)
+        const routeTitle = currentPage?.frontmatter.title ?? options.site.title
+        const pageTitle = formatSeoTitle(
+          routeTitle,
+          options.site.title,
+          seo.titleTemplate,
+        )
         const description =
           currentPage?.frontmatter.description ?? options.site.description
         const keywords =
           currentPage?.frontmatter.keywords ?? options.site.keywords
         const configuredImage =
-          currentPage?.frontmatter.socialImage ?? options.site.socialImage
+          currentPage?.frontmatter.socialImage ??
+          (currentPage === undefined
+            ? options.landingSocialImages?.[localeFromPathname(i18n, pathname)]
+            : undefined) ??
+          options.site.socialImage
         const socialImage =
           configuredImage === undefined || options.site.baseUrl === undefined
             ? configuredImage
             : new URL(
                 configuredImage.replace(/^\//u, ''),
+                `${options.site.baseUrl.replace(/\/+$/u, '')}/`,
+              ).toString()
+        const generatedSocialImage =
+          configuredImage !== undefined &&
+          options.og?.enabled === true &&
+          configuredImage
+            .replace(/^\/+/, '')
+            .startsWith(`${options.og.directory}/`)
+        const imageAlt =
+          currentPage === undefined
+            ? `${options.site.title} social preview`
+            : `${routeTitle} — ${options.site.title}`
+        const canonicalPath = currentPage?.url ?? localeHomePath(i18n, locale)
+        const canonical =
+          options.site.baseUrl === undefined
+            ? undefined
+            : new URL(
+                canonicalPath.replace(/^\//u, ''),
                 `${options.site.baseUrl.replace(/\/+$/u, '')}/`,
               ).toString()
         const syncMeta = (
@@ -841,6 +882,11 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           if (existing === null) document.head.append(meta)
         }
         document.title = pageTitle
+        const robotDirectives = robotsContent(seo)
+        syncMeta('meta[name="generator"]', 'name', 'generator', 'Foldocs')
+        syncMeta('meta[name="author"]', 'name', 'author', seo.author.name)
+        syncMeta('meta[name="robots"]', 'name', 'robots', robotDirectives)
+        syncMeta('meta[name="googlebot"]', 'name', 'googlebot', robotDirectives)
         syncMeta('meta[name="description"]', 'name', 'description', description)
         syncMeta(
           'meta[property="og:description"]',
@@ -868,10 +914,34 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           currentPage === undefined ? 'website' : 'article',
         )
         syncMeta(
+          'meta[property="og:site_name"]',
+          'property',
+          'og:site_name',
+          options.site.title,
+        )
+        syncMeta(
+          'meta[property="og:locale"]',
+          'property',
+          'og:locale',
+          openGraphLocale(locale),
+        )
+        syncMeta(
           'meta[name="twitter:title"]',
           'name',
           'twitter:title',
           pageTitle,
+        )
+        syncMeta(
+          'meta[name="twitter:site"]',
+          'name',
+          'twitter:site',
+          seo.twitterSite,
+        )
+        syncMeta(
+          'meta[name="twitter:creator"]',
+          'name',
+          'twitter:creator',
+          seo.twitterCreator,
         )
         syncMeta(
           'meta[name="twitter:card"]',
@@ -886,11 +956,137 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
           socialImage,
         )
         syncMeta(
+          'meta[property="og:image:alt"]',
+          'property',
+          'og:image:alt',
+          socialImage === undefined ? undefined : imageAlt,
+        )
+        syncMeta(
+          'meta[property="og:image:width"]',
+          'property',
+          'og:image:width',
+          generatedSocialImage ? String(options.og?.width) : undefined,
+        )
+        syncMeta(
+          'meta[property="og:image:height"]',
+          'property',
+          'og:image:height',
+          generatedSocialImage ? String(options.og?.height) : undefined,
+        )
+        syncMeta(
+          'meta[property="og:image:type"]',
+          'property',
+          'og:image:type',
+          generatedSocialImage ? 'image/png' : undefined,
+        )
+        syncMeta(
           'meta[name="twitter:image"]',
           'name',
           'twitter:image',
           socialImage,
         )
+        syncMeta(
+          'meta[name="twitter:image:alt"]',
+          'name',
+          'twitter:image:alt',
+          socialImage === undefined ? undefined : imageAlt,
+        )
+        syncMeta(
+          'meta[property="article:modified_time"]',
+          'property',
+          'article:modified_time',
+          currentPage?.lastModified,
+        )
+        for (const element of document.head.querySelectorAll(
+          'meta[data-foldocs-article-tag]',
+        ))
+          element.remove()
+        for (const tag of currentPage?.frontmatter.tags ?? []) {
+          const meta = document.createElement('meta')
+          meta.setAttribute('property', 'article:tag')
+          meta.content = tag
+          meta.dataset.foldocsArticleTag = 'true'
+          meta.dataset.foldocsRoute = 'true'
+          document.head.append(meta)
+        }
+        for (const element of document.head.querySelectorAll(
+          'meta[data-foldocs-og-locale-alternate]',
+        ))
+          element.remove()
+        for (const alternate of i18n.locales) {
+          if (alternate.locale === locale) continue
+          const meta = document.createElement('meta')
+          meta.setAttribute('property', 'og:locale:alternate')
+          meta.content = openGraphLocale(alternate.locale)
+          meta.dataset.foldocsOgLocaleAlternate = 'true'
+          meta.dataset.foldocsRoute = 'true'
+          document.head.append(meta)
+        }
+        const pageAncestors =
+          currentPage === undefined
+            ? []
+            : manifest
+                .filter(
+                  page =>
+                    page.locale === locale &&
+                    page.url !== currentPage.url &&
+                    currentPage.url.startsWith(`${page.url}/`),
+                )
+                .sort((left, right) => left.url.length - right.url.length)
+        const jsonLd = buildSeoJsonLd({
+          kind: currentPage === undefined ? 'landing' : 'page',
+          site: options.site,
+          seo,
+          title: routeTitle,
+          ...(description === undefined ? {} : { description }),
+          ...(canonical === undefined ? {} : { url: canonical }),
+          ...(socialImage === undefined ? {} : { image: socialImage }),
+          locale,
+          locales: i18n.locales.map(entry => entry.locale),
+          ...(currentPage?.lastModified === undefined
+            ? {}
+            : { lastModified: currentPage.lastModified }),
+          ...((keywords === undefined || keywords.length === 0) &&
+          (currentPage?.frontmatter.tags === undefined ||
+            currentPage.frontmatter.tags.length === 0)
+            ? {}
+            : {
+                keywords: [
+                  ...(keywords ?? []),
+                  ...(currentPage?.frontmatter.tags ?? []),
+                ],
+              }),
+          ...(currentPage === undefined
+            ? {}
+            : {
+                breadcrumbs: [
+                  {
+                    name: options.site.title,
+                    url: localeHomePath(i18n, locale),
+                  },
+                  ...pageAncestors.map(page => ({
+                    name: page.frontmatter.title,
+                    url: page.url,
+                  })),
+                  {
+                    name: currentPage.frontmatter.title,
+                    url: currentPage.url,
+                  },
+                ],
+              }),
+        })
+        const existingJsonLd =
+          document.head.querySelector<HTMLScriptElement>('#foldocs-json-ld')
+        if (jsonLd === undefined) existingJsonLd?.remove()
+        else {
+          const script = existingJsonLd ?? document.createElement('script')
+          script.id = 'foldocs-json-ld'
+          script.type = 'application/ld+json'
+          script.dataset.foldocsJsonLd = 'true'
+          script.dataset.foldocsRoute = 'true'
+          script.textContent = serializeJsonLd(jsonLd)
+          if (existingJsonLd === null) document.head.append(script)
+        }
         for (const selector of document.querySelectorAll(
           'details.fd-language-selector[open]',
         ))
@@ -1863,7 +2059,11 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
       model.pathname === '/'
         ? '/index.md'
         : `${model.pathname.replace(/\/+$/u, '')}.md`
-    const title = `${model.page.page.frontmatter.title} | ${options.site.title}`
+    const title = formatSeoTitle(
+      model.page.page.frontmatter.title,
+      options.site.title,
+      seo.titleTemplate,
+    )
     const canonical =
       options.site.baseUrl === undefined
         ? undefined
@@ -2133,7 +2333,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   }
 }
 
-export { defineConfig } from 'foldocs-core'
+export { defineConfig, defineOgTemplate } from 'foldocs-core'
 export { defineContentAdapter, notion } from '@foldocs/content'
 export type {
   ContentAdapter,
@@ -2146,8 +2346,15 @@ export type {
   I18nConfig,
   LandingFooterConfig,
   LocaleConfig,
+  OgImageConfig,
+  OgImageKind,
+  OgImageTemplate,
+  OgImageTemplateContext,
   PageManifest,
   ResolvedI18nConfig,
+  ResolvedSeoConfig,
+  SeoConfig,
+  SeoEntityConfig,
   SiteConfig,
   UiTranslations,
 } from 'foldocs-core'

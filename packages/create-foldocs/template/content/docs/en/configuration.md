@@ -24,6 +24,28 @@ Each page can override `description`, `keywords`, and `socialImage` in its
 frontmatter. Foldocs keeps those values synchronized during client navigation and
 emits them directly into that route's production HTML.
 
+Foldocs also emits canonical and language-alternate links, complete Open Graph
+and Twitter cards, crawler directives, `robots.txt`, sitemap `lastmod` values,
+and Schema.org JSON-LD for the website, documentation articles, images, authors,
+publishers, and breadcrumbs. Customize ownership and title formatting with the
+typed `seo` block:
+
+```ts
+seo: {
+  titleTemplate: '%s | Acme Docs',
+  author: { type: 'Person', name: 'Ada', url: 'https://example.com/ada' },
+  publisher: { name: 'Acme', url: 'https://example.com' },
+  twitterSite: '@acme',
+}
+```
+
+Set `seo.robots.index`, `seo.robots.follow`, or `seo.jsonLd` only when a site
+needs to override the production defaults.
+
+`og: true` generates a 1200×630 landing card and one card per page with Takumi
+during the production build. Use `og.directory`, `width`, `height`, `logoSvg`, or
+a `defineOgTemplate` callback to customize the static output.
+
 `logoText`, `badge`, and `tagline` customize the built-in Foldkit-style landing and
 documentation shell. Add `githubUrl`, `discordUrl`, `xUrl`, or `npmUrl` to expose
 the corresponding header and mobile-navigation links. With i18n and the default
