@@ -31,6 +31,8 @@ describe('Open Graph image rendering', () => {
     expect(markup).not.toContain('foldocs.vercel.app')
     expect(markup).not.toContain('transform:rotate')
     expect(markup).not.toContain('border:')
+    expect(markup).toContain('right:-74px;bottom:-150px')
+    expect(markup).not.toContain('top:15px')
     expect(markup).toContain('M0 0h1v1z')
   })
 

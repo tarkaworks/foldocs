@@ -59,7 +59,7 @@ export const defaultOgImageTemplate: OgImageTemplate = context => {
   const logo = monochromeLogo(context.logoSvg, 600, colors.primary)
 
   return `<div style="width:100%;height:100%;display:flex;position:relative;overflow:hidden;background:${colors.background};color:${colors.foreground};font-family:Inter,sans-serif;">
-  <div style="position:absolute;right:-74px;top:15px;display:flex;">${logo}</div>
+  <div style="position:absolute;right:-74px;bottom:-150px;display:flex;">${logo}</div>
   <div style="position:absolute;left:66px;top:82px;display:flex;flex-direction:column;width:700px;">
     <div style="font-size:${String(titleSize(context.title))}px;font-weight:700;letter-spacing:-0.045em;line-height:1.02;">${title}</div>
     ${description === undefined ? '' : `<div style="color:${colors.muted};font-size:31px;font-weight:500;letter-spacing:-0.025em;line-height:1.24;margin-top:28px;width:680px;">${description}</div>`}
