@@ -1,7 +1,7 @@
 {
   "title": "Framework",
   "icon": "building",
-  "description": "Crea documentación de producción con Foldkit",
+  "description": "Documentación para Foldkit",
   "root": true,
   "pages": [
     "---Introducción---",

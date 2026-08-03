@@ -33,3 +33,7 @@ the UI runtime and Effect powers commands, schemas, streams, and integrations.
 
 Core owns configuration and navigation, MDX owns the portable document model,
 UI owns Foldkit views, and the CLI owns scaffolding and validation.
+
+## Acknowledgements
+
+- [Fumadocs](https://www.fumadocs.dev/) by [Fuma Nama](https://x.com/fuma_nama)

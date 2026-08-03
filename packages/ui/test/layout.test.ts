@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   docsLayout,
+  githubDocumentUrl,
+  initLandingCopyTooltip,
   initLanguageMenu,
   initSearchDialog,
   initSidebarDialog,
@@ -70,6 +72,7 @@ describe('landing layout', () => {
           theme: 'light',
           themePreference: 'system',
           copiedText: '',
+          copyTooltip: initLandingCopyTooltip(),
           searchOpen: false,
           searchDialog: initSearchDialog(),
           searchQuery: '',
@@ -91,6 +94,7 @@ describe('landing layout', () => {
             gotSearchDialogMessage: () => 'search-dialog',
             selectTheme: () => 'select-theme',
             copyText: () => 'copy-text',
+            gotCopyTooltipMessage: () => 'copy-tooltip',
             openExternal: () => 'open-external',
             dismissBanner: 'dismiss-banner',
             gotHeaderLanguageMenuMessage: () => 'language-menu',
@@ -304,5 +308,43 @@ describe('documentation layout', () => {
     expect(text).toContain('Built by Aniket.')
     expect(text).toContain('The source code is available on GitHub.')
     expect(text).toContain('© 2026 Tarkaworks')
+    expect(
+      githubDocumentUrl(
+        {
+          title: 'Example',
+          githubUrl: 'https://github.com/example/docs',
+        },
+        navigation,
+        metadata.url,
+      ),
+    ).toBe(
+      'https://github.com/example/docs/blob/main/content/docs/manual-installation/pnpm.mdx',
+    )
+    expect(
+      githubDocumentUrl(
+        {
+          title: 'Example',
+          githubUrl: 'https://github.com/example/docs',
+          githubContentPath: 'apps/docs/content/docs',
+        },
+        [
+          {
+            _tag: 'Page',
+            label: 'Quick Start',
+            url: '/docs',
+            page: {
+              ...metadata,
+              id: 'en/(get-started)/index.mdx',
+              slug: '',
+              url: '/docs',
+              file: '',
+            },
+          },
+        ],
+        '/docs',
+      ),
+    ).toBe(
+      'https://github.com/example/docs/blob/main/apps/docs/content/docs/en/(get-started)/index.mdx',
+    )
   })
 })

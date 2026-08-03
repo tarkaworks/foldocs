@@ -717,7 +717,7 @@ test('sections, folders, page actions, and pager work together', async ({
   await expect(documentationMenu.getByRole('menuitem')).toHaveCount(5)
   await expect(
     documentationMenu.getByRole('menuitem', { name: /^Framework/u }),
-  ).toContainText('Build production documentation with Foldkit')
+  ).toContainText('Production docs for Foldkit')
   await expect(
     documentationMenu.locator(
       '.fd-layout-tab-active .fd-icon path[d="M20 6 9 17l-5-5"]',
@@ -922,9 +922,7 @@ test('sections, folders, page actions, and pager work together', async ({
   const copyMarkdown = page.locator('.fd-page-actions > button')
   for (const action of [copyMarkdown, open]) {
     await expect(action).toHaveClass(/fd-control-outline/u)
-    expect((await action.boundingBox())?.height).toBe(
-      (await navbarSearch.boundingBox())?.height,
-    )
+    expect((await action.boundingBox())?.height).toBe(32)
     expect(
       await action.evaluate(element => {
         const style = getComputedStyle(element)

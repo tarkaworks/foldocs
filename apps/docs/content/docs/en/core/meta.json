@@ -1,6 +1,6 @@
 {
   "title": "Foldocs Core",
-  "description": "Configuration, manifests, and navigation",
+  "description": "Config, manifests, and navigation",
   "icon": "cuboid",
   "root": true,
   "pages": [

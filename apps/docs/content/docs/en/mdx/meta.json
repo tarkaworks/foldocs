@@ -1,6 +1,6 @@
 {
   "title": "Foldocs MDX",
-  "description": "Deterministic Markdown and MDX compilation",
+  "description": "Markdown and MDX compilation",
   "icon": "pencil",
   "root": true,
   "pages": [

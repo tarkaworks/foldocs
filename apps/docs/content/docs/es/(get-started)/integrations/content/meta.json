@@ -5,8 +5,10 @@
     "index",
     "local-markdown",
     "remote-mdx",
+    "remote-adapter",
     "sanity",
     "basehub",
+    "notion",
     "obsidian"
   ]
 }

@@ -45,6 +45,7 @@ import {
   docsLayout,
   headerLanguageMenuId,
   initDocsMenu,
+  initLandingCopyTooltip,
   initLanguageMenu,
   initSearchDialog,
   initSidebarDialog,
@@ -54,7 +55,7 @@ import {
   sidebarLanguageMenuId,
 } from 'foldocs-ui'
 
-import { Dialog, Menu } from '@foldkit/ui'
+import { Dialog, Menu, Tooltip } from '@foldkit/ui'
 import {
   type SearchClient,
   SearchDocument,
@@ -304,6 +305,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     sidebarLanguageMenu: LanguageMenuModel,
     layoutTabsMenu: DocsMenuModel,
     pageOpenMenu: DocsMenuModel,
+    landingCopyTooltip: Tooltip.Model,
     searchDialog: FoldocsDialogModel,
     sidebarDialog: FoldocsDialogModel,
   })
@@ -413,6 +415,9 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
   const GotPageOpenMenuMessage = m('GotPageOpenMenuMessage', {
     message: DocsMenuMessage,
   })
+  const GotLandingCopyTooltipMessage = m('GotLandingCopyTooltipMessage', {
+    message: Tooltip.Message,
+  })
   const GotSearchDialogMessage = m('GotSearchDialogMessage', {
     message: FoldocsDialogMessage,
   })
@@ -474,6 +479,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
     GotSidebarLanguageMenuMessage,
     GotLayoutTabsMenuMessage,
     GotPageOpenMenuMessage,
+    GotLandingCopyTooltipMessage,
     GotSearchDialogMessage,
     GotSidebarDialogMessage,
   ])
@@ -1116,6 +1122,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
         sidebarLanguageMenu: initLanguageMenu(sidebarLanguageMenuId),
         layoutTabsMenu: initDocsMenu(layoutTabsMenuId),
         pageOpenMenu: initDocsMenu(pageOpenMenuId),
+        landingCopyTooltip: initLandingCopyTooltip(),
         searchDialog: initSearchDialog(),
         sidebarDialog: initSidebarDialog(),
       },
@@ -1291,6 +1298,18 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             [...mappedCommands, OpenExternalInNewTab({ href: value })],
           ],
         })
+      }
+      case 'GotLandingCopyTooltipMessage': {
+        const [landingCopyTooltip, commands] = Tooltip.update(
+          model.landingCopyTooltip,
+          message.message,
+        )
+        return [
+          { ...model, landingCopyTooltip },
+          Command.mapMessages(commands, childMessage =>
+            GotLandingCopyTooltipMessage({ message: childMessage }),
+          ),
+        ]
       }
       case 'ClickedLink':
         return message.request._tag === 'Internal'
@@ -1810,6 +1829,7 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             theme: model.theme,
             themePreference: model.themePreference,
             copiedText: model.copiedText,
+            copyTooltip: model.landingCopyTooltip,
             ...commonSearchOptions(model),
             actions: {
               toggleSearch: ToggledSearch(),
@@ -1822,6 +1842,8 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
                 GotSearchDialogMessage({ message }),
               selectTheme: preference => SelectedTheme({ preference }),
               copyText: value => ClickedCopyText({ value }),
+              gotCopyTooltipMessage: message =>
+                GotLandingCopyTooltipMessage({ message }),
               openExternal: url => ClickedOpenExternal({ href: url }),
               dismissBanner: DismissedBanner(),
               gotHeaderLanguageMenuMessage: message =>

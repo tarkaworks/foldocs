@@ -1,6 +1,7 @@
 import { Option } from 'effect'
 import {
   type Attribute,
+  type ChildAttribute,
   type Html,
   type HtmlBuilder,
   childAttributes,
@@ -20,7 +21,7 @@ import type {
 import { interpolateTranslation, navigationContextForUrl } from 'foldocs-core'
 import type { CompiledPage } from 'foldocs-mdx'
 
-import { Button, Dialog, Disclosure, Menu } from '@foldkit/ui'
+import { Button, Dialog, Disclosure, Menu, Tooltip } from '@foldkit/ui'
 import type { TocItem } from '@foldocs/content'
 import type { SearchResult } from '@foldocs/search'
 
@@ -41,6 +42,9 @@ export const headerLanguageMenuId = 'foldocs-header-language'
 export const sidebarLanguageMenuId = 'foldocs-sidebar-language'
 export const layoutTabsMenuId = 'foldocs-layout-tabs'
 export const pageOpenMenuId = 'foldocs-page-open'
+export const landingCopyTooltipId = 'foldocs-landing-copy'
+export const initLandingCopyTooltip = (): Tooltip.Model =>
+  Tooltip.init({ id: landingCopyTooltipId, showDelay: 300 })
 export const searchDialogId = 'foldocs-search'
 export const sidebarDialogId = 'foldocs-sidebar-dialog'
 export const LanguageMenuModel = Menu.Model
@@ -173,6 +177,7 @@ export interface LandingLayoutActions<Message> extends SearchActions<Message> {
   readonly gotHeaderLanguageMenuMessage?: (
     message: LanguageMenuMessage,
   ) => Message
+  readonly gotCopyTooltipMessage?: (message: Tooltip.Message) => Message
 }
 
 export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
@@ -186,6 +191,7 @@ export interface LandingLayoutOptions<Message> extends SearchOptions<Message> {
   readonly theme: 'light' | 'dark'
   readonly themePreference: ThemePreference
   readonly copiedText: string
+  readonly copyTooltip?: Tooltip.Model
   readonly banner?: BannerConfig
   readonly bannerDismissed: boolean
   readonly actions: LandingLayoutActions<Message>
@@ -544,26 +550,34 @@ const searchTrigger = <Message>(
   h: HtmlBuilder<Message>,
   mobile = false,
 ): Html => {
-  return h.button(
-    [
-      h.Class(
-        mobile
-          ? 'fd-control fd-control-outline fd-search-trigger fd-search-trigger-mobile'
-          : 'fd-control fd-control-outline fd-search-trigger',
-      ),
-      h.Id(mobile ? 'fd-search-trigger-mobile' : 'fd-search-trigger'),
-      h.OnClick(action),
-      h.AriaExpanded(expanded),
-      h.AriaHasPopup('dialog'),
-      h.AriaLabel(translations.searchDocumentation),
-    ],
-    mobile
-      ? [icon('search', h)]
-      : [
-          icon('search', h),
-          h.span([], [translations.search]),
-          h.kbd([], ['⌘K']),
-        ],
+  return Button.view(
+    {
+      onClick: action,
+      toView: ({ button }) =>
+        h.button(
+          [
+            ...button,
+            h.Class(
+              mobile
+                ? 'fd-control fd-control-ghost fd-control-icon fd-search-trigger fd-search-trigger-mobile'
+                : 'fd-control fd-control-outline fd-search-trigger',
+            ),
+            h.Id(mobile ? 'fd-search-trigger-mobile' : 'fd-search-trigger'),
+            h.AriaExpanded(expanded),
+            h.AriaHasPopup('dialog'),
+            h.AriaLabel(translations.searchDocumentation),
+            h.Title(translations.searchDocumentation),
+          ],
+          mobile
+            ? [icon('search', h)]
+            : [
+                icon('search', h),
+                h.span([], [translations.search]),
+                h.kbd([], ['⌘K']),
+              ],
+        ),
+    },
+    h,
   )
 }
 
@@ -817,7 +831,12 @@ const layoutTabsView = <Message>(
       navigationIcon(current.icon, customIcons, h),
       h.span(
         [h.Class('fd-layout-tab-current')],
-        [h.strong([], [current.title])],
+        [
+          h.strong([], [current.title]),
+          ...(current.description === undefined
+            ? []
+            : [h.span([], [current.description])]),
+        ],
       ),
       icon('chevron', h, 'fd-layout-tabs-chevron'),
     ],
@@ -836,6 +855,7 @@ const layoutTabsView = <Message>(
             h.AriaControls(`${layoutTabsMenuId}-items`),
             h.AriaLabel(translations.selectDocumentation),
             h.Title(translations.selectDocumentation),
+            h.Class('fd-control fd-control-outline'),
           ],
           [buttonContent],
         ),
@@ -877,6 +897,7 @@ const layoutTabsView = <Message>(
         }
       },
       buttonContent,
+      buttonClassName: 'fd-control fd-control-outline',
       itemsClassName: 'fd-layout-tabs-menu',
       backdropClassName: 'fd-layout-tabs-backdrop',
       className: 'fd-layout-tabs',
@@ -1262,17 +1283,18 @@ const pageFileForUrl = (
   for (const node of nodes) {
     if (node._tag === 'Separator') continue
     if (node._tag === 'Page') {
-      if (node.url === currentUrl) return node.page.file
+      if (node.url === currentUrl) return node.page.file || node.page.id
       continue
     }
-    if (node.index?.url === currentUrl) return node.index.page.file
+    if (node.index?.url === currentUrl)
+      return node.index.page.file || node.index.page.id
     const nested = pageFileForUrl(node.children, currentUrl)
     if (nested !== undefined) return nested
   }
   return undefined
 }
 
-const githubDocumentUrl = (
+export const githubDocumentUrl = (
   site: SiteConfig,
   navigation: ReadonlyArray<NavigationNode>,
   currentUrl: string,
@@ -1282,8 +1304,27 @@ const githubDocumentUrl = (
     .replace(/\.git\/?$/u, '')
     .replace(/\/+$/u, '')
   const file = pageFileForUrl(navigation, currentUrl)
-  if (file === undefined || file.startsWith('remote:')) return repositoryUrl
-  const encodedFile = file.split('/').map(encodeURIComponent).join('/')
+  if (
+    file === undefined ||
+    file.startsWith('remote:') ||
+    file.split('/').some(segment => segment.startsWith('@'))
+  )
+    return undefined
+  const contentPath = (site.githubContentPath ?? 'content/docs').replace(
+    /^\/+|\/+$/gu,
+    '',
+  )
+  const normalizedFile = file.replace(/^\.\//u, '').replace(/^\/+|\/+$/gu, '')
+  const repositoryFile =
+    contentPath.length === 0 ||
+    normalizedFile === contentPath ||
+    normalizedFile.startsWith(`${contentPath}/`)
+      ? normalizedFile
+      : `${contentPath}/${normalizedFile}`
+  const encodedFile = repositoryFile
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/')
   return `${repositoryUrl}/blob/main/${encodedFile}`
 }
 
@@ -1369,7 +1410,9 @@ const pageActionsView = <Message>(
                 h.AriaControls(`${pageOpenMenuId}-items`),
                 h.AriaLabel(t.openPageMenu),
                 h.Title(t.openPageMenu),
-                h.Class('fd-control fd-control-outline fd-page-action'),
+                h.Class(
+                  'fd-control fd-control-outline fd-control-sm fd-page-action',
+                ),
               ],
               [openButtonContent],
             ),
@@ -1397,7 +1440,8 @@ const pageActionsView = <Message>(
               }
             },
             buttonContent: openButtonContent,
-            buttonClassName: 'fd-control fd-control-outline fd-page-action',
+            buttonClassName:
+              'fd-control fd-control-outline fd-control-sm fd-page-action',
             itemsClassName: 'fd-page-open-menu',
             backdropClassName: 'fd-page-open-backdrop',
             className: 'fd-page-open',
@@ -1424,7 +1468,9 @@ const pageActionsView = <Message>(
                 ...button,
                 h.Disabled(options.copyMarkdownStatus === 'loading'),
                 h.AriaLabel(copyAriaLabel),
-                h.Class('fd-control fd-control-outline fd-page-action'),
+                h.Class(
+                  'fd-control fd-control-outline fd-control-sm fd-page-action',
+                ),
               ],
               [
                 icon(
@@ -1470,6 +1516,7 @@ export const docsLayout = <Message>(
               'fd-control fd-control-ghost fd-control-icon fd-header-icon-button fd-menu-button',
             ),
             h.AriaLabel(t.openNavigation),
+            h.Title(t.openNavigation),
             h.AriaControls('fd-sidebar'),
             h.AriaExpanded(options.sidebarOpen),
           ],
@@ -1509,6 +1556,7 @@ export const docsLayout = <Message>(
                         'fd-control fd-control-ghost fd-control-icon fd-header-icon-button',
                       ),
                       h.AriaLabel(t.closeNavigation),
+                      h.Title(t.closeNavigation),
                     ],
                     [icon('close', h)],
                   ),
@@ -1945,6 +1993,66 @@ export const landingLayout = <Message>(
 ): Html => {
   const t = options.translations
   const command = options.landing.command
+  const commandCopied = options.copiedText === command
+  const commandCopyLabel = commandCopied ? t.copied : t.copy
+  const commandCopyButton = (
+    trigger: ReadonlyArray<ChildAttribute> = [],
+    includeNativeTitle = true,
+  ): Html =>
+    Button.view(
+      {
+        onClick: options.actions.copyText(command),
+        toView: ({ button }) =>
+          h.button(
+            [
+              ...button,
+              ...trigger,
+              h.Class(
+                'fd-control fd-control-ghost fd-control-icon fd-install-copy',
+              ),
+              h.AriaLabel(t.copyCreateCommand),
+              ...(includeNativeTitle ? [h.Title(commandCopyLabel)] : []),
+            ],
+            [icon<Message>(commandCopied ? 'check' : 'copy', h)],
+          ),
+      },
+      h,
+    )
+  const commandCopyControl =
+    options.copyTooltip === undefined ||
+    options.actions.gotCopyTooltipMessage === undefined
+      ? commandCopyButton()
+      : h.submodel({
+          slotId: landingCopyTooltipId,
+          model: options.copyTooltip,
+          view: Tooltip.view,
+          viewInputs: {
+            anchor: {
+              placement: 'top',
+              gap: 6,
+              padding: 8,
+              portal: true,
+              isPlacementLocked: true,
+            },
+            ariaLabel: t.copyCreateCommand,
+            toView: ({ trigger, panel, isVisible }) =>
+              h.span(
+                [h.Class('fd-install-copy-control')],
+                [
+                  commandCopyButton(trigger, false),
+                  ...(isVisible
+                    ? [
+                        h.span(
+                          [...panel, h.Class('fd-install-copy-tooltip')],
+                          [commandCopyLabel],
+                        ),
+                      ]
+                    : []),
+                ],
+              ),
+          },
+          toParentMessage: options.actions.gotCopyTooltipMessage,
+        })
   const sectionGlyph = (value: string): Html =>
     h.div(
       [h.Class('fd-landing-glyph'), h.AriaHidden(true)],
@@ -2033,22 +2141,10 @@ export const landingLayout = <Message>(
                           [h.Class('fd-install-command')],
                           [
                             h.code([], [h.span([], ['$']), ` ${command}`]),
-                            h.button(
-                              [
-                                h.OnClick(options.actions.copyText(command)),
-                                h.AriaLabel(t.copyCreateCommand),
-                              ],
-                              [
-                                icon<Message>(
-                                  options.copiedText === command
-                                    ? 'check'
-                                    : 'copy',
-                                  h,
-                                ),
-                                options.copiedText === command
-                                  ? t.copied
-                                  : t.copy,
-                              ],
+                            commandCopyControl,
+                            h.span(
+                              [h.Class('fd-sr-only'), h.AriaLive('polite')],
+                              [commandCopied ? t.codeCopied : ''],
                             ),
                           ],
                         ),
@@ -2067,7 +2163,9 @@ export const landingLayout = <Message>(
                               : [
                                   h.a(
                                     [
-                                      h.Class('fd-button fd-button-secondary'),
+                                      h.Class(
+                                        'fd-control fd-control-outline fd-landing-action',
+                                      ),
                                       h.Href(options.site.githubUrl),
                                       h.Target('_blank'),
                                       h.Rel('noreferrer noopener'),

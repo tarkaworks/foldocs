@@ -1,6 +1,6 @@
 {
   "title": "Foldocs CLI",
-  "description": "Creación, validación y personalización",
+  "description": "Creación y validación",
   "icon": "terminal",
   "root": true,
   "pages": [

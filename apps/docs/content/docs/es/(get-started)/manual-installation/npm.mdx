@@ -5,10 +5,19 @@ description: Añade Foldocs a un workspace de Foldkit existente con npm.
 
 # Instalar con npm
 
+## Instalar los paquetes de runtime
+
 Instala el framework y su runtime de Foldkit:
 
 ```sh
 npm install foldocs foldkit effect
 ```
 
+## Configurar Vite
+
 Después añade el plugin de Vite de Foldocs y apunta al directorio `content/docs`.
+
+## Verificar la aplicación
+
+Ejecuta `npm run dev`, abre una ruta de documentación anidada y confirma que una
+compilación de producción emite esa ruta como HTML estático.

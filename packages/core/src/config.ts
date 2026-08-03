@@ -248,6 +248,8 @@ export const SiteConfig = S.Struct({
   badge: S.optionalKey(S.String),
   tagline: S.optionalKey(S.String),
   githubUrl: S.optionalKey(S.String),
+  /** Repository-relative directory that contains documentation source files. */
+  githubContentPath: S.optionalKey(S.String),
   discordUrl: S.optionalKey(S.String),
   xUrl: S.optionalKey(S.String),
   npmUrl: S.optionalKey(S.String),

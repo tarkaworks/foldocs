@@ -1,20 +1,23 @@
 {
   "title": "Foldocs Core",
-  "description": "Configuración, manifiestos y navegación",
+  "description": "Configuración y navegación",
   "icon": "cuboid",
   "root": true,
   "pages": [
-    "---Introducción---",
+    "---Guía---",
     "index",
+    "search",
+    "---Referencias de API---",
     "page-tree",
-    "---Configuración---",
+    "page-conventions",
     "configuration",
     "manifests",
-    "content-sources",
-    "---Runtime---",
     "navigation",
     "internationalization",
-    "search",
-    "utilities"
+    "components",
+    "utilities",
+    "mdx",
+    "---Fuentes---",
+    "content-sources"
   ]
 }

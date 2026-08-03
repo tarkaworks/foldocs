@@ -1,6 +1,6 @@
 {
   "title": "Foldocs UI",
-  "description": "Foldkit layouts and documentation views",
+  "description": "Foldkit layouts and components",
   "icon": "panels-top-left",
   "root": true,
   "pages": [

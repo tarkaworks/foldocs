@@ -7,8 +7,6 @@ order: 1
 
 # Inicio rápido
 
-<Badge>Nativo de Foldkit</Badge>
-
 Foldocs convierte Markdown y MDX determinista en una aplicación de documentación
 Foldkit completa con contenido tipado, navegación, búsqueda de texto completo y
 salidas legibles por IA.
@@ -65,3 +63,12 @@ const program = createDocsProgram({
   site: siteConfig,
 })
 ```
+
+El manifiesto virtual contiene inmediatamente metadatos serializables y carga
+cada documento compilado de forma diferida solo cuando se visita su ruta.
+
+## Contenido estático desde la primera respuesta
+
+Las compilaciones de producción prerenderizan cada ruta de inicio y documentación.
+La navegación directa recibe la página real en lugar de un documento de carga
+temporal.

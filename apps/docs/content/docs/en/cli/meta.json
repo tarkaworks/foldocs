@@ -1,6 +1,6 @@
 {
   "title": "Foldocs CLI",
-  "description": "Scaffolding, validation, and customization",
+  "description": "Scaffolding and validation",
   "icon": "terminal",
   "root": true,
   "pages": [

@@ -1,6 +1,6 @@
 {
   "title": "Foldocs UI",
-  "description": "Layouts y vistas de documentación con Foldkit",
+  "description": "Layouts y componentes de Foldkit",
   "icon": "panels-top-left",
   "root": true,
   "pages": [

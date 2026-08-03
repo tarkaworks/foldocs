@@ -7,8 +7,6 @@ order: 1
 
 # Inicio rápido
 
-<Badge>Nativo de Foldkit</Badge>
-
 Escribe Markdown o MDX determinista aquí. Los archivos dentro de
 `content/docs/<locale>` generan rutas, navegación, resultados de búsqueda y
 salidas legibles por LLM automáticamente.
@@ -39,3 +37,29 @@ estática y corpus para LLM.
     Configura la marca, las rutas, la búsqueda y la compilación.
   </Card>
 </Cards>
+
+## Runtime impulsado por Effect
+
+El sitio generado es una aplicación Foldkit. Su modelo, mensajes, comandos,
+carga de páginas, navegación y búsqueda están tipados e impulsados por Effect.
+
+```ts
+import { createDocsProgram } from 'foldocs'
+import {
+  basePath,
+  i18n,
+  manifest,
+  navigations,
+  searchIndexUrls,
+  siteConfig,
+} from 'virtual:foldocs'
+
+export const program = createDocsProgram({
+  manifest,
+  basePath,
+  i18n,
+  navigations,
+  searchIndexUrls,
+  site: siteConfig,
+})
+```

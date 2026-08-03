@@ -1,5 +1,5 @@
 {
   "title": "OpenAPI",
   "defaultOpen": false,
-  "pages": ["index", "generate-files"]
+  "pages": ["index", "schema-inputs", "operation-pages", "generate-files"]
 }
