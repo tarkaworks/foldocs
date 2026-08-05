@@ -513,11 +513,6 @@ const joinUrl = (base: string, slug: string): string =>
     ? `./${slug}`
     : `${base.replace(/\/+$/u, '')}/${slug}`.replace(/\/{2,}/gu, '/')
 
-const methodBadgeClass = (method: string): string => {
-  const lower = method.toLowerCase()
-  return `fd-api-method-${lower}`
-}
-
 const groupByTags = (
   entries: ReadonlyArray<OperationEntry>,
 ): ReadonlyMap<string, ReadonlyArray<OperationEntry>> => {

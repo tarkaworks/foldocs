@@ -844,7 +844,7 @@ export const audit = (
       )
       const basePath = normalizeBasePath(options.basePath ?? '/docs')
       const locales = options.locales?.filter(Boolean)
-      const fallbackLocale = options.fallbackLocale ?? locales?.[0]
+      const _fallbackLocale = options.fallbackLocale ?? locales?.[0]
       const files = await walk(contentRoot)
       const issues: AuditIssue[] = []
       const pages: CheckedPage[] = []
@@ -1236,7 +1236,7 @@ export const eval_ = (
       )
       const basePath = normalizeBasePath(options.basePath ?? '/docs')
       const locales = options.locales?.filter(Boolean)
-      const fallbackLocale = options.fallbackLocale ?? locales?.[0]
+      const _fallbackLocale = options.fallbackLocale ?? locales?.[0]
       const endpoint = options.endpoint ?? process.env.FOLDOCS_AI_ENDPOINT
       const apiKey = options.apiKey ?? process.env.FOLDOCS_AI_API_KEY
       const concurrency = options.concurrency ?? 3
