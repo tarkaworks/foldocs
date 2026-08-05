@@ -4,6 +4,9 @@
   "description": "MCP server for Foldocs documentation sites",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "foldocs-mcp": "./dist/bin.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
