@@ -29,7 +29,8 @@
       "entry": ["src/index.ts", "src/bin.ts"]
     },
     "packages/mcp-server": {
-      "entry": ["src/index.ts", "src/bin.ts"]
+      "entry": [],
+      "project": []
     },
     "packages/python": {
       "entry": ["src/index.ts", "src/bin.ts"]
