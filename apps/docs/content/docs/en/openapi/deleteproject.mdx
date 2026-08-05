@@ -1,0 +1,79 @@
+---
+title: "Delete project"
+description: "Permanently deletes a project and all its documents."
+label: "DELETE /projects/{projectId}"
+order: 15
+tags:
+  - "Projects"
+---
+
+# Delete project
+
+`DELETE /projects/{projectId}`
+
+Permanently deletes a project and all its documents.
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+| --- | --- | --- | --- | --- |
+| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
+
+<ApiPlayground id="deleteproject" method="DELETE" url="https://api.foldocs.dev/projects/{projectId}" body="" />
+
+## Request examples
+
+```bash tab="cURL"
+curl --request DELETE --url "https://api.foldocs.dev/projects/{projectId}"
+```
+
+```ts tab="TypeScript"
+const response = await fetch("https://api.foldocs.dev/projects/{projectId}", {
+  method: "DELETE",
+});
+
+const data = await response.json();
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("DELETE", "https://api.foldocs.dev/projects/{projectId}")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("DELETE", "https://api.foldocs.dev/projects/{projectId}", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+
+## Responses
+
+### 204 Project deleted successfully
+
+### 404 Resource not found
+
+`application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | `string` | Yes | Machine-readable error code |
+| `message` | `string` | Yes | Human-readable error message |
+| `details` | `array` | No | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```

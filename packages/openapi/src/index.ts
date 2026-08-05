@@ -459,7 +459,7 @@ const operationMarkdown = (
       entry.method,
       entry.route,
       entry.operation,
-      options.codeSamples ?? ['curl', 'typescript'],
+      options.codeSamples ?? ['curl', 'typescript', 'python', 'go'],
     ),
     responseSections(document, entry.operation.responses),
   ]
@@ -513,6 +513,29 @@ const joinUrl = (base: string, slug: string): string =>
     ? `./${slug}`
     : `${base.replace(/\/+$/u, '')}/${slug}`.replace(/\/{2,}/gu, '/')
 
+const methodBadgeClass = (method: string): string => {
+  const lower = method.toLowerCase()
+  return `fd-api-method-${lower}`
+}
+
+const groupByTags = (
+  entries: ReadonlyArray<OperationEntry>,
+): ReadonlyMap<string, ReadonlyArray<OperationEntry>> => {
+  const groups = new Map<string, OperationEntry[]>()
+  for (const entry of entries) {
+    const tags = entry.tags.length === 0 ? ['Other'] : entry.tags
+    for (const tag of tags) {
+      const existing = groups.get(tag)
+      if (existing !== undefined) {
+        existing.push(entry)
+      } else {
+        groups.set(tag, [entry])
+      }
+    }
+  }
+  return groups
+}
+
 export const generateOpenApiFiles = (
   documentInput: OpenApiDocument,
   options: OpenApiGenerationOptions = {},
@@ -531,11 +554,15 @@ export const generateOpenApiFiles = (
     content: operationMarkdown(document, entry, index + 2, options),
   }))
   if (!includeIndex) return pages
+
+  const groups = groupByTags(entries)
+
   const index = [
     '---',
     `title: ${escapeYamlString(title)}`,
     `description: ${escapeYamlString(description)}`,
     'order: 1',
+    'index: true',
     '---',
     '',
     `# ${title}`,
@@ -544,25 +571,33 @@ export const generateOpenApiFiles = (
     '',
     `OpenAPI ${document.openapi ?? document.swagger} · API ${document.info.version}`,
     '',
+    '<ApiCards>',
+    '',
     ...entries.flatMap(entry => [
-      `## [${entry.title}](${joinUrl(baseUrl, entry.slug)})`,
-      '',
-      `\`${entry.method.toUpperCase()} ${entry.route}\``,
-      '',
-      entry.description ?? '',
+      `<ApiCard href=${JSON.stringify(joinUrl(baseUrl, entry.slug))} method=${JSON.stringify(entry.method.toUpperCase())} title=${JSON.stringify(entry.title)} description=${JSON.stringify(entry.description ?? '')} />`,
       '',
     ]),
+    '</ApiCards>',
   ]
     .join('\n')
     .trim()
     .concat('\n')
+
+  const pagesOrder: Array<string> = ['index']
+  for (const [tag, tagEntries] of groups) {
+    pagesOrder.push(`---${tag}---`)
+    for (const entry of tagEntries) {
+      pagesOrder.push(entry.slug)
+    }
+  }
+
   const meta = JSON.stringify(
     {
       title,
       description,
       root: options.root ?? true,
       defaultOpen: true,
-      pages: ['index', ...entries.map(entry => entry.slug)],
+      pages: pagesOrder,
     },
     null,
     2,

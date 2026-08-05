@@ -1,0 +1,22 @@
+[
+  "createdocument.mdx",
+  "createproject.mdx",
+  "createwebhook.mdx",
+  "deletedocument.mdx",
+  "deleteproject.mdx",
+  "getdocument.mdx",
+  "getpageviews.mdx",
+  "getproject.mdx",
+  "getsearchanalytics.mdx",
+  "index.mdx",
+  "listdocuments.mdx",
+  "listdocumentversions.mdx",
+  "listprojects.mdx",
+  "listwebhooks.mdx",
+  "meta.json",
+  "publishdocument.mdx",
+  "searchdocuments.mdx",
+  "suggestsearch.mdx",
+  "updatedocument.mdx",
+  "updateproject.mdx"
+]

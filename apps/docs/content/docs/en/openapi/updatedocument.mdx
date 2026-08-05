@@ -1,0 +1,174 @@
+---
+title: "Update a document"
+description: "Updates an existing document's metadata or content."
+label: "PUT /documents/{documentId}"
+order: 5
+tags:
+  - "Documents"
+---
+
+# Update a document
+
+`PUT /documents/{documentId}`
+
+Updates an existing document's metadata or content.
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+| --- | --- | --- | --- | --- |
+| `documentId` | path | Yes | `string<uuid>` | Unique document identifier |
+
+## Request body
+
+Required · `application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `title` | `string` | No | Updated title |
+| `description` | `string` | No | Updated description |
+| `content` | `string` | No | Updated content |
+| `tags` | `array` | No | Updated tags |
+| `status` | `string` | No | Updated status |
+
+```json
+{
+  "title": "string",
+  "description": "string",
+  "content": "string",
+  "tags": [
+    "string"
+  ],
+  "status": "string"
+}
+```
+
+<ApiPlayground id="updatedocument" method="PUT" url="https://api.foldocs.dev/documents/{documentId}" body="%7B%0A%20%20%22title%22%3A%20%22string%22%2C%0A%20%20%22description%22%3A%20%22string%22%2C%0A%20%20%22content%22%3A%20%22string%22%2C%0A%20%20%22tags%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%2C%0A%20%20%22status%22%3A%20%22string%22%0A%7D" />
+
+## Request examples
+
+```bash tab="cURL"
+curl --request PUT --url "https://api.foldocs.dev/documents/{documentId}" --header 'content-type: application/json' --data '{"title":"string","description":"string","content":"string","tags":["string"],"status":"string"}'
+```
+
+```ts tab="TypeScript"
+const response = await fetch("https://api.foldocs.dev/documents/{documentId}", {
+  method: "PUT",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    "title": "string",
+    "description": "string",
+    "content": "string",
+    "tags": [
+      "string"
+    ],
+    "status": "string"
+  }),
+});
+
+const data = await response.json();
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("PUT", "https://api.foldocs.dev/documents/{documentId}", json={"title":"string","description":"string","content":"string","tags":["string"],"status":"string"})
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("PUT", "https://api.foldocs.dev/documents/{documentId}", strings.NewReader("{\"title\":\"string\",\"description\":\"string\",\"content\":\"string\",\"tags\":[\"string\"],\"status\":\"string\"}"))
+if err != nil { panic(err) }
+request.Header.Set("content-type", "application/json")
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+
+## Responses
+
+### 200 Document updated successfully
+
+`application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | `string<uuid>` | Yes | Unique document identifier |
+| `slug` | `string` | Yes | URL-friendly document identifier |
+| `title` | `string` | Yes | Document title |
+| `description` | `string` | No | Optional document description |
+| `content` | `string` | Yes | Markdown or MDX content |
+| `locale` | `string` | No | Content locale |
+| `tags` | `array` | No | Content tags for organization |
+| `status` | `string` | No | Document status |
+| `projectId` | `string<uuid>` | Yes | Parent project identifier |
+| `publishedAt` | `string<date-time>` | No | Publication timestamp |
+| `createdAt` | `string<date-time>` | Yes | Creation timestamp |
+| `updatedAt` | `string<date-time>` | Yes | Last update timestamp |
+
+```json
+{
+  "id": "doc_a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "slug": "getting-started",
+  "title": "Getting Started",
+  "description": "Learn how to set up and use Foldocs.",
+  "content": "# Getting Started\n\nWelcome to Foldocs...",
+  "locale": "en",
+  "tags": [
+    "guide",
+    "beginner"
+  ],
+  "status": "published",
+  "projectId": "string",
+  "publishedAt": "string",
+  "createdAt": "string",
+  "updatedAt": "string"
+}
+```
+
+### 400 Invalid request parameters
+
+`application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | `string` | Yes | Machine-readable error code |
+| `message` | `string` | Yes | Human-readable error message |
+| `details` | `array` | No | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```
+
+### 404 Resource not found
+
+`application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `code` | `string` | Yes | Machine-readable error code |
+| `message` | `string` | Yes | Human-readable error message |
+| `details` | `array` | No | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```

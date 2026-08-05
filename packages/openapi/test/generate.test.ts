@@ -62,7 +62,10 @@ describe('OpenAPI generation', () => {
       'meta.json',
       'getpet.mdx',
     ])
-    expect(files[0]?.content).toContain('[Get a pet](/en/docs/api/getpet)')
+    expect(files[0]?.content).toContain('<ApiCards>')
+    expect(files[0]?.content).toContain(
+      '<ApiCard href="/en/docs/api/getpet" method="GET" title="Get a pet"',
+    )
     expect(files[1]?.content).toContain('"root": true')
     expect(files[2]?.content).toContain('`GET /pets/{petId}`')
     expect(files[2]?.content).toContain('Stable pet identifier')

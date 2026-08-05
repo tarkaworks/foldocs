@@ -462,6 +462,41 @@ export interface FoldocsConfig {
   }
   /** Optional embedded assistant backed by a server-side endpoint. */
   readonly ai?: false | { readonly endpoint?: string }
+  readonly headers?: boolean
+  readonly redirects?: boolean
+  readonly agentManifest?: boolean
+  readonly fonts?: {
+    readonly sans?: string | string[]
+    readonly mono?: string | string[]
+  }
+  readonly frontmatter?: {
+    readonly extend?: (
+      base: Readonly<Record<string, unknown>>,
+    ) => Readonly<Record<string, unknown>>
+  }
+  readonly images?: {
+    readonly optimize?: boolean
+    readonly formats?: ReadonlyArray<'webp' | 'avif' | 'png' | 'jpeg'>
+    readonly sizes?: ReadonlyArray<number>
+  }
+  readonly comments?: {
+    readonly provider: 'giscus' | 'utterances'
+    readonly repo: string
+    readonly repoId: string
+    readonly category?: string
+    readonly categoryId?: string
+    readonly mapping?: 'url' | 'title' | 'og:title' | 'specific' | 'number'
+    readonly reactions?: boolean
+    readonly inputPosition?: 'top' | 'bottom'
+    readonly theme?: 'light' | 'dark' | 'preferred_color_scheme' | 'transparent'
+    readonly lang?: string
+  } | false
+  readonly analytics?: {
+    readonly provider: 'vercel' | 'plausible' | 'umami' | 'posthog' | 'ga4'
+    readonly domain?: string
+    readonly apiHost?: string
+    readonly measurementId?: string
+  } | false
 }
 
 export interface ResolvedFoldocsConfig {
@@ -497,6 +532,43 @@ export interface ResolvedFoldocsConfig {
   readonly ai: {
     readonly enabled: boolean
     readonly endpoint: string
+  }
+  readonly headers: boolean
+  readonly redirects: boolean
+  readonly agentManifest: boolean
+  readonly fonts: {
+    readonly sans: string[]
+    readonly mono: string[]
+  }
+  readonly frontmatter: {
+    readonly extend?: (
+      base: Readonly<Record<string, unknown>>,
+    ) => Readonly<Record<string, unknown>>
+  }
+  readonly images: {
+    readonly optimize: boolean
+    readonly formats: ReadonlyArray<'webp' | 'avif' | 'png' | 'jpeg'>
+    readonly sizes: ReadonlyArray<number>
+  }
+  readonly comments: {
+    readonly enabled: boolean
+    readonly provider?: 'giscus' | 'utterances'
+    readonly repo?: string
+    readonly repoId?: string
+    readonly category?: string
+    readonly categoryId?: string
+    readonly mapping?: 'url' | 'title' | 'og:title' | 'specific' | 'number'
+    readonly reactions?: boolean
+    readonly inputPosition?: 'top' | 'bottom'
+    readonly theme?: 'light' | 'dark' | 'preferred_color_scheme' | 'transparent'
+    readonly lang?: string
+  }
+  readonly analytics: {
+    readonly enabled: boolean
+    readonly provider?: 'vercel' | 'plausible' | 'umami' | 'posthog' | 'ga4'
+    readonly domain?: string
+    readonly apiHost?: string
+    readonly measurementId?: string
   }
 }
 
@@ -788,6 +860,59 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
         typeof config.ai === 'object'
           ? (config.ai.endpoint ?? '/api/ai')
           : '/api/ai',
+    },
+    headers: config.headers ?? false,
+    redirects: config.redirects ?? false,
+    agentManifest: config.agentManifest ?? false,
+    fonts: {
+      sans: Array.isArray(config.fonts?.sans)
+        ? config.fonts!.sans!
+        : config.fonts?.sans !== undefined
+          ? [config.fonts!.sans!]
+          : ['Inter', 'sans-serif'],
+      mono: Array.isArray(config.fonts?.mono)
+        ? config.fonts!.mono!
+        : config.fonts?.mono !== undefined
+          ? [config.fonts!.mono!]
+          : ['JetBrains Mono', 'monospace'],
+    },
+    frontmatter: {
+      ...(config.frontmatter?.extend !== undefined
+        ? { extend: config.frontmatter.extend }
+        : {}),
+    },
+    images: {
+      optimize: config.images?.optimize ?? false,
+      formats: config.images?.formats ?? ['webp', 'avif'],
+      sizes: config.images?.sizes ?? [640, 768, 1024, 1280, 1536],
+    },
+    comments: {
+      enabled: config.comments !== false && typeof config.comments === 'object',
+      ...(typeof config.comments === 'object'
+        ? {
+            provider: config.comments.provider,
+            repo: config.comments.repo,
+            repoId: config.comments.repoId,
+            category: config.comments.category,
+            categoryId: config.comments.categoryId,
+            mapping: config.comments.mapping,
+            reactions: config.comments.reactions,
+            inputPosition: config.comments.inputPosition,
+            theme: config.comments.theme,
+            lang: config.comments.lang,
+          }
+        : {}),
+    },
+    analytics: {
+      enabled: config.analytics !== false && typeof config.analytics === 'object',
+      ...(typeof config.analytics === 'object'
+        ? {
+            provider: config.analytics.provider,
+            domain: config.analytics.domain,
+            apiHost: config.analytics.apiHost,
+            measurementId: config.analytics.measurementId,
+          }
+        : {}),
     },
   }
 }

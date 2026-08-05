@@ -192,7 +192,11 @@ export const renderMarkdown = <Message>(
         const component = options.components?.inline?.[inline.name]
         if (component !== undefined) return component(inline, content)
         if (inline.name === 'Badge') {
-          return h.span([h.Class('fd-badge')], content)
+          const variant = inline.attributes.variant ?? 'default'
+          return h.span(
+            [h.Class(`fd-badge fd-badge-${variant}`)],
+            content,
+          )
         }
         return h.span(
           [
@@ -974,6 +978,415 @@ export const renderMarkdown = <Message>(
           return href === undefined
             ? h.div([h.Class('fd-card')], [inner])
             : h.a([h.Class('fd-card'), h.Href(href)], [inner])
+        }
+        if (block.name === 'ApiCards') {
+          return h.div([h.Class('fd-api-cards')], content)
+        }
+        if (block.name === 'ApiCard') {
+          const href = block.attributes.href
+          const method = (block.attributes.method ?? 'GET').toUpperCase()
+          const title = block.attributes.title ?? ''
+          const description = block.attributes.description ?? ''
+          const inner = h.div(
+            [h.Class('fd-api-card-inner')],
+            [
+              h.div(
+                [h.Class('fd-api-card-header')],
+                [
+                  h.span([h.Class('fd-api-card-title')], [title]),
+                  h.span(
+                    [
+                      h.Class(
+                        `fd-api-method fd-api-method-${method.toLowerCase()}`,
+                      ),
+                    ],
+                    [method],
+                  ),
+                ],
+              ),
+              ...(description.length === 0
+                ? []
+                : [
+                    h.p(
+                      [h.Class('fd-api-card-description')],
+                      [description],
+                    ),
+                  ]),
+            ],
+          )
+          return href === undefined
+            ? h.div([h.Class('fd-api-card')], [inner])
+            : h.a([h.Class('fd-api-card'), h.Href(href)], [inner])
+        }
+        if (block.name === 'Expandable') {
+          const title = block.attributes.title ?? 'Show more'
+          return h.details(
+            [h.Class('fd-expandable')],
+            [
+              h.summary([h.Class('fd-expandable-summary')], [title]),
+              h.div([h.Class('fd-expandable-content')], content),
+            ],
+          )
+        }
+        if (block.name === 'Panel') {
+          const title = block.attributes.title
+          return h.aside(
+            [h.Class('fd-panel')],
+            [
+              ...(title === undefined
+                ? []
+                : [h.div([h.Class('fd-panel-title')], [title])]),
+              h.div([h.Class('fd-panel-content')], content),
+            ],
+          )
+        }
+        if (block.name === 'Columns') {
+          const cols = block.attributes.cols ?? 2
+          return h.div(
+            [
+              h.Class('fd-columns'),
+              h.Style({ 'fd-columns': String(cols) }),
+            ],
+            content,
+          )
+        }
+        if (block.name === 'Column') {
+          return h.div([h.Class('fd-column')], content)
+        }
+        if (block.name === 'Tooltip') {
+          const tip = block.attributes.tip ?? ''
+          const headline = block.attributes.headline
+          const cta = block.attributes.cta
+          const href = block.attributes.href
+          return h.span(
+            [
+              h.Class('fd-tooltip-trigger'),
+              h.DataAttribute('tooltip', tip),
+              ...(headline !== undefined
+                ? [h.DataAttribute('tooltip-headline', headline)]
+                : []),
+            ],
+            [
+              ...content,
+              h.span([h.Class('fd-tooltip')], [
+                ...(headline !== undefined
+                  ? [h.strong([h.Class('fd-tooltip-headline')], [headline])]
+                  : []),
+                h.span([h.Class('fd-tooltip-tip')], [tip]),
+                ...(cta !== undefined && href !== undefined
+                  ? [
+                      h.a([h.Class('fd-tooltip-cta'), h.Href(href)], [cta]),
+                    ]
+                  : []),
+              ]),
+            ],
+          )
+        }
+        if (block.name === 'Tile') {
+          const href = block.attributes.href
+          const title = block.attributes.title ?? ''
+          const description = block.attributes.description ?? ''
+          const inner = h.div(
+            [h.Class('fd-tile-inner')],
+            [
+              ...content,
+              h.div([h.Class('fd-tile-text')], [
+                h.div([h.Class('fd-tile-title')], [title]),
+                ...(description.length === 0
+                  ? []
+                  : [h.p([h.Class('fd-tile-description')], [description])]),
+              ]),
+            ],
+          )
+          return href === undefined
+            ? h.div([h.Class('fd-tile')], [inner])
+            : h.a([h.Class('fd-tile'), h.Href(href)], [inner])
+        }
+        if (block.name === 'Prompt') {
+          const description = block.attributes.description ?? ''
+          return h.div(
+            [h.Class('fd-prompt')],
+            [
+              h.div([h.Class('fd-prompt-description')], [description]),
+              h.div([h.Class('fd-prompt-body')], [
+                h.code([h.Class('fd-prompt-code')], content),
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.Class('fd-prompt-copy'),
+                    h.DataAttribute('content', content.join('')),
+                  ],
+                  ['Copy'],
+                ),
+              ]),
+            ],
+          )
+        }
+        if (block.name === 'Visibility') {
+          const forAttr = block.attributes.for ?? 'web'
+          return h.div(
+            [
+              h.Class('fd-visibility'),
+              h.DataAttribute('visibility', forAttr),
+            ],
+            content,
+          )
+        }
+        if (block.name === 'Diff') {
+          const lang = block.attributes.lang ?? ''
+          const title = block.attributes.title
+          const titleBar = h.div(
+            [h.Class('fd-diff-header')],
+            [
+              ...(title !== undefined
+                ? [h.span([h.Class('fd-diff-title')], [title])]
+                : []),
+              ...(lang.length > 0
+                ? [h.span([h.Class('fd-diff-lang')], [lang])]
+                : []),
+            ],
+          )
+          return h.div([h.Class('fd-diff')], [titleBar, ...content])
+        }
+        if (block.name === 'DiffLine') {
+          const type = block.attributes.type ?? 'context'
+          const lineNum = block.attributes.line
+          return h.div(
+            [
+              h.Class(`fd-diff-line fd-diff-${type}`),
+              ...(lineNum !== undefined
+                ? [h.DataAttribute('line', String(lineNum))]
+                : []),
+            ],
+            content,
+          )
+        }
+        if (block.name === 'YouTube') {
+          const videoId = block.attributes.id ?? ''
+          const startTime = block.attributes.start ?? 0
+          const src = `https://www.youtube-nocookie.com/embed/${videoId}?start=${String(startTime)}`
+          const caption = block.attributes.caption
+          return h.figure([h.Class('fd-youtube')], [
+            h.div([h.Class('fd-youtube-embed')], [
+              h.iframe(
+                [
+                  h.Class('fd-youtube-iframe'),
+                  h.Attribute('src', src),
+                  h.Attribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'),
+                  h.Attribute('allowfullscreen', ''),
+                  h.Attribute('title', caption ?? `YouTube video ${videoId}`),
+                ],
+                [],
+              ),
+            ]),
+            ...(caption !== undefined
+              ? [
+                  h.figcaption([h.Class('fd-youtube-caption')], [
+                    caption,
+                  ]),
+                ]
+              : []),
+          ])
+        }
+        if (block.name === 'AutoTypeTable') {
+          return h.div([h.Class('fd-auto-type-table')], content)
+        }
+        if (block.name === 'ColorSwatch') {
+          const color = block.attributes.color ?? '#000000'
+          const name = block.attributes.name
+          const value = block.attributes.value
+          return h.div([h.Class('fd-color-swatch')], [
+            h.div(
+              [
+                h.Class('fd-color-swatch-preview'),
+                h.Style({ background: color }),
+              ],
+              [],
+            ),
+            h.div([h.Class('fd-color-swatch-info')], [
+              ...(name !== undefined
+                ? [h.div([h.Class('fd-color-swatch-name')], [name])]
+                : []),
+              h.div([h.Class('fd-color-swatch-value')], [color]),
+              ...(value !== undefined
+                ? [h.div([h.Class('fd-color-swatch-custom')], [value])]
+                : []),
+            ]),
+          ])
+        }
+        if (block.name === 'ColorSwatches') {
+          return h.div([h.Class('fd-color-swatches')], content)
+        }
+        if (block.name === 'CodeBlock') {
+          const lang = block.attributes.lang ?? ''
+          const title = block.attributes.title
+          const titleBar = h.div(
+            [h.Class('fd-codeblock-header')],
+            [
+              ...(title !== undefined
+                ? [h.span([h.Class('fd-codeblock-title')], [title])]
+                : []),
+              ...(lang.length > 0
+                ? [h.span([h.Class('fd-codeblock-lang')], [lang])]
+                : []),
+            ],
+          )
+          return h.div([h.Class('fd-codeblock')], [titleBar, ...content])
+        }
+        if (block.name === 'Mermaid') {
+          const code = content.join('')
+          return h.div(
+            [
+              h.Class('fd-mermaid'),
+              h.DataAttribute('mermaid', code),
+            ],
+            [
+              h.pre([h.Class('fd-mermaid-source')], [
+                h.code([], [code]),
+              ]),
+            ],
+          )
+        }
+        if (block.name === 'CodeSandbox') {
+          const src = block.attributes.src ?? ''
+          const title = block.attributes.title ?? 'CodeSandbox'
+          const height = block.attributes.height ?? '500px'
+          return h.div([h.Class('fd-codesandbox')], [
+            h.iframe(
+              [
+                h.Class('fd-codesandbox-iframe'),
+                h.Attribute('src', src),
+                h.Attribute('title', title),
+                h.Attribute('allow', 'accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; web-share'),
+                h.Attribute('sandbox', 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts'),
+                h.Style({ height }),
+              ],
+              [],
+            ),
+          ])
+        }
+        if (block.name === 'Stackblitz') {
+          const src = block.attributes.src ?? ''
+          const title = block.attributes.title ?? 'StackBlitz'
+          const height = block.attributes.height ?? '500px'
+          return h.div([h.Class('fd-stackblitz')], [
+            h.iframe(
+              [
+                h.Class('fd-stackblitz-iframe'),
+                h.Attribute('src', src),
+                h.Attribute('title', title),
+                h.Attribute('allow', 'accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; payment; usb'),
+                h.Attribute('sandbox', 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts'),
+                h.Style({ height }),
+              ],
+              [],
+            ),
+          ])
+        }
+        if (block.name === 'Callout') {
+          const type = block.attributes.type ?? 'info'
+          const title = block.attributes.title
+          return h.aside(
+            [h.Class(`fd-callout fd-callout-${type}`)],
+            [
+              ...(title !== undefined
+                ? [h.div([h.Class('fd-callout-title')], [title])]
+                : []),
+              h.div([h.Class('fd-callout-content')], content),
+            ],
+          )
+        }
+        if (block.name === 'FootnoteDefinition') {
+          const id = block.attributes.id ?? ''
+          return h.div(
+            [h.Class('fd-footnote-definition'), h.Id(id)],
+            [
+              h.sup([h.Class('fd-footnote-ref')], [id]),
+              ...content,
+            ],
+          )
+        }
+        if (block.name === 'Footnotes') {
+          return h.section([h.Class('fd-footnotes')], [
+            h.h2([h.Class('fd-footnotes-title')], ['Footnotes']),
+            h.ol([h.Class('fd-footnotes-list')], content),
+          ])
+        }
+        if (block.name === 'Changelog') {
+          return h.div([h.Class('fd-changelog')], content)
+        }
+        if (block.name === 'ChangelogEntry') {
+          const version = block.attributes.version ?? ''
+          const date = block.attributes.date
+          return h.div([h.Class('fd-changelog-entry')], [
+            h.div([h.Class('fd-changelog-entry-header')], [
+              h.span([h.Class('fd-changelog-version')], [version]),
+              ...(date !== undefined
+                ? [h.time([h.Class('fd-changelog-date')], [date])]
+                : []),
+            ]),
+            h.div([h.Class('fd-changelog-entry-content')], content),
+          ])
+        }
+        if (block.name === 'Breadcrumb') {
+          return h.nav([h.Class('fd-breadcrumb'), h.AriaLabel('Breadcrumb')], [
+            h.ol([h.Class('fd-breadcrumb-list')], content),
+          ])
+        }
+        if (block.name === 'BreadcrumbItem') {
+          const href = block.attributes.href
+          const current = block.attributes.current ?? false
+          return h.li([h.Class('fd-breadcrumb-item')], [
+            ...(href !== undefined && !current
+              ? [
+                  h.a(
+                    [h.Class('fd-breadcrumb-link'), h.Href(href)],
+                    content,
+                  ),
+                ]
+              : current
+                ? [
+                    h.span(
+                      [h.Class('fd-breadcrumb-current'), h.AriaCurrent('page')],
+                      content,
+                    ),
+                  ]
+                : content),
+          ])
+        }
+        if (block.name === 'DeprecationNotice') {
+          const version = block.attributes.version
+          const replacement = block.attributes.replacement as { url?: string; label?: string } | undefined
+          return h.div([h.Class('fd-deprecation-notice')], [
+            h.div([h.Class('fd-deprecation-icon')], ['⚠️']),
+            h.div([h.Class('fd-deprecation-content')], [
+              h.strong([], ['Deprecated']),
+              ...(version !== undefined
+                ? [h.span([h.Class('fd-deprecation-version')], [` since v${version}`])]
+                : []),
+              ...(replacement !== undefined && replacement.url !== undefined
+                ? [
+                    h.span([h.Class('fd-deprecation-replacement')], [
+                      '. Use ',
+                      h.a([h.Class('fd-deprecation-link'), h.Href(replacement.url)], [
+                        replacement.label ?? 'documentation',
+                      ]),
+                      ' instead.',
+                    ]),
+                  ]
+                : []),
+              ...content,
+            ]),
+          ])
+        }
+        if (block.name === 'BetaNotice') {
+          return h.div([h.Class('fd-beta-notice')], [
+            h.div([h.Class('fd-beta-icon')], ['🧪']),
+            h.div([h.Class('fd-beta-content')], [
+              h.strong([], ['Beta']),
+              ...content,
+            ]),
+          ])
         }
         if (block.name === 'Steps') {
           return h.div([h.Class('fd-steps')], content)

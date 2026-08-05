@@ -1,0 +1,82 @@
+---
+title: "Get search analytics"
+description: "Returns search query statistics and popular searches."
+label: "GET /analytics/searches"
+order: 19
+tags:
+  - "Analytics"
+---
+
+# Get search analytics
+
+`GET /analytics/searches`
+
+Returns search query statistics and popular searches.
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+| --- | --- | --- | --- | --- |
+| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
+| `startDate` | query | No | `string<date>` | Start date (ISO 8601) |
+| `endDate` | query | No | `string<date>` | End date (ISO 8601) |
+
+<ApiPlayground id="getsearchanalytics" method="GET" url="https://api.foldocs.dev/analytics/searches" body="" />
+
+## Request examples
+
+```bash tab="cURL"
+curl --request GET --url "https://api.foldocs.dev/analytics/searches"
+```
+
+```ts tab="TypeScript"
+const response = await fetch("https://api.foldocs.dev/analytics/searches", {
+  method: "GET",
+});
+
+const data = await response.json();
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("GET", "https://api.foldocs.dev/analytics/searches")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("GET", "https://api.foldocs.dev/analytics/searches", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+
+## Responses
+
+### 200 Search analytics
+
+`application/json`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `queries` | `array` | Yes | — |
+| `summary` | `object` | Yes | — |
+
+```json
+{
+  "queries": [
+    {
+      "query": "string",
+      "count": 0,
+      "avgResults": 0
+    }
+  ],
+  "summary": {
+    "totalSearches": 8500,
+    "uniqueQueries": 1200,
+    "avgResultsPerQuery": 5.3
+  }
+}
+```

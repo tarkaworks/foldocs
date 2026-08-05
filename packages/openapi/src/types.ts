@@ -33,7 +33,7 @@ export interface OpenApiGenerationOptions {
   readonly includeIndex?: boolean
   /** Mark generated navigation metadata as a layout root. Defaults to true. */
   readonly root?: boolean
-  /** Request snippets emitted for each operation. Defaults to curl and TypeScript. */
+  /** Request snippets emitted for each operation. Defaults to curl, TypeScript, Python, and Go. */
   readonly codeSamples?: ReadonlyArray<
     'curl' | 'typescript' | 'python' | 'go' | 'java' | 'php' | 'csharp'
   >

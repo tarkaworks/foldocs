@@ -1,0 +1,63 @@
+---
+title: "List projects"
+description: "Returns all projects the authenticated user has access to."
+label: "GET /projects"
+order: 11
+tags:
+  - "Projects"
+---
+
+# List projects
+
+`GET /projects`
+
+Returns all projects the authenticated user has access to.
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+| --- | --- | --- | --- | --- |
+| `limit` | query | No | `integer` | Maximum number of items to return |
+| `offset` | query | No | `integer` | Number of items to skip |
+
+<ApiPlayground id="listprojects" method="GET" url="https://api.foldocs.dev/projects" body="" />
+
+## Request examples
+
+```bash tab="cURL"
+curl --request GET --url "https://api.foldocs.dev/projects"
+```
+
+```ts tab="TypeScript"
+const response = await fetch("https://api.foldocs.dev/projects", {
+  method: "GET",
+});
+
+const data = await response.json();
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("GET", "https://api.foldocs.dev/projects")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("GET", "https://api.foldocs.dev/projects", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+
+## Responses
+
+### 200 List of projects
+
+`application/json`
+
+```json
+"string"
+```

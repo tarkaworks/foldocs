@@ -1,0 +1,32 @@
+{
+  "title": "Foldocs API",
+  "description": "The Foldocs API provides programmatic access to documentation management, search, and content delivery.\n\n## Authentication\n\nAll API requests require authentication via Bearer token or API key.\n\n## Rate Limiting\n\nAPI requests are limited to 1000 requests per hour per API key.\n\n## Pagination\n\nList endpoints support cursor-based pagination using the `offset` and `limit` parameters.\n",
+  "root": true,
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "---Documents---",
+    "listdocuments",
+    "createdocument",
+    "getdocument",
+    "updatedocument",
+    "deletedocument",
+    "listdocumentversions",
+    "publishdocument",
+    "---Search---",
+    "searchdocuments",
+    "suggestsearch",
+    "---Projects---",
+    "listprojects",
+    "createproject",
+    "getproject",
+    "updateproject",
+    "deleteproject",
+    "---Webhooks---",
+    "listwebhooks",
+    "createwebhook",
+    "---Analytics---",
+    "getpageviews",
+    "getsearchanalytics"
+  ]
+}

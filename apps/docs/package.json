@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "check": "foldocs check --locales en,es --fallback-locale en",
-    "generate:api": "foldocs-openapi openapi.yaml content/docs/en/api /en/docs/api",
+    "generate:api": "foldocs-openapi openapi.yaml content/docs/en/openapi /en/docs/openapi",
     "generate:events": "foldocs-asyncapi asyncapi.yaml content/docs/en/events /en/docs/events",
     "generate:typescript": "foldocs-typescript reference.ts content/docs/en/typescript /en/docs/typescript",
     "generate:python": "foldocs-python reference.py content/docs/en/python /en/docs/python",

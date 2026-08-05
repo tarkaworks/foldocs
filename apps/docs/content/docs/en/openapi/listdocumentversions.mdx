@@ -1,0 +1,70 @@
+---
+title: "List document versions"
+description: "Returns all saved versions of a document."
+label: "GET /documents/{documentId}/versions"
+order: 7
+tags:
+  - "Documents"
+---
+
+# List document versions
+
+`GET /documents/{documentId}/versions`
+
+Returns all saved versions of a document.
+
+## Parameters
+
+| Name | In | Required | Type | Description |
+| --- | --- | --- | --- | --- |
+| `documentId` | path | Yes | `string<uuid>` | Unique document identifier |
+
+<ApiPlayground id="listdocumentversions" method="GET" url="https://api.foldocs.dev/documents/{documentId}/versions" body="" />
+
+## Request examples
+
+```bash tab="cURL"
+curl --request GET --url "https://api.foldocs.dev/documents/{documentId}/versions"
+```
+
+```ts tab="TypeScript"
+const response = await fetch("https://api.foldocs.dev/documents/{documentId}/versions", {
+  method: "GET",
+});
+
+const data = await response.json();
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("GET", "https://api.foldocs.dev/documents/{documentId}/versions")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("GET", "https://api.foldocs.dev/documents/{documentId}/versions", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+
+## Responses
+
+### 200 List of document versions
+
+`application/json`
+
+```json
+[
+  {
+    "id": "string",
+    "version": 3,
+    "content": "string",
+    "createdAt": "string",
+    "createdBy": "string"
+  }
+]
+```

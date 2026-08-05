@@ -2,72 +2,1172 @@ openapi: 3.1.0
 info:
   title: Foldocs API
   version: 1.0.0
-  description: Example endpoints rendered by the separate @foldocs/openapi package.
+  description: |
+    The Foldocs API provides programmatic access to documentation management, search, and content delivery.
+
+    ## Authentication
+
+    All API requests require authentication via Bearer token or API key.
+
+    ## Rate Limiting
+
+    API requests are limited to 1000 requests per hour per API key.
+
+    ## Pagination
+
+    List endpoints support cursor-based pagination using the `offset` and `limit` parameters.
+
+  contact:
+    name: Foldocs Support
+    url: https://github.com/tarkaworks/foldocs
+    email: support@foldocs.dev
+  license:
+    name: MIT
+    url: https://opensource.org/license/MIT
+
 servers:
-  - url: https://api.example.com
+  - url: https://api.foldocs.dev
+    description: Production
+  - url: https://staging-api.foldocs.dev
+    description: Staging
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+tags:
+  - name: Documents
+    description: Manage documentation pages and their metadata.
+  - name: Search
+    description: Full-text search across documentation content.
+  - name: Projects
+    description: Manage documentation projects and their configuration.
+  - name: Webhooks
+    description: Webhook subscriptions for real-time events.
+  - name: Analytics
+    description: Documentation usage analytics and insights.
+
 paths:
-  /documents/{slug}:
+  /documents:
     get:
-      operationId: getDocument
-      summary: Get a document
-      description: Returns compiled metadata for a documentation page.
-      tags: [Documents]
+      tags:
+        - Documents
+      summary: List all documents
+      description: Returns a paginated list of all documents in the project.
+      operationId: listDocuments
       parameters:
-        - name: slug
-          in: path
-          required: true
-          description: The route-relative document slug.
+        - $ref: '#/components/parameters/ProjectId'
+        - $ref: '#/components/parameters/Locale'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: tag
+          in: query
+          description: Filter by tag
           schema:
             type: string
       responses:
         '200':
-          description: Compiled document metadata.
+          description: Paginated list of documents
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Document'
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+    post:
+      tags:
+        - Documents
+      summary: Create a document
+      description: Creates a new documentation page.
+      operationId: createDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Document created successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /documents/{documentId}:
+    get:
+      tags:
+        - Documents
+      summary: Get a document
+      description: Returns detailed metadata for a specific document.
+      operationId: getDocument
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Documents
+      summary: Update a document
+      description: Updates an existing document's metadata or content.
+      operationId: updateDocument
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentRequest'
+      responses:
+        '200':
+          description: Document updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Documents
+      summary: Delete a document
+      description: Permanently removes a document and all its versions.
+      operationId: deleteDocument
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '204':
+          description: Document deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /documents/{documentId}/versions:
+    get:
+      tags:
+        - Documents
+      summary: List document versions
+      description: Returns all saved versions of a document.
+      operationId: listDocumentVersions
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: List of document versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentVersion'
+
+  /documents/{documentId}/publish:
+    post:
+      tags:
+        - Documents
+      summary: Publish a document
+      description: Publishes a document, making it publicly accessible.
+      operationId: publishDocument
+      parameters:
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Document published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /search:
     post:
-      operationId: searchDocuments
+      tags:
+        - Search
       summary: Search documents
-      description: Searches the active locale's documentation index.
-      tags: [Search]
+      description: Performs full-text search across all documentation content.
+      operationId: searchDocuments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /search/suggest:
+    post:
+      tags:
+        - Search
+      summary: Get search suggestions
+      description: Returns autocomplete suggestions for a search query.
+      operationId: suggestSearch
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [query]
+              required:
+                - query
               properties:
                 query:
                   type: string
-                  description: Full-text search query.
-                locale:
-                  type: string
-                  description: Requested content locale.
+                  description: Partial search query
+                limit:
+                  type: integer
+                  description: Maximum number of suggestions
+                  default: 5
       responses:
         '200':
-          description: Matching documents.
+          description: Search suggestions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestions:
+                    type: array
+                    items:
+                      type: string
+
+  /projects:
+    get:
+      tags:
+        - Projects
+      summary: List projects
+      description: Returns all projects the authenticated user has access to.
+      operationId: listProjects
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Project'
+
+    post:
+      tags:
+        - Projects
+      summary: Create a project
+      description: Creates a new documentation project.
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /projects/{projectId}:
+    get:
+      tags:
+        - Projects
+      summary: Get project details
+      description: Returns detailed information about a project.
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Projects
+      summary: Update project
+      description: Updates a project's configuration.
+      operationId: updateProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Projects
+      summary: Delete project
+      description: Permanently deletes a project and all its documents.
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List webhook subscriptions
+      description: Returns all configured webhook subscriptions.
+      operationId: listWebhooks
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: List of webhooks
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Document'
+                  $ref: '#/components/schemas/Webhook'
+
+    post:
+      tags:
+        - Webhooks
+      summary: Create webhook subscription
+      description: Creates a new webhook subscription for project events.
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /analytics/views:
+    get:
+      tags:
+        - Analytics
+      summary: Get page view analytics
+      description: Returns page view statistics for a date range.
+      operationId: getPageViews
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: startDate
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: granularity
+          in: query
+          description: Data granularity
+          schema:
+            type: string
+            enum:
+              - hour
+              - day
+              - week
+              - month
+            default: day
+      responses:
+        '200':
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsResponse'
+
+  /analytics/searches:
+    get:
+      tags:
+        - Analytics
+      summary: Get search analytics
+      description: Returns search query statistics and popular searches.
+      operationId: getSearchAnalytics
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+        - name: startDate
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Search analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchAnalyticsResponse'
+
+webhooks:
+  document.published:
+    post:
+      tags:
+        - Webhooks
+      summary: Document published event
+      description: Fired when a document is published.
+      operationId: onDocumentPublished
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEvent'
+      responses:
+        '200':
+          description: Event received successfully
+
+  document.updated:
+    post:
+      tags:
+        - Webhooks
+      summary: Document updated event
+      description: Fired when a document is updated.
+      operationId: onDocumentUpdated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEvent'
+      responses:
+        '200':
+          description: Event received successfully
+
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token authentication
+
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key authentication
+
+  parameters:
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      description: Unique project identifier
+      schema:
+        type: string
+        format: uuid
+
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      description: Unique document identifier
+      schema:
+        type: string
+        format: uuid
+
+    Locale:
+      name: locale
+      in: query
+      description: Content locale (e.g., en, es)
+      schema:
+        type: string
+        default: en
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  headers:
+    X-RateLimit-Limit:
+      description: Maximum requests per hour
+      schema:
+        type: integer
+        example: 1000
+
+    X-RateLimit-Remaining:
+      description: Remaining requests in current window
+      schema:
+        type: integer
+        example: 999
+
+    X-RateLimit-Reset:
+      description: Time until rate limit resets (Unix timestamp)
+      schema:
+        type: integer
+        example: 1703980800
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          description: Seconds until rate limit resets
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
   schemas:
     Document:
       type: object
-      required: [slug, title, url]
+      required:
+        - id
+        - slug
+        - title
+        - content
+        - projectId
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique document identifier
+          example: "doc_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+        slug:
+          type: string
+          description: URL-friendly document identifier
+          example: "getting-started"
+
+        title:
+          type: string
+          description: Document title
+          example: "Getting Started"
+
+        description:
+          type: string
+          description: Optional document description
+          example: "Learn how to set up and use Foldocs."
+
+        content:
+          type: string
+          description: Markdown or MDX content
+          example: "# Getting Started\n\nWelcome to Foldocs..."
+
+        locale:
+          type: string
+          description: Content locale
+          example: "en"
+
+        tags:
+          type: array
+          items:
+            type: string
+          description: Content tags for organization
+          example:
+            - guide
+            - beginner
+
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+            - archived
+          description: Document status
+          example: "published"
+
+        projectId:
+          type: string
+          format: uuid
+          description: Parent project identifier
+
+        publishedAt:
+          type: string
+          format: date-time
+          description: Publication timestamp
+
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateDocumentRequest:
+      type: object
+      required:
+        - title
+        - content
       properties:
         slug:
           type: string
-          description: Route-relative slug.
+          description: Custom slug (auto-generated if omitted)
+
         title:
           type: string
-          description: Page title.
+          description: Document title
+
+        description:
+          type: string
+          description: Optional description
+
+        content:
+          type: string
+          description: Markdown or MDX content
+
+        locale:
+          type: string
+          description: Content locale
+          default: en
+
+        tags:
+          type: array
+          items:
+            type: string
+          description: Content tags
+
+    UpdateDocumentRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Updated title
+
+        description:
+          type: string
+          description: Updated description
+
+        content:
+          type: string
+          description: Updated content
+
+        tags:
+          type: array
+          items:
+            type: string
+          description: Updated tags
+
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+            - archived
+          description: Updated status
+
+    DocumentVersion:
+      type: object
+      required:
+        - id
+        - version
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Version identifier
+
+        version:
+          type: integer
+          description: Version number
+          example: 3
+
+        content:
+          type: string
+          description: Version content snapshot
+
+        createdAt:
+          type: string
+          format: date-time
+          description: Version creation timestamp
+
+        createdBy:
+          type: string
+          description: User who created this version
+
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique project identifier
+
+        name:
+          type: string
+          description: Project display name
+          example: "My Documentation"
+
+        slug:
+          type: string
+          description: URL-friendly project identifier
+          example: "my-docs"
+
+        description:
+          type: string
+          description: Project description
+          example: "API documentation for my project"
+
+        baseUrl:
+          type: string
+          format: uri
+          description: Project base URL
+          example: "https://docs.example.com"
+
+        locales:
+          type: array
+          items:
+            type: string
+          description: Supported locales
+          example:
+            - en
+            - es
+
+        defaultLocale:
+          type: string
+          description: Default locale
+          example: "en"
+
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    CreateProjectRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Project name
+
+        description:
+          type: string
+          description: Optional description
+
+        baseUrl:
+          type: string
+          format: uri
+          description: Optional base URL
+
+        locales:
+          type: array
+          items:
+            type: string
+          description: Supported locales
+          default:
+            - en
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Updated name
+
+        description:
+          type: string
+          description: Updated description
+
+        baseUrl:
+          type: string
+          format: uri
+          description: Updated base URL
+
+    SearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Search query string
+          example: "authentication setup"
+
+        locale:
+          type: string
+          description: Filter by locale
+
+        tags:
+          type: array
+          items:
+            type: string
+          description: Filter by tags
+
+        limit:
+          type: integer
+          description: Maximum results
+          default: 10
+
+    SearchResponse:
+      type: object
+      required:
+        - results
+        - total
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+
+        total:
+          type: integer
+          description: Total matching results
+          example: 42
+
+        query:
+          type: string
+          description: Original search query
+
+    SearchResult:
+      type: object
+      required:
+        - documentId
+        - title
+        - snippet
+        - score
+      properties:
+        documentId:
+          type: string
+          format: uuid
+          description: Matching document ID
+
+        title:
+          type: string
+          description: Document title
+          example: "Authentication Guide"
+
+        slug:
+          type: string
+          description: Document slug
+          example: "auth-guide"
+
+        snippet:
+          type: string
+          description: Relevant content snippet with highlights
+          example: "Learn how to set up **authentication** using JWT tokens..."
+
+        score:
+          type: number
+          format: float
+          description: Relevance score (0-1)
+          example: 0.95
+
+    Webhook:
+      type: object
+      required:
+        - id
+        - url
+        - events
+        - active
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Webhook identifier
+
         url:
           type: string
           format: uri
-          description: Localized public URL.
+          description: Webhook endpoint URL
+          example: "https://example.com/webhooks/foldocs"
+
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - document.published
+              - document.updated
+              - document.deleted
+          description: Subscribed events
+
+        active:
+          type: boolean
+          description: Whether webhook is active
+          example: true
+
+        secret:
+          type: string
+          description: Webhook signing secret (shown once)
+
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+    CreateWebhookRequest:
+      type: object
+      required:
+        - url
+        - events
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Endpoint URL for webhook delivery
+
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              - document.published
+              - document.updated
+              - document.deleted
+          description: Events to subscribe to
+
+    WebhookEvent:
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Event identifier
+
+        type:
+          type: string
+          description: Event type
+          example: "document.published"
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+
+        data:
+          type: object
+          description: Event payload
+
+    AnalyticsResponse:
+      type: object
+      required:
+        - data
+        - summary
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              views:
+                type: integer
+              uniqueVisitors:
+                type: integer
+
+        summary:
+          type: object
+          properties:
+            totalViews:
+              type: integer
+              example: 12500
+            totalUniqueVisitors:
+              type: integer
+              example: 3200
+            averageViewsPerDay:
+              type: number
+              format: float
+              example: 416.67
+
+    SearchAnalyticsResponse:
+      type: object
+      required:
+        - queries
+        - summary
+      properties:
+        queries:
+          type: array
+          items:
+            type: object
+            properties:
+              query:
+                type: string
+              count:
+                type: integer
+              avgResults:
+                type: number
+                format: float
+
+        summary:
+          type: object
+          properties:
+            totalSearches:
+              type: integer
+              example: 8500
+            uniqueQueries:
+              type: integer
+              example: 1200
+            avgResultsPerQuery:
+              type: number
+              format: float
+              example: 5.3
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "VALIDATION_ERROR"
+
+        message:
+          type: string
+          description: Human-readable error message
+          example: "The request body is invalid."
+
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+          description: Optional field-level error details
