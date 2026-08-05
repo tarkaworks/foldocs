@@ -479,24 +479,29 @@ export interface FoldocsConfig {
     readonly formats?: ReadonlyArray<'webp' | 'avif' | 'png' | 'jpeg'>
     readonly sizes?: ReadonlyArray<number>
   }
-  readonly comments?: {
-    readonly provider: 'giscus' | 'utterances'
-    readonly repo: string
-    readonly repoId: string
-    readonly category?: string
-    readonly categoryId?: string
-    readonly mapping?: 'url' | 'title' | 'og:title' | 'specific' | 'number'
-    readonly reactions?: boolean
-    readonly inputPosition?: 'top' | 'bottom'
-    readonly theme?: 'light' | 'dark' | 'preferred_color_scheme' | 'transparent'
-    readonly lang?: string
-  } | false
-  readonly analytics?: {
-    readonly provider: 'vercel' | 'plausible' | 'umami' | 'posthog' | 'ga4'
-    readonly domain?: string
-    readonly apiHost?: string
-    readonly measurementId?: string
-  } | false
+  readonly comments?:
+    | {
+        readonly provider: 'giscus' | 'utterances'
+        readonly repo: string
+        readonly repoId: string
+        readonly category?: string
+        readonly categoryId?: string
+        readonly mapping?: 'url' | 'title' | 'og:title' | 'specific' | 'number'
+        readonly reactions?: boolean
+        readonly inputPosition?: 'top' | 'bottom'
+        readonly theme?:
+          'light' | 'dark' | 'preferred_color_scheme' | 'transparent'
+        readonly lang?: string
+      }
+    | false
+  readonly analytics?:
+    | {
+        readonly provider: 'vercel' | 'plausible' | 'umami' | 'posthog' | 'ga4'
+        readonly domain?: string
+        readonly apiHost?: string
+        readonly measurementId?: string
+      }
+    | false
 }
 
 export interface ResolvedFoldocsConfig {
@@ -904,7 +909,8 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
         : {}),
     },
     analytics: {
-      enabled: config.analytics !== false && typeof config.analytics === 'object',
+      enabled:
+        config.analytics !== false && typeof config.analytics === 'object',
       ...(typeof config.analytics === 'object'
         ? {
             provider: config.analytics.provider,

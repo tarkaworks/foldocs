@@ -1,10 +1,10 @@
 ---
-title: "Create webhook subscription"
-description: "Creates a new webhook subscription for project events."
-label: "POST /webhooks"
+title: 'Create webhook subscription'
+description: 'Creates a new webhook subscription for project events.'
+label: 'POST /webhooks'
 order: 17
 tags:
-  - "Webhooks"
+  - 'Webhooks'
 ---
 
 # Create webhook subscription
@@ -17,21 +17,24 @@ Creates a new webhook subscription for project events.
 
 Required · `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `url` | `string<uri>` | Yes | Endpoint URL for webhook delivery |
-| `events` | `array` | Yes | Events to subscribe to |
+| Field    | Type          | Required | Description                       |
+| -------- | ------------- | -------- | --------------------------------- |
+| `url`    | `string<uri>` | Yes      | Endpoint URL for webhook delivery |
+| `events` | `array`       | Yes      | Events to subscribe to            |
 
 ```json
 {
   "url": "string",
-  "events": [
-    "string"
-  ]
+  "events": ["string"]
 }
 ```
 
-<ApiPlayground id="createwebhook" method="POST" url="https://api.foldocs.dev/webhooks" body="%7B%0A%20%20%22url%22%3A%20%22string%22%2C%0A%20%20%22events%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%0A%7D" />
+<ApiPlayground
+  id="createwebhook"
+  method="POST"
+  url="https://api.foldocs.dev/webhooks"
+  body="%7B%0A%20%20%22url%22%3A%20%22string%22%2C%0A%20%20%22events%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%0A%7D"
+/>
 
 ## Request examples
 
@@ -40,18 +43,16 @@ curl --request POST --url "https://api.foldocs.dev/webhooks" --header 'content-t
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/webhooks", {
-  method: "POST",
-  headers: { "content-type": "application/json" },
+const response = await fetch('https://api.foldocs.dev/webhooks', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
   body: JSON.stringify({
-    "url": "string",
-    "events": [
-      "string"
-    ]
+    url: 'string',
+    events: ['string'],
   }),
-});
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -70,29 +71,26 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 201 Webhook created successfully
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `id` | `string<uuid>` | Yes | Webhook identifier |
-| `url` | `string<uri>` | Yes | Webhook endpoint URL |
-| `events` | `array` | Yes | Subscribed events |
-| `active` | `boolean` | Yes | Whether webhook is active |
-| `secret` | `string` | No | Webhook signing secret (shown once) |
-| `createdAt` | `string<date-time>` | No | Creation timestamp |
+| Field       | Type                | Required | Description                         |
+| ----------- | ------------------- | -------- | ----------------------------------- |
+| `id`        | `string<uuid>`      | Yes      | Webhook identifier                  |
+| `url`       | `string<uri>`       | Yes      | Webhook endpoint URL                |
+| `events`    | `array`             | Yes      | Subscribed events                   |
+| `active`    | `boolean`           | Yes      | Whether webhook is active           |
+| `secret`    | `string`            | No       | Webhook signing secret (shown once) |
+| `createdAt` | `string<date-time>` | No       | Creation timestamp                  |
 
 ```json
 {
   "id": "string",
   "url": "https://example.com/webhooks/foldocs",
-  "events": [
-    "string"
-  ],
+  "events": ["string"],
   "active": true,
   "secret": "string",
   "createdAt": "string"
@@ -103,11 +101,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {

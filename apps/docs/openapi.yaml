@@ -652,22 +652,22 @@ components:
           type: string
           format: uuid
           description: Unique document identifier
-          example: "doc_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          example: 'doc_a1b2c3d4-e5f6-7890-abcd-ef1234567890'
 
         slug:
           type: string
           description: URL-friendly document identifier
-          example: "getting-started"
+          example: 'getting-started'
 
         title:
           type: string
           description: Document title
-          example: "Getting Started"
+          example: 'Getting Started'
 
         description:
           type: string
           description: Optional document description
-          example: "Learn how to set up and use Foldocs."
+          example: 'Learn how to set up and use Foldocs.'
 
         content:
           type: string
@@ -677,7 +677,7 @@ components:
         locale:
           type: string
           description: Content locale
-          example: "en"
+          example: 'en'
 
         tags:
           type: array
@@ -695,7 +695,7 @@ components:
             - published
             - archived
           description: Document status
-          example: "published"
+          example: 'published'
 
         projectId:
           type: string
@@ -825,23 +825,23 @@ components:
         name:
           type: string
           description: Project display name
-          example: "My Documentation"
+          example: 'My Documentation'
 
         slug:
           type: string
           description: URL-friendly project identifier
-          example: "my-docs"
+          example: 'my-docs'
 
         description:
           type: string
           description: Project description
-          example: "API documentation for my project"
+          example: 'API documentation for my project'
 
         baseUrl:
           type: string
           format: uri
           description: Project base URL
-          example: "https://docs.example.com"
+          example: 'https://docs.example.com'
 
         locales:
           type: array
@@ -855,7 +855,7 @@ components:
         defaultLocale:
           type: string
           description: Default locale
-          example: "en"
+          example: 'en'
 
         createdAt:
           type: string
@@ -917,7 +917,7 @@ components:
         query:
           type: string
           description: Search query string
-          example: "authentication setup"
+          example: 'authentication setup'
 
         locale:
           type: string
@@ -970,17 +970,17 @@ components:
         title:
           type: string
           description: Document title
-          example: "Authentication Guide"
+          example: 'Authentication Guide'
 
         slug:
           type: string
           description: Document slug
-          example: "auth-guide"
+          example: 'auth-guide'
 
         snippet:
           type: string
           description: Relevant content snippet with highlights
-          example: "Learn how to set up **authentication** using JWT tokens..."
+          example: 'Learn how to set up **authentication** using JWT tokens...'
 
         score:
           type: number
@@ -1005,7 +1005,7 @@ components:
           type: string
           format: uri
           description: Webhook endpoint URL
-          example: "https://example.com/webhooks/foldocs"
+          example: 'https://example.com/webhooks/foldocs'
 
         events:
           type: array
@@ -1068,7 +1068,7 @@ components:
         type:
           type: string
           description: Event type
-          example: "document.published"
+          example: 'document.published'
 
         timestamp:
           type: string
@@ -1154,12 +1154,12 @@ components:
         code:
           type: string
           description: Machine-readable error code
-          example: "VALIDATION_ERROR"
+          example: 'VALIDATION_ERROR'
 
         message:
           type: string
           description: Human-readable error message
-          example: "The request body is invalid."
+          example: 'The request body is invalid.'
 
         details:
           type: array

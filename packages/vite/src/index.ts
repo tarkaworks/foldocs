@@ -523,7 +523,7 @@ const headTags = (
   const hasCustomFonts =
     fontStyles.length > 0 &&
     fontStyles !==
-      "--fd-font-sans: Inter, sans-serif; --fd-font-mono: JetBrains Mono, monospace;"
+      '--fd-font-sans: Inter, sans-serif; --fd-font-mono: JetBrains Mono, monospace;'
   return [
     ...(hasCustomFonts
       ? [
@@ -1766,7 +1766,8 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           if (isImage && config.images.optimize) {
             const sharp = await import('sharp')
             const imageBuffer = await fs.readFile(file)
-            const optimized = await sharp.default(imageBuffer)
+            const optimized = await sharp
+              .default(imageBuffer)
               .resize({
                 width: config.images.sizes[config.images.sizes.length - 1],
                 withoutEnlargement: true,
@@ -2069,9 +2070,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             if (locale === config.i18n.defaultLocale) continue
             lines.push(`/${locale}/*  /${locale}/:splat  301`)
           }
-          lines.push(
-            `/*  /${config.i18n.defaultLocale}/:splat  301`,
-          )
+          lines.push(`/*  /${config.i18n.defaultLocale}/:splat  301`)
         }
         if (lines.length > 0) {
           this.emitFile({

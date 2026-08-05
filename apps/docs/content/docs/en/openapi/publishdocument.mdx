@@ -1,10 +1,10 @@
 ---
-title: "Publish a document"
-description: "Publishes a document, making it publicly accessible."
-label: "POST /documents/{documentId}/publish"
+title: 'Publish a document'
+description: 'Publishes a document, making it publicly accessible.'
+label: 'POST /documents/{documentId}/publish'
 order: 8
 tags:
-  - "Documents"
+  - 'Documents'
 ---
 
 # Publish a document
@@ -15,11 +15,16 @@ Publishes a document, making it publicly accessible.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `documentId` | path | Yes | `string<uuid>` | Unique document identifier |
+| Name         | In   | Required | Type           | Description                |
+| ------------ | ---- | -------- | -------------- | -------------------------- |
+| `documentId` | path | Yes      | `string<uuid>` | Unique document identifier |
 
-<ApiPlayground id="publishdocument" method="POST" url="https://api.foldocs.dev/documents/{documentId}/publish" body="" />
+<ApiPlayground
+  id="publishdocument"
+  method="POST"
+  url="https://api.foldocs.dev/documents/{documentId}/publish"
+  body=""
+/>
 
 ## Request examples
 
@@ -28,11 +33,14 @@ curl --request POST --url "https://api.foldocs.dev/documents/{documentId}/publis
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/documents/{documentId}/publish", {
-  method: "POST",
-});
+const response = await fetch(
+  'https://api.foldocs.dev/documents/{documentId}/publish',
+  {
+    method: 'POST',
+  },
+)
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -50,27 +58,26 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Document published successfully
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `id` | `string<uuid>` | Yes | Unique document identifier |
-| `slug` | `string` | Yes | URL-friendly document identifier |
-| `title` | `string` | Yes | Document title |
-| `description` | `string` | No | Optional document description |
-| `content` | `string` | Yes | Markdown or MDX content |
-| `locale` | `string` | No | Content locale |
-| `tags` | `array` | No | Content tags for organization |
-| `status` | `string` | No | Document status |
-| `projectId` | `string<uuid>` | Yes | Parent project identifier |
-| `publishedAt` | `string<date-time>` | No | Publication timestamp |
-| `createdAt` | `string<date-time>` | Yes | Creation timestamp |
-| `updatedAt` | `string<date-time>` | Yes | Last update timestamp |
+| Field         | Type                | Required | Description                      |
+| ------------- | ------------------- | -------- | -------------------------------- |
+| `id`          | `string<uuid>`      | Yes      | Unique document identifier       |
+| `slug`        | `string`            | Yes      | URL-friendly document identifier |
+| `title`       | `string`            | Yes      | Document title                   |
+| `description` | `string`            | No       | Optional document description    |
+| `content`     | `string`            | Yes      | Markdown or MDX content          |
+| `locale`      | `string`            | No       | Content locale                   |
+| `tags`        | `array`             | No       | Content tags for organization    |
+| `status`      | `string`            | No       | Document status                  |
+| `projectId`   | `string<uuid>`      | Yes      | Parent project identifier        |
+| `publishedAt` | `string<date-time>` | No       | Publication timestamp            |
+| `createdAt`   | `string<date-time>` | Yes      | Creation timestamp               |
+| `updatedAt`   | `string<date-time>` | Yes      | Last update timestamp            |
 
 ```json
 {
@@ -80,10 +87,7 @@ defer response.Body.Close()
   "description": "Learn how to set up and use Foldocs.",
   "content": "# Getting Started\n\nWelcome to Foldocs...",
   "locale": "en",
-  "tags": [
-    "guide",
-    "beginner"
-  ],
+  "tags": ["guide", "beginner"],
   "status": "published",
   "projectId": "string",
   "publishedAt": "string",
@@ -96,11 +100,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {

@@ -1,10 +1,10 @@
 ---
-title: "Get search analytics"
-description: "Returns search query statistics and popular searches."
-label: "GET /analytics/searches"
+title: 'Get search analytics'
+description: 'Returns search query statistics and popular searches.'
+label: 'GET /analytics/searches'
 order: 19
 tags:
-  - "Analytics"
+  - 'Analytics'
 ---
 
 # Get search analytics
@@ -15,13 +15,18 @@ Returns search query statistics and popular searches.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
-| `startDate` | query | No | `string<date>` | Start date (ISO 8601) |
-| `endDate` | query | No | `string<date>` | End date (ISO 8601) |
+| Name        | In    | Required | Type           | Description               |
+| ----------- | ----- | -------- | -------------- | ------------------------- |
+| `projectId` | path  | Yes      | `string<uuid>` | Unique project identifier |
+| `startDate` | query | No       | `string<date>` | Start date (ISO 8601)     |
+| `endDate`   | query | No       | `string<date>` | End date (ISO 8601)       |
 
-<ApiPlayground id="getsearchanalytics" method="GET" url="https://api.foldocs.dev/analytics/searches" body="" />
+<ApiPlayground
+  id="getsearchanalytics"
+  method="GET"
+  url="https://api.foldocs.dev/analytics/searches"
+  body=""
+/>
 
 ## Request examples
 
@@ -30,11 +35,11 @@ curl --request GET --url "https://api.foldocs.dev/analytics/searches"
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/analytics/searches", {
-  method: "GET",
-});
+const response = await fetch('https://api.foldocs.dev/analytics/searches', {
+  method: 'GET',
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -52,17 +57,16 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Search analytics
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `queries` | `array` | Yes | — |
-| `summary` | `object` | Yes | — |
+| Field     | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `queries` | `array`  | Yes      | —           |
+| `summary` | `object` | Yes      | —           |
 
 ```json
 {

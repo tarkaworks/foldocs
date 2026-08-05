@@ -69,7 +69,7 @@ export class WebMcpClient {
         throw new Error(`MCP server returned ${response.status}`)
       }
 
-      const data = await response.json() as {
+      const data = (await response.json()) as {
         result?: { capabilities?: { tools?: unknown } }
       }
       if (data.result?.capabilities?.tools !== undefined) {
@@ -109,7 +109,7 @@ export class WebMcpClient {
       throw new Error(`MCP server returned ${response.status}`)
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       result?: { tools?: McpTool[] }
     }
     this.tools = data.result?.tools ?? []
@@ -147,7 +147,7 @@ export class WebMcpClient {
       throw new Error(`MCP server returned ${response.status}`)
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       result?: McpToolResult
       error?: { message?: string }
     }

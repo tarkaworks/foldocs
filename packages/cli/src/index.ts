@@ -790,7 +790,8 @@ export interface AuditOptions extends CheckOptions {
 }
 
 export interface AuditIssue extends CheckIssue {
-  readonly category: 'links' | 'seo' | 'accessibility' | 'performance' | 'security' | 'content'
+  readonly category:
+    'links' | 'seo' | 'accessibility' | 'performance' | 'security' | 'content'
   readonly impact?: 'critical' | 'serious' | 'moderate' | 'minor'
 }
 
@@ -908,7 +909,10 @@ export const audit = (
               impact: 'moderate',
             })
           }
-          if (!frontmatter.description || frontmatter.description.length === 0) {
+          if (
+            !frontmatter.description ||
+            frontmatter.description.length === 0
+          ) {
             issues.push({
               level: 'warning',
               file: path.relative(root, page.file),
@@ -1075,7 +1079,8 @@ export interface EvalOptions extends CheckOptions {
 export interface EvalTest {
   readonly id: string
   readonly name: string
-  readonly category: 'accuracy' | 'completeness' | 'clarity' | 'consistency' | 'examples'
+  readonly category:
+    'accuracy' | 'completeness' | 'clarity' | 'consistency' | 'examples'
   readonly prompt: string
   readonly expectedBehavior: string
 }
@@ -1112,36 +1117,46 @@ const defaultEvalTests: ReadonlyArray<EvalTest> = [
     id: 'accuracy-001',
     name: 'Technical Accuracy',
     category: 'accuracy',
-    prompt: 'Review this documentation page for technical accuracy. Check if the code examples are correct, API descriptions match the actual behavior, and any claims are verifiable.',
-    expectedBehavior: 'All code examples should be syntactically correct and demonstrate the described functionality.',
+    prompt:
+      'Review this documentation page for technical accuracy. Check if the code examples are correct, API descriptions match the actual behavior, and any claims are verifiable.',
+    expectedBehavior:
+      'All code examples should be syntactically correct and demonstrate the described functionality.',
   },
   {
     id: 'completeness-001',
     name: 'API Coverage',
     category: 'completeness',
-    prompt: 'Check if this documentation page covers all the important aspects of the topic. Are there any missing sections, parameters, return types, or edge cases?',
-    expectedBehavior: 'Documentation should cover the main use cases, parameters, return values, and common edge cases.',
+    prompt:
+      'Check if this documentation page covers all the important aspects of the topic. Are there any missing sections, parameters, return types, or edge cases?',
+    expectedBehavior:
+      'Documentation should cover the main use cases, parameters, return values, and common edge cases.',
   },
   {
     id: 'clarity-001',
     name: 'Readability',
     category: 'clarity',
-    prompt: 'Evaluate the readability of this documentation. Is the language clear? Are sentences concise? Is the structure logical?',
-    expectedBehavior: 'Documentation should be easy to understand for the target audience.',
+    prompt:
+      'Evaluate the readability of this documentation. Is the language clear? Are sentences concise? Is the structure logical?',
+    expectedBehavior:
+      'Documentation should be easy to understand for the target audience.',
   },
   {
     id: 'consistency-001',
     name: 'Style Consistency',
     category: 'consistency',
-    prompt: 'Check if the documentation follows consistent style conventions. Are headings formatted the same way? Is terminology used consistently?',
-    expectedBehavior: 'Documentation should maintain consistent formatting and terminology throughout.',
+    prompt:
+      'Check if the documentation follows consistent style conventions. Are headings formatted the same way? Is terminology used consistently?',
+    expectedBehavior:
+      'Documentation should maintain consistent formatting and terminology throughout.',
   },
   {
     id: 'examples-001',
     name: 'Code Examples',
     category: 'examples',
-    prompt: 'Review the code examples in this documentation. Are they complete? Do they demonstrate real-world usage? Are they easy to follow?',
-    expectedBehavior: 'Code examples should be complete, runnable, and demonstrate practical usage.',
+    prompt:
+      'Review the code examples in this documentation. Are they complete? Do they demonstrate real-world usage? Are they easy to follow?',
+    expectedBehavior:
+      'Code examples should be complete, runnable, and demonstrate practical usage.',
   },
 ]
 
@@ -1161,7 +1176,8 @@ const callAiEndpoint = async (
       messages: [
         {
           role: 'system',
-          content: 'You are a documentation quality evaluator. Analyze the provided documentation and give a score from 0-100 with detailed reasoning.',
+          content:
+            'You are a documentation quality evaluator. Analyze the provided documentation and give a score from 0-100 with detailed reasoning.',
         },
         {
           role: 'user',
@@ -1174,7 +1190,9 @@ const callAiEndpoint = async (
   if (!response.ok) {
     throw new Error(`AI endpoint returned ${response.status}`)
   }
-  const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> }
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>
+  }
   return data.choices?.[0]?.message?.content ?? ''
 }
 
@@ -1185,7 +1203,10 @@ const parseAiResponse = (
   category: string,
 ): EvalResult => {
   const scoreMatch = response.match(/(?:score|rating)[:\s]*(\d+)/i)
-  const score = scoreMatch !== null && scoreMatch[1] !== undefined ? parseInt(scoreMatch[1], 10) : 50
+  const score =
+    scoreMatch !== null && scoreMatch[1] !== undefined
+      ? parseInt(scoreMatch[1], 10)
+      : 50
   const passed = score >= 70
   const suggestions = response
     .split('\n')
@@ -1251,11 +1272,12 @@ export const eval_ = (
           })
         }
       }
-      const tests = options.models !== undefined
-        ? defaultEvalTests.filter(test =>
-            options.models!.some(model => test.id.startsWith(model)),
-          )
-        : defaultEvalTests
+      const tests =
+        options.models !== undefined
+          ? defaultEvalTests.filter(test =>
+              options.models!.some(model => test.id.startsWith(model)),
+            )
+          : defaultEvalTests
       const evaluatePage = async (
         page: CheckedPage,
       ): Promise<ReadonlyArray<EvalResult>> => {
@@ -1278,7 +1300,12 @@ export const eval_ = (
         const results: EvalResult[] = []
         for (const test of tests) {
           try {
-            const response = await callAiEndpoint(endpoint, apiKey, test.prompt, content)
+            const response = await callAiEndpoint(
+              endpoint,
+              apiKey,
+              test.prompt,
+              content,
+            )
             results.push(
               parseAiResponse(response, test.id, test.name, test.category),
             )
@@ -1346,7 +1373,9 @@ export const eval_ = (
               : 0,
           completeness:
             categoryCounts.completeness > 0
-              ? Math.round(categoryScores.completeness / categoryCounts.completeness)
+              ? Math.round(
+                  categoryScores.completeness / categoryCounts.completeness,
+                )
               : 0,
           clarity:
             categoryCounts.clarity > 0
@@ -1354,7 +1383,9 @@ export const eval_ = (
               : 0,
           consistency:
             categoryCounts.consistency > 0
-              ? Math.round(categoryScores.consistency / categoryCounts.consistency)
+              ? Math.round(
+                  categoryScores.consistency / categoryCounts.consistency,
+                )
               : 0,
           examples:
             categoryCounts.examples > 0
@@ -1456,7 +1487,9 @@ export const formatEvalReport = (
   for (const result of report.results) {
     lines.push(`### ${result.testName}`)
     lines.push('')
-    lines.push(`**Score:** ${String(result.score)}% | **Status:** ${result.passed ? '✅ Passed' : '❌ Failed'}`)
+    lines.push(
+      `**Score:** ${String(result.score)}% | **Status:** ${result.passed ? '✅ Passed' : '❌ Failed'}`,
+    )
     lines.push('')
     lines.push(result.reasoning.slice(0, 300))
     lines.push('')

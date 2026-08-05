@@ -1,10 +1,10 @@
 ---
-title: "List all documents"
-description: "Returns a paginated list of all documents in the project."
-label: "GET /documents"
+title: 'List all documents'
+description: 'Returns a paginated list of all documents in the project.'
+label: 'GET /documents'
 order: 2
 tags:
-  - "Documents"
+  - 'Documents'
 ---
 
 # List all documents
@@ -15,15 +15,20 @@ Returns a paginated list of all documents in the project.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
-| `locale` | query | No | `string` | Content locale (e.g., en, es) |
-| `limit` | query | No | `integer` | Maximum number of items to return |
-| `offset` | query | No | `integer` | Number of items to skip |
-| `tag` | query | No | `string` | Filter by tag |
+| Name        | In    | Required | Type           | Description                       |
+| ----------- | ----- | -------- | -------------- | --------------------------------- |
+| `projectId` | path  | Yes      | `string<uuid>` | Unique project identifier         |
+| `locale`    | query | No       | `string`       | Content locale (e.g., en, es)     |
+| `limit`     | query | No       | `integer`      | Maximum number of items to return |
+| `offset`    | query | No       | `integer`      | Number of items to skip           |
+| `tag`       | query | No       | `string`       | Filter by tag                     |
 
-<ApiPlayground id="listdocuments" method="GET" url="https://api.foldocs.dev/documents" body="" />
+<ApiPlayground
+  id="listdocuments"
+  method="GET"
+  url="https://api.foldocs.dev/documents"
+  body=""
+/>
 
 ## Request examples
 
@@ -32,11 +37,11 @@ curl --request GET --url "https://api.foldocs.dev/documents"
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/documents", {
-  method: "GET",
-});
+const response = await fetch('https://api.foldocs.dev/documents', {
+  method: 'GET',
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -54,7 +59,6 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Paginated list of documents
@@ -69,11 +73,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {
@@ -92,11 +96,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {

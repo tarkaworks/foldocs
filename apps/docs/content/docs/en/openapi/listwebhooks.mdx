@@ -1,10 +1,10 @@
 ---
-title: "List webhook subscriptions"
-description: "Returns all configured webhook subscriptions."
-label: "GET /webhooks"
+title: 'List webhook subscriptions'
+description: 'Returns all configured webhook subscriptions.'
+label: 'GET /webhooks'
 order: 16
 tags:
-  - "Webhooks"
+  - 'Webhooks'
 ---
 
 # List webhook subscriptions
@@ -15,11 +15,16 @@ Returns all configured webhook subscriptions.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
+| Name        | In   | Required | Type           | Description               |
+| ----------- | ---- | -------- | -------------- | ------------------------- |
+| `projectId` | path | Yes      | `string<uuid>` | Unique project identifier |
 
-<ApiPlayground id="listwebhooks" method="GET" url="https://api.foldocs.dev/webhooks" body="" />
+<ApiPlayground
+  id="listwebhooks"
+  method="GET"
+  url="https://api.foldocs.dev/webhooks"
+  body=""
+/>
 
 ## Request examples
 
@@ -28,11 +33,11 @@ curl --request GET --url "https://api.foldocs.dev/webhooks"
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/webhooks", {
-  method: "GET",
-});
+const response = await fetch('https://api.foldocs.dev/webhooks', {
+  method: 'GET',
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -50,7 +55,6 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 List of webhooks
@@ -62,9 +66,7 @@ defer response.Body.Close()
   {
     "id": "string",
     "url": "https://example.com/webhooks/foldocs",
-    "events": [
-      "string"
-    ],
+    "events": ["string"],
     "active": true,
     "secret": "string",
     "createdAt": "string"

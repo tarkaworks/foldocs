@@ -1686,8 +1686,13 @@ html[dir='rtl'] .fd-docs-body {
 }
 
 @keyframes fd-copy-bounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
 }
 
 .fd-code-block {
@@ -2449,7 +2454,7 @@ html[dir='rtl'] .fd-docs-body {
   background: color-mix(in srgb, var(--fd-muted) 80%, var(--fd-card));
 }
 
-.fd-visibility[data-visibility="agents"] {
+.fd-visibility[data-visibility='agents'] {
   display: none;
 }
 
@@ -5422,17 +5427,17 @@ html[dir='rtl'] .fd-layout-glass .fd-docs-body {
   }
 
   a[href]::after {
-    content: " (" attr(href) ")";
+    content: ' (' attr(href) ')';
     font-size: 0.875em;
   }
 
-  a[href^="#"]::after,
-  a[href^="javascript:"]::after {
-    content: "";
+  a[href^='#']::after,
+  a[href^='javascript:']::after {
+    content: '';
   }
 
   abbr[title]::after {
-    content: " (" attr(title) ")";
+    content: ' (' attr(title) ')';
   }
 
   pre {

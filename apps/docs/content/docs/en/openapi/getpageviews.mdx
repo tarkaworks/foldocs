@@ -1,10 +1,10 @@
 ---
-title: "Get page view analytics"
-description: "Returns page view statistics for a date range."
-label: "GET /analytics/views"
+title: 'Get page view analytics'
+description: 'Returns page view statistics for a date range.'
+label: 'GET /analytics/views'
 order: 18
 tags:
-  - "Analytics"
+  - 'Analytics'
 ---
 
 # Get page view analytics
@@ -15,14 +15,19 @@ Returns page view statistics for a date range.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
-| `startDate` | query | No | `string<date>` | Start date (ISO 8601) |
-| `endDate` | query | No | `string<date>` | End date (ISO 8601) |
-| `granularity` | query | No | `string` | Data granularity |
+| Name          | In    | Required | Type           | Description               |
+| ------------- | ----- | -------- | -------------- | ------------------------- |
+| `projectId`   | path  | Yes      | `string<uuid>` | Unique project identifier |
+| `startDate`   | query | No       | `string<date>` | Start date (ISO 8601)     |
+| `endDate`     | query | No       | `string<date>` | End date (ISO 8601)       |
+| `granularity` | query | No       | `string`       | Data granularity          |
 
-<ApiPlayground id="getpageviews" method="GET" url="https://api.foldocs.dev/analytics/views" body="" />
+<ApiPlayground
+  id="getpageviews"
+  method="GET"
+  url="https://api.foldocs.dev/analytics/views"
+  body=""
+/>
 
 ## Request examples
 
@@ -31,11 +36,11 @@ curl --request GET --url "https://api.foldocs.dev/analytics/views"
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/analytics/views", {
-  method: "GET",
-});
+const response = await fetch('https://api.foldocs.dev/analytics/views', {
+  method: 'GET',
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -53,17 +58,16 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Analytics data
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `data` | `array` | Yes | — |
-| `summary` | `object` | Yes | — |
+| Field     | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `data`    | `array`  | Yes      | —           |
+| `summary` | `object` | Yes      | —           |
 
 ```json
 {

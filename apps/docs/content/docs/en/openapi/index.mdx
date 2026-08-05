@@ -1,5 +1,5 @@
 ---
-title: "Foldocs API"
+title: 'Foldocs API'
 description: "The Foldocs API provides programmatic access to documentation management, search, and content delivery.\n\n## Authentication\n\nAll API requests require authentication via Bearer token or API key.\n\n## Rate Limiting\n\nAPI requests are limited to 1000 requests per hour per API key.\n\n## Pagination\n\nList endpoints support cursor-based pagination using the `offset` and `limit` parameters.\n"
 order: 1
 index: true
@@ -21,45 +21,134 @@ API requests are limited to 1000 requests per hour per API key.
 
 List endpoints support cursor-based pagination using the `offset` and `limit` parameters.
 
-
 OpenAPI 3.1.0 · API 1.0.0
 
 <ApiCards>
 
-<ApiCard href="/en/docs/openapi/listdocuments" method="GET" title="List all documents" description="Returns a paginated list of all documents in the project." />
+<ApiCard
+  href="/en/docs/openapi/listdocuments"
+  method="GET"
+  title="List all documents"
+  description="Returns a paginated list of all documents in the project."
+/>
 
-<ApiCard href="/en/docs/openapi/createdocument" method="POST" title="Create a document" description="Creates a new documentation page." />
+<ApiCard
+  href="/en/docs/openapi/createdocument"
+  method="POST"
+  title="Create a document"
+  description="Creates a new documentation page."
+/>
 
-<ApiCard href="/en/docs/openapi/getdocument" method="GET" title="Get a document" description="Returns detailed metadata for a specific document." />
+<ApiCard
+  href="/en/docs/openapi/getdocument"
+  method="GET"
+  title="Get a document"
+  description="Returns detailed metadata for a specific document."
+/>
 
-<ApiCard href="/en/docs/openapi/updatedocument" method="PUT" title="Update a document" description="Updates an existing document's metadata or content." />
+<ApiCard
+  href="/en/docs/openapi/updatedocument"
+  method="PUT"
+  title="Update a document"
+  description="Updates an existing document's metadata or content."
+/>
 
-<ApiCard href="/en/docs/openapi/deletedocument" method="DELETE" title="Delete a document" description="Permanently removes a document and all its versions." />
+<ApiCard
+  href="/en/docs/openapi/deletedocument"
+  method="DELETE"
+  title="Delete a document"
+  description="Permanently removes a document and all its versions."
+/>
 
-<ApiCard href="/en/docs/openapi/listdocumentversions" method="GET" title="List document versions" description="Returns all saved versions of a document." />
+<ApiCard
+  href="/en/docs/openapi/listdocumentversions"
+  method="GET"
+  title="List document versions"
+  description="Returns all saved versions of a document."
+/>
 
-<ApiCard href="/en/docs/openapi/publishdocument" method="POST" title="Publish a document" description="Publishes a document, making it publicly accessible." />
+<ApiCard
+  href="/en/docs/openapi/publishdocument"
+  method="POST"
+  title="Publish a document"
+  description="Publishes a document, making it publicly accessible."
+/>
 
-<ApiCard href="/en/docs/openapi/searchdocuments" method="POST" title="Search documents" description="Performs full-text search across all documentation content." />
+<ApiCard
+  href="/en/docs/openapi/searchdocuments"
+  method="POST"
+  title="Search documents"
+  description="Performs full-text search across all documentation content."
+/>
 
-<ApiCard href="/en/docs/openapi/suggestsearch" method="POST" title="Get search suggestions" description="Returns autocomplete suggestions for a search query." />
+<ApiCard
+  href="/en/docs/openapi/suggestsearch"
+  method="POST"
+  title="Get search suggestions"
+  description="Returns autocomplete suggestions for a search query."
+/>
 
-<ApiCard href="/en/docs/openapi/listprojects" method="GET" title="List projects" description="Returns all projects the authenticated user has access to." />
+<ApiCard
+  href="/en/docs/openapi/listprojects"
+  method="GET"
+  title="List projects"
+  description="Returns all projects the authenticated user has access to."
+/>
 
-<ApiCard href="/en/docs/openapi/createproject" method="POST" title="Create a project" description="Creates a new documentation project." />
+<ApiCard
+  href="/en/docs/openapi/createproject"
+  method="POST"
+  title="Create a project"
+  description="Creates a new documentation project."
+/>
 
-<ApiCard href="/en/docs/openapi/getproject" method="GET" title="Get project details" description="Returns detailed information about a project." />
+<ApiCard
+  href="/en/docs/openapi/getproject"
+  method="GET"
+  title="Get project details"
+  description="Returns detailed information about a project."
+/>
 
-<ApiCard href="/en/docs/openapi/updateproject" method="PUT" title="Update project" description="Updates a project's configuration." />
+<ApiCard
+  href="/en/docs/openapi/updateproject"
+  method="PUT"
+  title="Update project"
+  description="Updates a project's configuration."
+/>
 
-<ApiCard href="/en/docs/openapi/deleteproject" method="DELETE" title="Delete project" description="Permanently deletes a project and all its documents." />
+<ApiCard
+  href="/en/docs/openapi/deleteproject"
+  method="DELETE"
+  title="Delete project"
+  description="Permanently deletes a project and all its documents."
+/>
 
-<ApiCard href="/en/docs/openapi/listwebhooks" method="GET" title="List webhook subscriptions" description="Returns all configured webhook subscriptions." />
+<ApiCard
+  href="/en/docs/openapi/listwebhooks"
+  method="GET"
+  title="List webhook subscriptions"
+  description="Returns all configured webhook subscriptions."
+/>
 
-<ApiCard href="/en/docs/openapi/createwebhook" method="POST" title="Create webhook subscription" description="Creates a new webhook subscription for project events." />
+<ApiCard
+  href="/en/docs/openapi/createwebhook"
+  method="POST"
+  title="Create webhook subscription"
+  description="Creates a new webhook subscription for project events."
+/>
 
-<ApiCard href="/en/docs/openapi/getpageviews" method="GET" title="Get page view analytics" description="Returns page view statistics for a date range." />
+<ApiCard
+  href="/en/docs/openapi/getpageviews"
+  method="GET"
+  title="Get page view analytics"
+  description="Returns page view statistics for a date range."
+/>
 
-<ApiCard href="/en/docs/openapi/getsearchanalytics" method="GET" title="Get search analytics" description="Returns search query statistics and popular searches." />
+<ApiCard
+  href="/en/docs/openapi/getsearchanalytics"
+  method="GET"
+  title="Get search analytics"
+  description="Returns search query statistics and popular searches."
+/>
 
 </ApiCards>

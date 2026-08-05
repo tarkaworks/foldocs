@@ -193,10 +193,7 @@ export const renderMarkdown = <Message>(
         if (component !== undefined) return component(inline, content)
         if (inline.name === 'Badge') {
           const variant = inline.attributes.variant ?? 'default'
-          return h.span(
-            [h.Class(`fd-badge fd-badge-${variant}`)],
-            content,
-          )
+          return h.span([h.Class(`fd-badge fd-badge-${variant}`)], content)
         }
         return h.span(
           [
@@ -1006,12 +1003,7 @@ export const renderMarkdown = <Message>(
               ),
               ...(description.length === 0
                 ? []
-                : [
-                    h.p(
-                      [h.Class('fd-api-card-description')],
-                      [description],
-                    ),
-                  ]),
+                : [h.p([h.Class('fd-api-card-description')], [description])]),
             ],
           )
           return href === undefined
@@ -1043,10 +1035,7 @@ export const renderMarkdown = <Message>(
         if (block.name === 'Columns') {
           const cols = block.attributes.cols ?? 2
           return h.div(
-            [
-              h.Class('fd-columns'),
-              h.Style({ 'fd-columns': String(cols) }),
-            ],
+            [h.Class('fd-columns'), h.Style({ 'fd-columns': String(cols) })],
             content,
           )
         }
@@ -1068,17 +1057,18 @@ export const renderMarkdown = <Message>(
             ],
             [
               ...content,
-              h.span([h.Class('fd-tooltip')], [
-                ...(headline !== undefined
-                  ? [h.strong([h.Class('fd-tooltip-headline')], [headline])]
-                  : []),
-                h.span([h.Class('fd-tooltip-tip')], [tip]),
-                ...(cta !== undefined && href !== undefined
-                  ? [
-                      h.a([h.Class('fd-tooltip-cta'), h.Href(href)], [cta]),
-                    ]
-                  : []),
-              ]),
+              h.span(
+                [h.Class('fd-tooltip')],
+                [
+                  ...(headline !== undefined
+                    ? [h.strong([h.Class('fd-tooltip-headline')], [headline])]
+                    : []),
+                  h.span([h.Class('fd-tooltip-tip')], [tip]),
+                  ...(cta !== undefined && href !== undefined
+                    ? [h.a([h.Class('fd-tooltip-cta'), h.Href(href)], [cta])]
+                    : []),
+                ],
+              ),
             ],
           )
         }
@@ -1090,12 +1080,15 @@ export const renderMarkdown = <Message>(
             [h.Class('fd-tile-inner')],
             [
               ...content,
-              h.div([h.Class('fd-tile-text')], [
-                h.div([h.Class('fd-tile-title')], [title]),
-                ...(description.length === 0
-                  ? []
-                  : [h.p([h.Class('fd-tile-description')], [description])]),
-              ]),
+              h.div(
+                [h.Class('fd-tile-text')],
+                [
+                  h.div([h.Class('fd-tile-title')], [title]),
+                  ...(description.length === 0
+                    ? []
+                    : [h.p([h.Class('fd-tile-description')], [description])]),
+                ],
+              ),
             ],
           )
           return href === undefined
@@ -1108,27 +1101,27 @@ export const renderMarkdown = <Message>(
             [h.Class('fd-prompt')],
             [
               h.div([h.Class('fd-prompt-description')], [description]),
-              h.div([h.Class('fd-prompt-body')], [
-                h.code([h.Class('fd-prompt-code')], content),
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.Class('fd-prompt-copy'),
-                    h.DataAttribute('content', content.join('')),
-                  ],
-                  ['Copy'],
-                ),
-              ]),
+              h.div(
+                [h.Class('fd-prompt-body')],
+                [
+                  h.code([h.Class('fd-prompt-code')], content),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.Class('fd-prompt-copy'),
+                      h.DataAttribute('content', content.join('')),
+                    ],
+                    ['Copy'],
+                  ),
+                ],
+              ),
             ],
           )
         }
         if (block.name === 'Visibility') {
           const forAttr = block.attributes.for ?? 'web'
           return h.div(
-            [
-              h.Class('fd-visibility'),
-              h.DataAttribute('visibility', forAttr),
-            ],
+            [h.Class('fd-visibility'), h.DataAttribute('visibility', forAttr)],
             content,
           )
         }
@@ -1166,27 +1159,35 @@ export const renderMarkdown = <Message>(
           const startTime = block.attributes.start ?? 0
           const src = `https://www.youtube-nocookie.com/embed/${videoId}?start=${String(startTime)}`
           const caption = block.attributes.caption
-          return h.figure([h.Class('fd-youtube')], [
-            h.div([h.Class('fd-youtube-embed')], [
-              h.iframe(
+          return h.figure(
+            [h.Class('fd-youtube')],
+            [
+              h.div(
+                [h.Class('fd-youtube-embed')],
                 [
-                  h.Class('fd-youtube-iframe'),
-                  h.Attribute('src', src),
-                  h.Attribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'),
-                  h.Attribute('allowfullscreen', ''),
-                  h.Attribute('title', caption ?? `YouTube video ${videoId}`),
+                  h.iframe(
+                    [
+                      h.Class('fd-youtube-iframe'),
+                      h.Attribute('src', src),
+                      h.Attribute(
+                        'allow',
+                        'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+                      ),
+                      h.Attribute('allowfullscreen', ''),
+                      h.Attribute(
+                        'title',
+                        caption ?? `YouTube video ${videoId}`,
+                      ),
+                    ],
+                    [],
+                  ),
                 ],
-                [],
               ),
-            ]),
-            ...(caption !== undefined
-              ? [
-                  h.figcaption([h.Class('fd-youtube-caption')], [
-                    caption,
-                  ]),
-                ]
-              : []),
-          ])
+              ...(caption !== undefined
+                ? [h.figcaption([h.Class('fd-youtube-caption')], [caption])]
+                : []),
+            ],
+          )
         }
         if (block.name === 'AutoTypeTable') {
           return h.div([h.Class('fd-auto-type-table')], content)
@@ -1195,24 +1196,30 @@ export const renderMarkdown = <Message>(
           const color = block.attributes.color ?? '#000000'
           const name = block.attributes.name
           const value = block.attributes.value
-          return h.div([h.Class('fd-color-swatch')], [
-            h.div(
-              [
-                h.Class('fd-color-swatch-preview'),
-                h.Style({ background: color }),
-              ],
-              [],
-            ),
-            h.div([h.Class('fd-color-swatch-info')], [
-              ...(name !== undefined
-                ? [h.div([h.Class('fd-color-swatch-name')], [name])]
-                : []),
-              h.div([h.Class('fd-color-swatch-value')], [color]),
-              ...(value !== undefined
-                ? [h.div([h.Class('fd-color-swatch-custom')], [value])]
-                : []),
-            ]),
-          ])
+          return h.div(
+            [h.Class('fd-color-swatch')],
+            [
+              h.div(
+                [
+                  h.Class('fd-color-swatch-preview'),
+                  h.Style({ background: color }),
+                ],
+                [],
+              ),
+              h.div(
+                [h.Class('fd-color-swatch-info')],
+                [
+                  ...(name !== undefined
+                    ? [h.div([h.Class('fd-color-swatch-name')], [name])]
+                    : []),
+                  h.div([h.Class('fd-color-swatch-value')], [color]),
+                  ...(value !== undefined
+                    ? [h.div([h.Class('fd-color-swatch-custom')], [value])]
+                    : []),
+                ],
+              ),
+            ],
+          )
         }
         if (block.name === 'ColorSwatches') {
           return h.div([h.Class('fd-color-swatches')], content)
@@ -1236,52 +1243,63 @@ export const renderMarkdown = <Message>(
         if (block.name === 'Mermaid') {
           const code = content.join('')
           return h.div(
-            [
-              h.Class('fd-mermaid'),
-              h.DataAttribute('mermaid', code),
-            ],
-            [
-              h.pre([h.Class('fd-mermaid-source')], [
-                h.code([], [code]),
-              ]),
-            ],
+            [h.Class('fd-mermaid'), h.DataAttribute('mermaid', code)],
+            [h.pre([h.Class('fd-mermaid-source')], [h.code([], [code])])],
           )
         }
         if (block.name === 'CodeSandbox') {
           const src = block.attributes.src ?? ''
           const title = block.attributes.title ?? 'CodeSandbox'
           const height = block.attributes.height ?? '500px'
-          return h.div([h.Class('fd-codesandbox')], [
-            h.iframe(
-              [
-                h.Class('fd-codesandbox-iframe'),
-                h.Attribute('src', src),
-                h.Attribute('title', title),
-                h.Attribute('allow', 'accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; web-share'),
-                h.Attribute('sandbox', 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts'),
-                h.Style({ height }),
-              ],
-              [],
-            ),
-          ])
+          return h.div(
+            [h.Class('fd-codesandbox')],
+            [
+              h.iframe(
+                [
+                  h.Class('fd-codesandbox-iframe'),
+                  h.Attribute('src', src),
+                  h.Attribute('title', title),
+                  h.Attribute(
+                    'allow',
+                    'accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; web-share',
+                  ),
+                  h.Attribute(
+                    'sandbox',
+                    'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts',
+                  ),
+                  h.Style({ height }),
+                ],
+                [],
+              ),
+            ],
+          )
         }
         if (block.name === 'Stackblitz') {
           const src = block.attributes.src ?? ''
           const title = block.attributes.title ?? 'StackBlitz'
           const height = block.attributes.height ?? '500px'
-          return h.div([h.Class('fd-stackblitz')], [
-            h.iframe(
-              [
-                h.Class('fd-stackblitz-iframe'),
-                h.Attribute('src', src),
-                h.Attribute('title', title),
-                h.Attribute('allow', 'accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; payment; usb'),
-                h.Attribute('sandbox', 'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts'),
-                h.Style({ height }),
-              ],
-              [],
-            ),
-          ])
+          return h.div(
+            [h.Class('fd-stackblitz')],
+            [
+              h.iframe(
+                [
+                  h.Class('fd-stackblitz-iframe'),
+                  h.Attribute('src', src),
+                  h.Attribute('title', title),
+                  h.Attribute(
+                    'allow',
+                    'accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; payment; usb',
+                  ),
+                  h.Attribute(
+                    'sandbox',
+                    'allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts',
+                  ),
+                  h.Style({ height }),
+                ],
+                [],
+              ),
+            ],
+          )
         }
         if (block.name === 'Callout') {
           const type = block.attributes.type ?? 'info'
@@ -1300,17 +1318,17 @@ export const renderMarkdown = <Message>(
           const id = block.attributes.id ?? ''
           return h.div(
             [h.Class('fd-footnote-definition'), h.Id(id)],
-            [
-              h.sup([h.Class('fd-footnote-ref')], [id]),
-              ...content,
-            ],
+            [h.sup([h.Class('fd-footnote-ref')], [id]), ...content],
           )
         }
         if (block.name === 'Footnotes') {
-          return h.section([h.Class('fd-footnotes')], [
-            h.h2([h.Class('fd-footnotes-title')], ['Footnotes']),
-            h.ol([h.Class('fd-footnotes-list')], content),
-          ])
+          return h.section(
+            [h.Class('fd-footnotes')],
+            [
+              h.h2([h.Class('fd-footnotes-title')], ['Footnotes']),
+              h.ol([h.Class('fd-footnotes-list')], content),
+            ],
+          )
         }
         if (block.name === 'Changelog') {
           return h.div([h.Class('fd-changelog')], content)
@@ -1318,75 +1336,105 @@ export const renderMarkdown = <Message>(
         if (block.name === 'ChangelogEntry') {
           const version = block.attributes.version ?? ''
           const date = block.attributes.date
-          return h.div([h.Class('fd-changelog-entry')], [
-            h.div([h.Class('fd-changelog-entry-header')], [
-              h.span([h.Class('fd-changelog-version')], [version]),
-              ...(date !== undefined
-                ? [h.time([h.Class('fd-changelog-date')], [date])]
-                : []),
-            ]),
-            h.div([h.Class('fd-changelog-entry-content')], content),
-          ])
+          return h.div(
+            [h.Class('fd-changelog-entry')],
+            [
+              h.div(
+                [h.Class('fd-changelog-entry-header')],
+                [
+                  h.span([h.Class('fd-changelog-version')], [version]),
+                  ...(date !== undefined
+                    ? [h.time([h.Class('fd-changelog-date')], [date])]
+                    : []),
+                ],
+              ),
+              h.div([h.Class('fd-changelog-entry-content')], content),
+            ],
+          )
         }
         if (block.name === 'Breadcrumb') {
-          return h.nav([h.Class('fd-breadcrumb'), h.AriaLabel('Breadcrumb')], [
-            h.ol([h.Class('fd-breadcrumb-list')], content),
-          ])
+          return h.nav(
+            [h.Class('fd-breadcrumb'), h.AriaLabel('Breadcrumb')],
+            [h.ol([h.Class('fd-breadcrumb-list')], content)],
+          )
         }
         if (block.name === 'BreadcrumbItem') {
           const href = block.attributes.href
           const current = block.attributes.current ?? false
-          return h.li([h.Class('fd-breadcrumb-item')], [
-            ...(href !== undefined && !current
-              ? [
-                  h.a(
-                    [h.Class('fd-breadcrumb-link'), h.Href(href)],
-                    content,
-                  ),
-                ]
-              : current
-                ? [
-                    h.span(
-                      [h.Class('fd-breadcrumb-current'), h.AriaCurrent('page')],
-                      content,
-                    ),
-                  ]
-                : content),
-          ])
+          return h.li(
+            [h.Class('fd-breadcrumb-item')],
+            [
+              ...(href !== undefined && !current
+                ? [h.a([h.Class('fd-breadcrumb-link'), h.Href(href)], content)]
+                : current
+                  ? [
+                      h.span(
+                        [
+                          h.Class('fd-breadcrumb-current'),
+                          h.AriaCurrent('page'),
+                        ],
+                        content,
+                      ),
+                    ]
+                  : content),
+            ],
+          )
         }
         if (block.name === 'DeprecationNotice') {
           const version = block.attributes.version
-          const replacement = block.attributes.replacement as { url?: string; label?: string } | undefined
-          return h.div([h.Class('fd-deprecation-notice')], [
-            h.div([h.Class('fd-deprecation-icon')], ['⚠️']),
-            h.div([h.Class('fd-deprecation-content')], [
-              h.strong([], ['Deprecated']),
-              ...(version !== undefined
-                ? [h.span([h.Class('fd-deprecation-version')], [` since v${version}`])]
-                : []),
-              ...(replacement !== undefined && replacement.url !== undefined
-                ? [
-                    h.span([h.Class('fd-deprecation-replacement')], [
-                      '. Use ',
-                      h.a([h.Class('fd-deprecation-link'), h.Href(replacement.url)], [
-                        replacement.label ?? 'documentation',
-                      ]),
-                      ' instead.',
-                    ]),
-                  ]
-                : []),
-              ...content,
-            ]),
-          ])
+          const replacement = block.attributes.replacement as
+            { url?: string; label?: string } | undefined
+          return h.div(
+            [h.Class('fd-deprecation-notice')],
+            [
+              h.div([h.Class('fd-deprecation-icon')], ['⚠️']),
+              h.div(
+                [h.Class('fd-deprecation-content')],
+                [
+                  h.strong([], ['Deprecated']),
+                  ...(version !== undefined
+                    ? [
+                        h.span(
+                          [h.Class('fd-deprecation-version')],
+                          [` since v${version}`],
+                        ),
+                      ]
+                    : []),
+                  ...(replacement !== undefined && replacement.url !== undefined
+                    ? [
+                        h.span(
+                          [h.Class('fd-deprecation-replacement')],
+                          [
+                            '. Use ',
+                            h.a(
+                              [
+                                h.Class('fd-deprecation-link'),
+                                h.Href(replacement.url),
+                              ],
+                              [replacement.label ?? 'documentation'],
+                            ),
+                            ' instead.',
+                          ],
+                        ),
+                      ]
+                    : []),
+                  ...content,
+                ],
+              ),
+            ],
+          )
         }
         if (block.name === 'BetaNotice') {
-          return h.div([h.Class('fd-beta-notice')], [
-            h.div([h.Class('fd-beta-icon')], ['🧪']),
-            h.div([h.Class('fd-beta-content')], [
-              h.strong([], ['Beta']),
-              ...content,
-            ]),
-          ])
+          return h.div(
+            [h.Class('fd-beta-notice')],
+            [
+              h.div([h.Class('fd-beta-icon')], ['🧪']),
+              h.div(
+                [h.Class('fd-beta-content')],
+                [h.strong([], ['Beta']), ...content],
+              ),
+            ],
+          )
         }
         if (block.name === 'Steps') {
           return h.div([h.Class('fd-steps')], content)

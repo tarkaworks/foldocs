@@ -1,10 +1,10 @@
 ---
-title: "Get project details"
-description: "Returns detailed information about a project."
-label: "GET /projects/{projectId}"
+title: 'Get project details'
+description: 'Returns detailed information about a project.'
+label: 'GET /projects/{projectId}'
 order: 13
 tags:
-  - "Projects"
+  - 'Projects'
 ---
 
 # Get project details
@@ -15,11 +15,16 @@ Returns detailed information about a project.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
+| Name        | In   | Required | Type           | Description               |
+| ----------- | ---- | -------- | -------------- | ------------------------- |
+| `projectId` | path | Yes      | `string<uuid>` | Unique project identifier |
 
-<ApiPlayground id="getproject" method="GET" url="https://api.foldocs.dev/projects/{projectId}" body="" />
+<ApiPlayground
+  id="getproject"
+  method="GET"
+  url="https://api.foldocs.dev/projects/{projectId}"
+  body=""
+/>
 
 ## Request examples
 
@@ -28,11 +33,11 @@ curl --request GET --url "https://api.foldocs.dev/projects/{projectId}"
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/projects/{projectId}", {
-  method: "GET",
-});
+const response = await fetch('https://api.foldocs.dev/projects/{projectId}', {
+  method: 'GET',
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -50,24 +55,23 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Project details
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `id` | `string<uuid>` | Yes | Unique project identifier |
-| `name` | `string` | Yes | Project display name |
-| `slug` | `string` | Yes | URL-friendly project identifier |
-| `description` | `string` | No | Project description |
-| `baseUrl` | `string<uri>` | No | Project base URL |
-| `locales` | `array` | No | Supported locales |
-| `defaultLocale` | `string` | No | Default locale |
-| `createdAt` | `string<date-time>` | Yes | Creation timestamp |
-| `updatedAt` | `string<date-time>` | No | Last update timestamp |
+| Field           | Type                | Required | Description                     |
+| --------------- | ------------------- | -------- | ------------------------------- |
+| `id`            | `string<uuid>`      | Yes      | Unique project identifier       |
+| `name`          | `string`            | Yes      | Project display name            |
+| `slug`          | `string`            | Yes      | URL-friendly project identifier |
+| `description`   | `string`            | No       | Project description             |
+| `baseUrl`       | `string<uri>`       | No       | Project base URL                |
+| `locales`       | `array`             | No       | Supported locales               |
+| `defaultLocale` | `string`            | No       | Default locale                  |
+| `createdAt`     | `string<date-time>` | Yes      | Creation timestamp              |
+| `updatedAt`     | `string<date-time>` | No       | Last update timestamp           |
 
 ```json
 {
@@ -76,10 +80,7 @@ defer response.Body.Close()
   "slug": "my-docs",
   "description": "API documentation for my project",
   "baseUrl": "https://docs.example.com",
-  "locales": [
-    "en",
-    "es"
-  ],
+  "locales": ["en", "es"],
   "defaultLocale": "en",
   "createdAt": "string",
   "updatedAt": "string"
@@ -90,11 +91,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {

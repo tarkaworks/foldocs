@@ -1,10 +1,10 @@
 ---
-title: "Delete a document"
-description: "Permanently removes a document and all its versions."
-label: "DELETE /documents/{documentId}"
+title: 'Delete a document'
+description: 'Permanently removes a document and all its versions.'
+label: 'DELETE /documents/{documentId}'
 order: 6
 tags:
-  - "Documents"
+  - 'Documents'
 ---
 
 # Delete a document
@@ -15,11 +15,16 @@ Permanently removes a document and all its versions.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `documentId` | path | Yes | `string<uuid>` | Unique document identifier |
+| Name         | In   | Required | Type           | Description                |
+| ------------ | ---- | -------- | -------------- | -------------------------- |
+| `documentId` | path | Yes      | `string<uuid>` | Unique document identifier |
 
-<ApiPlayground id="deletedocument" method="DELETE" url="https://api.foldocs.dev/documents/{documentId}" body="" />
+<ApiPlayground
+  id="deletedocument"
+  method="DELETE"
+  url="https://api.foldocs.dev/documents/{documentId}"
+  body=""
+/>
 
 ## Request examples
 
@@ -28,11 +33,11 @@ curl --request DELETE --url "https://api.foldocs.dev/documents/{documentId}"
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/documents/{documentId}", {
-  method: "DELETE",
-});
+const response = await fetch('https://api.foldocs.dev/documents/{documentId}', {
+  method: 'DELETE',
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -50,7 +55,6 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 204 Document deleted successfully
@@ -59,11 +63,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {

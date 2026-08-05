@@ -1,10 +1,10 @@
 ---
-title: "Update project"
+title: 'Update project'
 description: "Updates a project's configuration."
-label: "PUT /projects/{projectId}"
+label: 'PUT /projects/{projectId}'
 order: 14
 tags:
-  - "Projects"
+  - 'Projects'
 ---
 
 # Update project
@@ -15,19 +15,19 @@ Updates a project's configuration.
 
 ## Parameters
 
-| Name | In | Required | Type | Description |
-| --- | --- | --- | --- | --- |
-| `projectId` | path | Yes | `string<uuid>` | Unique project identifier |
+| Name        | In   | Required | Type           | Description               |
+| ----------- | ---- | -------- | -------------- | ------------------------- |
+| `projectId` | path | Yes      | `string<uuid>` | Unique project identifier |
 
 ## Request body
 
 Required · `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `name` | `string` | No | Updated name |
-| `description` | `string` | No | Updated description |
-| `baseUrl` | `string<uri>` | No | Updated base URL |
+| Field         | Type          | Required | Description         |
+| ------------- | ------------- | -------- | ------------------- |
+| `name`        | `string`      | No       | Updated name        |
+| `description` | `string`      | No       | Updated description |
+| `baseUrl`     | `string<uri>` | No       | Updated base URL    |
 
 ```json
 {
@@ -37,7 +37,12 @@ Required · `application/json`
 }
 ```
 
-<ApiPlayground id="updateproject" method="PUT" url="https://api.foldocs.dev/projects/{projectId}" body="%7B%0A%20%20%22name%22%3A%20%22string%22%2C%0A%20%20%22description%22%3A%20%22string%22%2C%0A%20%20%22baseUrl%22%3A%20%22string%22%0A%7D" />
+<ApiPlayground
+  id="updateproject"
+  method="PUT"
+  url="https://api.foldocs.dev/projects/{projectId}"
+  body="%7B%0A%20%20%22name%22%3A%20%22string%22%2C%0A%20%20%22description%22%3A%20%22string%22%2C%0A%20%20%22baseUrl%22%3A%20%22string%22%0A%7D"
+/>
 
 ## Request examples
 
@@ -46,17 +51,17 @@ curl --request PUT --url "https://api.foldocs.dev/projects/{projectId}" --header
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/projects/{projectId}", {
-  method: "PUT",
-  headers: { "content-type": "application/json" },
+const response = await fetch('https://api.foldocs.dev/projects/{projectId}', {
+  method: 'PUT',
+  headers: { 'content-type': 'application/json' },
   body: JSON.stringify({
-    "name": "string",
-    "description": "string",
-    "baseUrl": "string"
+    name: 'string',
+    description: 'string',
+    baseUrl: 'string',
   }),
-});
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -75,24 +80,23 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Project updated successfully
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `id` | `string<uuid>` | Yes | Unique project identifier |
-| `name` | `string` | Yes | Project display name |
-| `slug` | `string` | Yes | URL-friendly project identifier |
-| `description` | `string` | No | Project description |
-| `baseUrl` | `string<uri>` | No | Project base URL |
-| `locales` | `array` | No | Supported locales |
-| `defaultLocale` | `string` | No | Default locale |
-| `createdAt` | `string<date-time>` | Yes | Creation timestamp |
-| `updatedAt` | `string<date-time>` | No | Last update timestamp |
+| Field           | Type                | Required | Description                     |
+| --------------- | ------------------- | -------- | ------------------------------- |
+| `id`            | `string<uuid>`      | Yes      | Unique project identifier       |
+| `name`          | `string`            | Yes      | Project display name            |
+| `slug`          | `string`            | Yes      | URL-friendly project identifier |
+| `description`   | `string`            | No       | Project description             |
+| `baseUrl`       | `string<uri>`       | No       | Project base URL                |
+| `locales`       | `array`             | No       | Supported locales               |
+| `defaultLocale` | `string`            | No       | Default locale                  |
+| `createdAt`     | `string<date-time>` | Yes      | Creation timestamp              |
+| `updatedAt`     | `string<date-time>` | No       | Last update timestamp           |
 
 ```json
 {
@@ -101,10 +105,7 @@ defer response.Body.Close()
   "slug": "my-docs",
   "description": "API documentation for my project",
   "baseUrl": "https://docs.example.com",
-  "locales": [
-    "en",
-    "es"
-  ],
+  "locales": ["en", "es"],
   "defaultLocale": "en",
   "createdAt": "string",
   "updatedAt": "string"
@@ -115,11 +116,11 @@ defer response.Body.Close()
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `code` | `string` | Yes | Machine-readable error code |
-| `message` | `string` | Yes | Human-readable error message |
-| `details` | `array` | No | Optional field-level error details |
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
 
 ```json
 {

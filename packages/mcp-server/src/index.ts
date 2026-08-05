@@ -1,6 +1,7 @@
+import { z } from 'zod'
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
-import { z } from 'zod'
 
 export interface FoldocsMcpOptions {
   /** Base URL of the documentation site */
@@ -30,7 +31,10 @@ interface DocManifest {
   }>
 }
 
-const fetchManifest = async (baseUrl: string, manifestPath: string): Promise<DocManifest> => {
+const fetchManifest = async (
+  baseUrl: string,
+  manifestPath: string,
+): Promise<DocManifest> => {
   const url = `${baseUrl.replace(/\/+$/, '')}${manifestPath}`
   const response = await fetch(url)
   if (!response.ok) {
@@ -49,7 +53,9 @@ const fetchPage = async (url: string): Promise<string> => {
   return response.text()
 }
 
-export const createFoldocsMcpServer = (options: FoldocsMcpOptions): McpServer => {
+export const createFoldocsMcpServer = (
+  options: FoldocsMcpOptions,
+): McpServer => {
   const { baseUrl, manifestPath = '/agent-readability.json' } = options
 
   const server = new McpServer({
@@ -102,7 +108,9 @@ export const createFoldocsMcpServer = (options: FoldocsMcpOptions): McpServer =>
     'search_pages',
     'Search documentation pages by title or description',
     {
-      query: z.string().describe('Search query to match against page titles and descriptions'),
+      query: z
+        .string()
+        .describe('Search query to match against page titles and descriptions'),
     },
     async (params: { query: string }) => {
       const manifest = await fetchManifest(baseUrl, manifestPath)
@@ -110,7 +118,8 @@ export const createFoldocsMcpServer = (options: FoldocsMcpOptions): McpServer =>
       const matches = manifest.docs.filter(
         doc =>
           doc.title.toLowerCase().includes(lowerQuery) ||
-          (doc.description !== undefined && doc.description.toLowerCase().includes(lowerQuery)),
+          (doc.description !== undefined &&
+            doc.description.toLowerCase().includes(lowerQuery)),
       )
       return {
         content: [
@@ -170,7 +179,9 @@ export const createFoldocsMcpServer = (options: FoldocsMcpOptions): McpServer =>
   return server
 }
 
-export const startFoldocsMcpServer = async (options: FoldocsMcpOptions): Promise<void> => {
+export const startFoldocsMcpServer = async (
+  options: FoldocsMcpOptions,
+): Promise<void> => {
   const server = createFoldocsMcpServer(options)
   const transport = new StdioServerTransport()
   await server.connect(transport)

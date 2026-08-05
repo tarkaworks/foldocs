@@ -1,10 +1,10 @@
 ---
-title: "Search documents"
-description: "Performs full-text search across all documentation content."
-label: "POST /search"
+title: 'Search documents'
+description: 'Performs full-text search across all documentation content.'
+label: 'POST /search'
 order: 9
 tags:
-  - "Search"
+  - 'Search'
 ---
 
 # Search documents
@@ -17,25 +17,28 @@ Performs full-text search across all documentation content.
 
 Required · `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `query` | `string` | Yes | Search query string |
-| `locale` | `string` | No | Filter by locale |
-| `tags` | `array` | No | Filter by tags |
-| `limit` | `integer` | No | Maximum results |
+| Field    | Type      | Required | Description         |
+| -------- | --------- | -------- | ------------------- |
+| `query`  | `string`  | Yes      | Search query string |
+| `locale` | `string`  | No       | Filter by locale    |
+| `tags`   | `array`   | No       | Filter by tags      |
+| `limit`  | `integer` | No       | Maximum results     |
 
 ```json
 {
   "query": "authentication setup",
   "locale": "string",
-  "tags": [
-    "string"
-  ],
+  "tags": ["string"],
   "limit": 10
 }
 ```
 
-<ApiPlayground id="searchdocuments" method="POST" url="https://api.foldocs.dev/search" body="%7B%0A%20%20%22query%22%3A%20%22authentication%20setup%22%2C%0A%20%20%22locale%22%3A%20%22string%22%2C%0A%20%20%22tags%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%2C%0A%20%20%22limit%22%3A%2010%0A%7D" />
+<ApiPlayground
+  id="searchdocuments"
+  method="POST"
+  url="https://api.foldocs.dev/search"
+  body="%7B%0A%20%20%22query%22%3A%20%22authentication%20setup%22%2C%0A%20%20%22locale%22%3A%20%22string%22%2C%0A%20%20%22tags%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%2C%0A%20%20%22limit%22%3A%2010%0A%7D"
+/>
 
 ## Request examples
 
@@ -44,20 +47,18 @@ curl --request POST --url "https://api.foldocs.dev/search" --header 'content-typ
 ```
 
 ```ts tab="TypeScript"
-const response = await fetch("https://api.foldocs.dev/search", {
-  method: "POST",
-  headers: { "content-type": "application/json" },
+const response = await fetch('https://api.foldocs.dev/search', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
   body: JSON.stringify({
-    "query": "authentication setup",
-    "locale": "string",
-    "tags": [
-      "string"
-    ],
-    "limit": 10
+    query: 'authentication setup',
+    locale: 'string',
+    tags: ['string'],
+    limit: 10,
   }),
-});
+})
 
-const data = await response.json();
+const data = await response.json()
 ```
 
 ```python tab="Python"
@@ -76,18 +77,17 @@ if err != nil { panic(err) }
 defer response.Body.Close()
 ```
 
-
 ## Responses
 
 ### 200 Search results
 
 `application/json`
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `results` | `array` | Yes | — |
-| `total` | `integer` | Yes | Total matching results |
-| `query` | `string` | No | Original search query |
+| Field     | Type      | Required | Description            |
+| --------- | --------- | -------- | ---------------------- |
+| `results` | `array`   | Yes      | —                      |
+| `total`   | `integer` | Yes      | Total matching results |
+| `query`   | `string`  | No       | Original search query  |
 
 ```json
 {
