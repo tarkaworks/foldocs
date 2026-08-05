@@ -1,6 +1,7 @@
 {
   "name": "@foldocs/mcp-server",
   "version": "0.1.0",
+  "private": true,
   "description": "MCP server for Foldocs documentation sites",
   "license": "MIT",
   "type": "module",
