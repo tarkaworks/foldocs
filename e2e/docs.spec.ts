@@ -771,6 +771,7 @@ test('sections, folders, page actions, and pager work together', async ({
     'Foldocs Core',
     'Foldocs MDX',
     'Foldocs CLI',
+    'Foldocs API',
   ]) {
     await expect(
       documentationMenu.getByRole('menuitem', {
@@ -778,7 +779,7 @@ test('sections, folders, page actions, and pager work together', async ({
       }),
     ).toBeVisible()
   }
-  await expect(documentationMenu.getByRole('menuitem')).toHaveCount(5)
+  await expect(documentationMenu.getByRole('menuitem')).toHaveCount(6)
   await expect(
     documentationMenu.getByRole('menuitem', { name: /^Framework/u }),
   ).toContainText('Production docs for Foldkit')
