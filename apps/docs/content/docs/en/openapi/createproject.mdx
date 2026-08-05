@@ -1,0 +1,133 @@
+---
+title: 'Create a project'
+description: 'Creates a new documentation project.'
+label: 'POST /projects'
+order: 12
+tags:
+  - 'Projects'
+---
+
+# Create a project
+
+`POST /projects`
+
+Creates a new documentation project.
+
+## Request body
+
+Required · `application/json`
+
+| Field         | Type          | Required | Description          |
+| ------------- | ------------- | -------- | -------------------- |
+| `name`        | `string`      | Yes      | Project name         |
+| `description` | `string`      | No       | Optional description |
+| `baseUrl`     | `string<uri>` | No       | Optional base URL    |
+| `locales`     | `array`       | No       | Supported locales    |
+
+```json
+{
+  "name": "string",
+  "description": "string",
+  "baseUrl": "string",
+  "locales": ["en"]
+}
+```
+
+<ApiPlayground
+  id="createproject"
+  method="POST"
+  url="https://api.foldocs.dev/projects"
+  body="%7B%0A%20%20%22name%22%3A%20%22string%22%2C%0A%20%20%22description%22%3A%20%22string%22%2C%0A%20%20%22baseUrl%22%3A%20%22string%22%2C%0A%20%20%22locales%22%3A%20%5B%0A%20%20%20%20%22en%22%0A%20%20%5D%0A%7D"
+/>
+
+## Request examples
+
+```bash tab="cURL"
+curl --request POST --url "https://api.foldocs.dev/projects" --header 'content-type: application/json' --data '{"name":"string","description":"string","baseUrl":"string","locales":["en"]}'
+```
+
+```ts tab="TypeScript"
+const response = await fetch('https://api.foldocs.dev/projects', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    name: 'string',
+    description: 'string',
+    baseUrl: 'string',
+    locales: ['en'],
+  }),
+})
+
+const data = await response.json()
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("POST", "https://api.foldocs.dev/projects", json={"name":"string","description":"string","baseUrl":"string","locales":["en"]})
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("POST", "https://api.foldocs.dev/projects", strings.NewReader("{\"name\":\"string\",\"description\":\"string\",\"baseUrl\":\"string\",\"locales\":[\"en\"]}"))
+if err != nil { panic(err) }
+request.Header.Set("content-type", "application/json")
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+## Responses
+
+### 201 Project created successfully
+
+`application/json`
+
+| Field           | Type                | Required | Description                     |
+| --------------- | ------------------- | -------- | ------------------------------- |
+| `id`            | `string<uuid>`      | Yes      | Unique project identifier       |
+| `name`          | `string`            | Yes      | Project display name            |
+| `slug`          | `string`            | Yes      | URL-friendly project identifier |
+| `description`   | `string`            | No       | Project description             |
+| `baseUrl`       | `string<uri>`       | No       | Project base URL                |
+| `locales`       | `array`             | No       | Supported locales               |
+| `defaultLocale` | `string`            | No       | Default locale                  |
+| `createdAt`     | `string<date-time>` | Yes      | Creation timestamp              |
+| `updatedAt`     | `string<date-time>` | No       | Last update timestamp           |
+
+```json
+{
+  "id": "string",
+  "name": "My Documentation",
+  "slug": "my-docs",
+  "description": "API documentation for my project",
+  "baseUrl": "https://docs.example.com",
+  "locales": ["en", "es"],
+  "defaultLocale": "en",
+  "createdAt": "string",
+  "updatedAt": "string"
+}
+```
+
+### 400 Invalid request parameters
+
+`application/json`
+
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```

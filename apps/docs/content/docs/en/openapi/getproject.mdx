@@ -1,0 +1,111 @@
+---
+title: 'Get project details'
+description: 'Returns detailed information about a project.'
+label: 'GET /projects/{projectId}'
+order: 13
+tags:
+  - 'Projects'
+---
+
+# Get project details
+
+`GET /projects/{projectId}`
+
+Returns detailed information about a project.
+
+## Parameters
+
+| Name        | In   | Required | Type           | Description               |
+| ----------- | ---- | -------- | -------------- | ------------------------- |
+| `projectId` | path | Yes      | `string<uuid>` | Unique project identifier |
+
+<ApiPlayground
+  id="getproject"
+  method="GET"
+  url="https://api.foldocs.dev/projects/{projectId}"
+  body=""
+/>
+
+## Request examples
+
+```bash tab="cURL"
+curl --request GET --url "https://api.foldocs.dev/projects/{projectId}"
+```
+
+```ts tab="TypeScript"
+const response = await fetch('https://api.foldocs.dev/projects/{projectId}', {
+  method: 'GET',
+})
+
+const data = await response.json()
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("GET", "https://api.foldocs.dev/projects/{projectId}")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("GET", "https://api.foldocs.dev/projects/{projectId}", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+## Responses
+
+### 200 Project details
+
+`application/json`
+
+| Field           | Type                | Required | Description                     |
+| --------------- | ------------------- | -------- | ------------------------------- |
+| `id`            | `string<uuid>`      | Yes      | Unique project identifier       |
+| `name`          | `string`            | Yes      | Project display name            |
+| `slug`          | `string`            | Yes      | URL-friendly project identifier |
+| `description`   | `string`            | No       | Project description             |
+| `baseUrl`       | `string<uri>`       | No       | Project base URL                |
+| `locales`       | `array`             | No       | Supported locales               |
+| `defaultLocale` | `string`            | No       | Default locale                  |
+| `createdAt`     | `string<date-time>` | Yes      | Creation timestamp              |
+| `updatedAt`     | `string<date-time>` | No       | Last update timestamp           |
+
+```json
+{
+  "id": "string",
+  "name": "My Documentation",
+  "slug": "my-docs",
+  "description": "API documentation for my project",
+  "baseUrl": "https://docs.example.com",
+  "locales": ["en", "es"],
+  "defaultLocale": "en",
+  "createdAt": "string",
+  "updatedAt": "string"
+}
+```
+
+### 404 Resource not found
+
+`application/json`
+
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```

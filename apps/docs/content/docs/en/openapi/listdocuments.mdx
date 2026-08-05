@@ -1,0 +1,116 @@
+---
+title: 'List all documents'
+description: 'Returns a paginated list of all documents in the project.'
+label: 'GET /documents'
+order: 2
+tags:
+  - 'Documents'
+---
+
+# List all documents
+
+`GET /documents`
+
+Returns a paginated list of all documents in the project.
+
+## Parameters
+
+| Name        | In    | Required | Type           | Description                       |
+| ----------- | ----- | -------- | -------------- | --------------------------------- |
+| `projectId` | path  | Yes      | `string<uuid>` | Unique project identifier         |
+| `locale`    | query | No       | `string`       | Content locale (e.g., en, es)     |
+| `limit`     | query | No       | `integer`      | Maximum number of items to return |
+| `offset`    | query | No       | `integer`      | Number of items to skip           |
+| `tag`       | query | No       | `string`       | Filter by tag                     |
+
+<ApiPlayground
+  id="listdocuments"
+  method="GET"
+  url="https://api.foldocs.dev/documents"
+  body=""
+/>
+
+## Request examples
+
+```bash tab="cURL"
+curl --request GET --url "https://api.foldocs.dev/documents"
+```
+
+```ts tab="TypeScript"
+const response = await fetch('https://api.foldocs.dev/documents', {
+  method: 'GET',
+})
+
+const data = await response.json()
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("GET", "https://api.foldocs.dev/documents")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("GET", "https://api.foldocs.dev/documents", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+## Responses
+
+### 200 Paginated list of documents
+
+`application/json`
+
+```json
+"string"
+```
+
+### 401 Authentication required
+
+`application/json`
+
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```
+
+### 429 Rate limit exceeded
+
+`application/json`
+
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```

@@ -1,0 +1,121 @@
+---
+title: 'Create webhook subscription'
+description: 'Creates a new webhook subscription for project events.'
+label: 'POST /webhooks'
+order: 17
+tags:
+  - 'Webhooks'
+---
+
+# Create webhook subscription
+
+`POST /webhooks`
+
+Creates a new webhook subscription for project events.
+
+## Request body
+
+Required · `application/json`
+
+| Field    | Type          | Required | Description                       |
+| -------- | ------------- | -------- | --------------------------------- |
+| `url`    | `string<uri>` | Yes      | Endpoint URL for webhook delivery |
+| `events` | `array`       | Yes      | Events to subscribe to            |
+
+```json
+{
+  "url": "string",
+  "events": ["string"]
+}
+```
+
+<ApiPlayground
+  id="createwebhook"
+  method="POST"
+  url="https://api.foldocs.dev/webhooks"
+  body="%7B%0A%20%20%22url%22%3A%20%22string%22%2C%0A%20%20%22events%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%0A%7D"
+/>
+
+## Request examples
+
+```bash tab="cURL"
+curl --request POST --url "https://api.foldocs.dev/webhooks" --header 'content-type: application/json' --data '{"url":"string","events":["string"]}'
+```
+
+```ts tab="TypeScript"
+const response = await fetch('https://api.foldocs.dev/webhooks', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    url: 'string',
+    events: ['string'],
+  }),
+})
+
+const data = await response.json()
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("POST", "https://api.foldocs.dev/webhooks", json={"url":"string","events":["string"]})
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("POST", "https://api.foldocs.dev/webhooks", strings.NewReader("{\"url\":\"string\",\"events\":[\"string\"]}"))
+if err != nil { panic(err) }
+request.Header.Set("content-type", "application/json")
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+## Responses
+
+### 201 Webhook created successfully
+
+`application/json`
+
+| Field       | Type                | Required | Description                         |
+| ----------- | ------------------- | -------- | ----------------------------------- |
+| `id`        | `string<uuid>`      | Yes      | Webhook identifier                  |
+| `url`       | `string<uri>`       | Yes      | Webhook endpoint URL                |
+| `events`    | `array`             | Yes      | Subscribed events                   |
+| `active`    | `boolean`           | Yes      | Whether webhook is active           |
+| `secret`    | `string`            | No       | Webhook signing secret (shown once) |
+| `createdAt` | `string<date-time>` | No       | Creation timestamp                  |
+
+```json
+{
+  "id": "string",
+  "url": "https://example.com/webhooks/foldocs",
+  "events": ["string"],
+  "active": true,
+  "secret": "string",
+  "createdAt": "string"
+}
+```
+
+### 400 Invalid request parameters
+
+`application/json`
+
+| Field     | Type     | Required | Description                        |
+| --------- | -------- | -------- | ---------------------------------- |
+| `code`    | `string` | Yes      | Machine-readable error code        |
+| `message` | `string` | Yes      | Human-readable error message       |
+| `details` | `array`  | No       | Optional field-level error details |
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "The request body is invalid.",
+  "details": [
+    {
+      "field": "string",
+      "message": "string"
+    }
+  ]
+}
+```

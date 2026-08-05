@@ -1,0 +1,87 @@
+---
+title: 'Get page view analytics'
+description: 'Returns page view statistics for a date range.'
+label: 'GET /analytics/views'
+order: 18
+tags:
+  - 'Analytics'
+---
+
+# Get page view analytics
+
+`GET /analytics/views`
+
+Returns page view statistics for a date range.
+
+## Parameters
+
+| Name          | In    | Required | Type           | Description               |
+| ------------- | ----- | -------- | -------------- | ------------------------- |
+| `projectId`   | path  | Yes      | `string<uuid>` | Unique project identifier |
+| `startDate`   | query | No       | `string<date>` | Start date (ISO 8601)     |
+| `endDate`     | query | No       | `string<date>` | End date (ISO 8601)       |
+| `granularity` | query | No       | `string`       | Data granularity          |
+
+<ApiPlayground
+  id="getpageviews"
+  method="GET"
+  url="https://api.foldocs.dev/analytics/views"
+  body=""
+/>
+
+## Request examples
+
+```bash tab="cURL"
+curl --request GET --url "https://api.foldocs.dev/analytics/views"
+```
+
+```ts tab="TypeScript"
+const response = await fetch('https://api.foldocs.dev/analytics/views', {
+  method: 'GET',
+})
+
+const data = await response.json()
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("GET", "https://api.foldocs.dev/analytics/views")
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("GET", "https://api.foldocs.dev/analytics/views", nil)
+if err != nil { panic(err) }
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+## Responses
+
+### 200 Analytics data
+
+`application/json`
+
+| Field     | Type     | Required | Description |
+| --------- | -------- | -------- | ----------- |
+| `data`    | `array`  | Yes      | —           |
+| `summary` | `object` | Yes      | —           |
+
+```json
+{
+  "data": [
+    {
+      "date": "string",
+      "views": 0,
+      "uniqueVisitors": 0
+    }
+  ],
+  "summary": {
+    "totalViews": 12500,
+    "totalUniqueVisitors": 3200,
+    "averageViewsPerDay": 416.67
+  }
+}
+```

@@ -1,0 +1,29 @@
+{
+  "name": "@foldocs/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server for Foldocs documentation sites",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "foldocs-mcp": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

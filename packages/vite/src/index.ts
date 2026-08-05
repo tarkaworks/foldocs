@@ -510,7 +510,30 @@ const headTags = (
   const image = socialImageUrl(config)
   const imageAlt = `${site.title} social preview`
   const robotDirectives = robotsContent(config.seo)
+  const fontStyles = [
+    config.fonts.sans.length > 0
+      ? `--fd-font-sans: ${config.fonts.sans.join(', ')};`
+      : '',
+    config.fonts.mono.length > 0
+      ? `--fd-font-mono: ${config.fonts.mono.join(', ')};`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const hasCustomFonts =
+    fontStyles.length > 0 &&
+    fontStyles !==
+      '--fd-font-sans: Inter, sans-serif; --fd-font-mono: JetBrains Mono, monospace;'
   return [
+    ...(hasCustomFonts
+      ? [
+          {
+            tag: 'style' as const,
+            children: `:root { ${fontStyles} }`,
+            injectTo: 'head' as const,
+          },
+        ]
+      : []),
     ...(site.description === undefined
       ? []
       : [
@@ -691,6 +714,133 @@ const headTags = (
           },
         ]
       : []),
+    ...(config.analytics.enabled && config.analytics.provider === 'plausible'
+      ? [
+          {
+            tag: 'script',
+            attrs: {
+              defer: '',
+              'data-domain': config.analytics.domain ?? '',
+              src: 'https://plausible.io/js/script.js',
+            },
+            injectTo: 'head' as const,
+          },
+        ]
+      : []),
+    ...(config.analytics.enabled && config.analytics.provider === 'umami'
+      ? [
+          {
+            tag: 'script',
+            attrs: {
+              defer: '',
+              'data-website-id': config.analytics.domain ?? '',
+              src: `${config.analytics.apiHost ?? 'https://umami.example.com'}/script.js`,
+            },
+            injectTo: 'head' as const,
+          },
+        ]
+      : []),
+    ...(config.analytics.enabled && config.analytics.provider === 'ga4'
+      ? [
+          {
+            tag: 'script',
+            attrs: {
+              async: '',
+              src: `https://www.googletagmanager.com/gtag/js?id=${config.analytics.measurementId ?? ''}`,
+            },
+            injectTo: 'head' as const,
+          },
+          {
+            tag: 'script',
+            children: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${config.analytics.measurementId ?? ''}');`,
+            injectTo: 'head' as const,
+          },
+        ]
+      : []),
+    {
+      tag: 'script',
+      children: `(function(){
+        try {
+          var tabs = JSON.parse(localStorage.getItem('fd-tabs') || '{}');
+          var groups = document.querySelectorAll('[data-tab-group]');
+          groups.forEach(function(group) {
+            var groupId = group.getAttribute('data-tab-group');
+            if (groupId && tabs[groupId]) {
+              var buttons = group.querySelectorAll('[data-tab-value]');
+              buttons.forEach(function(btn) {
+                if (btn.getAttribute('data-tab-value') === tabs[groupId]) {
+                  btn.click();
+                }
+              });
+            }
+          });
+          var observer = new MutationObserver(function() {
+            var groups = document.querySelectorAll('[data-tab-group]');
+            groups.forEach(function(group) {
+              var groupId = group.getAttribute('data-tab-group');
+              if (groupId) {
+                var active = group.querySelector('[aria-selected="true"]');
+                if (active) {
+                  tabs[groupId] = active.getAttribute('data-tab-value');
+                  localStorage.setItem('fd-tabs', JSON.stringify(tabs));
+                }
+              }
+            });
+          });
+          document.addEventListener('click', function(e) {
+            var btn = e.target.closest('[data-tab-value]');
+            if (btn) {
+              var group = btn.closest('[data-tab-group]');
+              if (group) {
+                var groupId = group.getAttribute('data-tab-group');
+                if (groupId) {
+                  tabs[groupId] = btn.getAttribute('data-tab-value');
+                  localStorage.setItem('fd-tabs', JSON.stringify(tabs));
+                }
+              }
+            }
+          });
+        } catch(e) {}
+      })();`,
+      injectTo: 'body' as const,
+    },
+    {
+      tag: 'script',
+      children: `(function(){
+        try {
+          var tocLinks = document.querySelectorAll('.fd-toc a');
+          if (tocLinks.length === 0) return;
+          var headings = [];
+          tocLinks.forEach(function(link) {
+            var id = link.getAttribute('href');
+            if (id && id.startsWith('#')) {
+              var heading = document.getElementById(id.slice(1));
+              if (heading) headings.push({ el: heading, link: link });
+            }
+          });
+          if (headings.length === 0) return;
+          var currentActive = null;
+          var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) {
+                var item = headings.find(function(h) { return h.el === entry.target; });
+                if (item) {
+                  if (currentActive) currentActive.link.classList.remove('fd-toc-active');
+                  item.link.classList.add('fd-toc-active');
+                  currentActive = item;
+                }
+              }
+            });
+          }, { rootMargin: '-80px 0px -80% 0px', threshold: 0 });
+          headings.forEach(function(item) { observer.observe(item.el); });
+          window.addEventListener('beforeunload', function() { observer.disconnect(); });
+        } catch(e) {}
+      })();`,
+      injectTo: 'body' as const,
+    },
   ]
 }
 
@@ -1612,11 +1762,30 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             locale,
             joinUrl(config.basePath, publicPath),
           )
-          this.emitFile({
-            type: 'asset',
-            fileName: url.replace(/^\/+/, ''),
-            source: await fs.readFile(file),
-          })
+          const isImage = /\.(png|jpe?g|gif|webp|avif)$/i.test(file)
+          if (isImage && config.images.optimize) {
+            const sharp = await import('sharp')
+            const imageBuffer = await fs.readFile(file)
+            const optimized = await sharp
+              .default(imageBuffer)
+              .resize({
+                width: config.images.sizes[config.images.sizes.length - 1],
+                withoutEnlargement: true,
+              })
+              .webp({ quality: 80 })
+              .toBuffer()
+            this.emitFile({
+              type: 'asset',
+              fileName: url.replace(/^\/+/, '').replace(/\.[^.]+$/, '.webp'),
+              source: optimized,
+            })
+          } else {
+            this.emitFile({
+              type: 'asset',
+              fileName: url.replace(/^\/+/, ''),
+              source: await fs.readFile(file),
+            })
+          }
         }
       }
       if (config.search.staticIndex) {
@@ -1862,6 +2031,89 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             source: `User-agent: *\nAllow: /\n\nSitemap: ${absoluteUrl(config.site.baseUrl, '/sitemap.xml')}\n`,
           })
         }
+      }
+      if (config.headers) {
+        this.emitFile({
+          type: 'asset',
+          fileName: '_headers',
+          source: [
+            '/*',
+            '  X-Frame-Options: DENY',
+            '  X-Content-Type-Options: nosniff',
+            '  Referrer-Policy: strict-origin-when-cross-origin',
+            '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
+            '',
+            '/assets/*',
+            '  Cache-Control: public, max-age=31536000, immutable',
+            '',
+            '*.html',
+            '  Cache-Control: public, max-age=0, must-revalidate',
+            '',
+            '/*.txt',
+            '  Content-Type: text/plain; charset=utf-8',
+            '  Cache-Control: public, max-age=3600',
+            '',
+            '/*.xml',
+            '  Content-Type: application/xml; charset=utf-8',
+            '  Cache-Control: public, max-age=3600',
+            '',
+            '/llms-full.txt',
+            '  Cache-Control: public, max-age=3600',
+            '  X-Robots-Tag: index',
+          ].join('\n'),
+        })
+      }
+      if (config.redirects) {
+        const lines: string[] = []
+        if (config.i18n.enabled) {
+          for (const { locale } of config.i18n.locales) {
+            if (locale === config.i18n.defaultLocale) continue
+            lines.push(`/${locale}/*  /${locale}/:splat  301`)
+          }
+          lines.push(`/*  /${config.i18n.defaultLocale}/:splat  301`)
+        }
+        if (lines.length > 0) {
+          this.emitFile({
+            type: 'asset',
+            fileName: '_redirects',
+            source: lines.join('\n'),
+          })
+        }
+      }
+      if (config.agentManifest) {
+        const baseUrl = config.site.baseUrl ?? ''
+        const manifest = {
+          name: config.site.title,
+          description: config.site.description,
+          url: baseUrl,
+          api: config.ai?.enabled === true ? config.ai.endpoint : undefined,
+          docs: pages.map(page => ({
+            title: page.metadata.frontmatter.title,
+            description: page.metadata.frontmatter.description,
+            url: joinUrl(baseUrl, page.metadata.url),
+            lastModified: page.metadata.lastModified,
+          })),
+          navigation: pages.map(page => ({
+            title: page.metadata.frontmatter.title,
+            url: joinUrl(baseUrl, page.metadata.url),
+          })),
+          tools: [
+            ...(config.ai?.enabled === true
+              ? [
+                  {
+                    name: 'ask_ai',
+                    description: 'Ask an AI assistant about the documentation',
+                    endpoint: config.ai.endpoint,
+                  },
+                ]
+              : []),
+          ],
+        }
+        this.emitFile({
+          type: 'asset',
+          fileName: 'agent-readability.json',
+          source: JSON.stringify(manifest, null, 2),
+        })
       }
     },
     async writeBundle(outputOptions) {

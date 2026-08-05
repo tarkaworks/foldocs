@@ -1,0 +1,106 @@
+---
+title: 'Search documents'
+description: 'Performs full-text search across all documentation content.'
+label: 'POST /search'
+order: 9
+tags:
+  - 'Search'
+---
+
+# Search documents
+
+`POST /search`
+
+Performs full-text search across all documentation content.
+
+## Request body
+
+Required · `application/json`
+
+| Field    | Type      | Required | Description         |
+| -------- | --------- | -------- | ------------------- |
+| `query`  | `string`  | Yes      | Search query string |
+| `locale` | `string`  | No       | Filter by locale    |
+| `tags`   | `array`   | No       | Filter by tags      |
+| `limit`  | `integer` | No       | Maximum results     |
+
+```json
+{
+  "query": "authentication setup",
+  "locale": "string",
+  "tags": ["string"],
+  "limit": 10
+}
+```
+
+<ApiPlayground
+  id="searchdocuments"
+  method="POST"
+  url="https://api.foldocs.dev/search"
+  body="%7B%0A%20%20%22query%22%3A%20%22authentication%20setup%22%2C%0A%20%20%22locale%22%3A%20%22string%22%2C%0A%20%20%22tags%22%3A%20%5B%0A%20%20%20%20%22string%22%0A%20%20%5D%2C%0A%20%20%22limit%22%3A%2010%0A%7D"
+/>
+
+## Request examples
+
+```bash tab="cURL"
+curl --request POST --url "https://api.foldocs.dev/search" --header 'content-type: application/json' --data '{"query":"authentication setup","locale":"string","tags":["string"],"limit":10}'
+```
+
+```ts tab="TypeScript"
+const response = await fetch('https://api.foldocs.dev/search', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    query: 'authentication setup',
+    locale: 'string',
+    tags: ['string'],
+    limit: 10,
+  }),
+})
+
+const data = await response.json()
+```
+
+```python tab="Python"
+import requests
+
+response = requests.request("POST", "https://api.foldocs.dev/search", json={"query":"authentication setup","locale":"string","tags":["string"],"limit":10})
+data = response.json()
+```
+
+```go tab="Go"
+request, err := http.NewRequest("POST", "https://api.foldocs.dev/search", strings.NewReader("{\"query\":\"authentication setup\",\"locale\":\"string\",\"tags\":[\"string\"],\"limit\":10}"))
+if err != nil { panic(err) }
+request.Header.Set("content-type", "application/json")
+response, err := http.DefaultClient.Do(request)
+if err != nil { panic(err) }
+defer response.Body.Close()
+```
+
+## Responses
+
+### 200 Search results
+
+`application/json`
+
+| Field     | Type      | Required | Description            |
+| --------- | --------- | -------- | ---------------------- |
+| `results` | `array`   | Yes      | —                      |
+| `total`   | `integer` | Yes      | Total matching results |
+| `query`   | `string`  | No       | Original search query  |
+
+```json
+{
+  "results": [
+    {
+      "documentId": "string",
+      "title": "Authentication Guide",
+      "slug": "auth-guide",
+      "snippet": "Learn how to set up **authentication** using JWT tokens...",
+      "score": 0.95
+    }
+  ],
+  "total": 42,
+  "query": "string"
+}
+```
