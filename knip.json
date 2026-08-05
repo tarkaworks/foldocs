@@ -28,9 +28,6 @@
     "packages/openapi": {
       "entry": ["src/index.ts", "src/bin.ts"]
     },
-    "packages/mcp-server": {
-      "entry": ["src/index.ts"]
-    },
     "packages/python": {
       "entry": ["src/index.ts", "src/bin.ts"]
     },
