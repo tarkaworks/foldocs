@@ -7,7 +7,9 @@ if (serverUrl === undefined) {
   console.error(
     'Error: FOLDOCS_MCP_SERVER_URL environment variable is required.',
   )
-  console.error('Usage: FOLDOCS_MCP_SERVER_URL=https://docs.example.com foldocs-mcp')
+  console.error(
+    'Usage: FOLDOCS_MCP_SERVER_URL=https://docs.example.com foldocs-mcp',
+  )
   process.exit(1)
 }
 
