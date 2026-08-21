@@ -110,6 +110,9 @@ describe('route prerendering', () => {
       'hreflang="es" href="https://example.com/es/docs/static"',
     )
     expect(html).toContain(
+      '<link rel="alternate" type="text/markdown" href="https://example.com/en/docs/static.md">',
+    )
+    expect(html).toContain(
       'class="fd-root fd-layout-docs" data-layout="docs" id="root"',
     )
     expect(html).toContain('Available without JavaScript.')

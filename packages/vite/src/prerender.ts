@@ -28,6 +28,8 @@ import {
 
 import type { PageMetadata } from '@foldocs/content'
 
+import { markdownAssetPath } from './markdown.js'
+
 export interface PrerenderPage {
   readonly metadata: PageMetadata
   readonly compiled: CompiledPage
@@ -617,6 +619,18 @@ export const prerenderRouteHtml = (
           ),
           `<link rel="alternate" hreflang="x-default" href="${escapeAttribute(absoluteUrl(config.site.baseUrl!, localeLinks.find(link => link.locale === config.i18n.defaultLocale)?.href ?? contentPath))}" data-foldocs-i18n="true">`,
         ]),
+    ...(config.markdown
+      ? [
+          `<link rel="alternate" type="text/markdown" href="${escapeAttribute(
+            config.site.baseUrl === undefined
+              ? `/${markdownAssetPath(contentPath)}`
+              : absoluteUrl(
+                  config.site.baseUrl,
+                  `/${markdownAssetPath(contentPath)}`,
+                ),
+          )}">`,
+        ]
+      : []),
     ...(config.rss.enabled && config.site.baseUrl !== undefined
       ? [
           `<link rel="alternate" type="application/rss+xml" title="${escapeAttribute(config.rss.title)}" href="${escapeAttribute(absoluteUrl(config.site.baseUrl, `/${config.i18n.enabled && route.locale !== config.i18n.defaultLocale ? `${route.locale}/` : ''}${config.rss.path}`))}">`,
