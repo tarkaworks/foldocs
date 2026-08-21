@@ -14,6 +14,8 @@ export const PageFrontmatter = S.Struct({
   keywords: S.optionalKey(S.Array(S.String)),
   tags: S.optionalKey(S.Array(S.String)),
   socialImage: S.optionalKey(S.String),
+  /** Marks a page as skippable in `llms.txt` when an agent's context budget is tight. */
+  llms: S.optionalKey(S.Literal('optional')),
   /** Custom collection fields preserved after the standard page keys are decoded. */
   data: S.optionalKey(S.Record(S.String, S.Unknown)),
 })

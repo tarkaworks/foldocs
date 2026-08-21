@@ -719,9 +719,71 @@ const prepareIndexHtml = (
   return `${result.slice(0, insertAt)}\n    ${cleaned.join('\n    ')}${result.slice(insertAt)}`
 }
 
-const makeLlmsIndex = (
+/** A `.md`-first link line for one navigation-ordered llms.txt entry. */
+const llmsPageLink = (
+  config: ResolvedFoldocsConfig,
+  metadata: PageMetadata,
+): string => {
+  const mdHref = `/${markdownAssetPath(metadata.url)}`
+  const href =
+    config.site.baseUrl === undefined
+      ? mdHref
+      : absoluteUrl(config.site.baseUrl, mdHref)
+  const description = metadata.frontmatter.description
+  return `- [${metadata.frontmatter.title}](${href})${
+    description === undefined ? '' : `: ${description}`
+  }`
+}
+
+interface LlmsSection {
+  readonly title: string
+  readonly pages: ReadonlyArray<PageMetadata>
+}
+
+/** Groups pages into navigation-ordered sections, mirroring the site's own sidebar: see issue #6. */
+const llmsSections = (
+  navigation: ReadonlyArray<NavigationNode>,
+  fallbackTitle: string,
+): ReadonlyArray<LlmsSection> => {
+  const collectPages = (node: NavigationNode): ReadonlyArray<PageMetadata> =>
+    node._tag === 'Page'
+      ? [node.page]
+      : node._tag === 'Folder'
+        ? [
+            ...(node.index?._tag === 'Page' ? [node.index.page] : []),
+            ...node.children.flatMap(collectPages),
+          ]
+        : []
+  const sections: Array<{ readonly title: string; pages: PageMetadata[] }> = []
+  let current: { readonly title: string; pages: PageMetadata[] } | undefined
+  const bucket = (
+    title: string,
+  ): { readonly title: string; pages: PageMetadata[] } => {
+    if (current === undefined || current.title !== title) {
+      current = { title, pages: [] }
+      sections.push(current)
+    }
+    return current
+  }
+  for (const node of navigation) {
+    if (node._tag === 'Separator') {
+      current = undefined
+      continue
+    }
+    if (node._tag === 'Link') continue
+    if (node._tag === 'Folder') {
+      bucket(node.label).pages.push(...collectPages(node))
+      continue
+    }
+    bucket(fallbackTitle).pages.push(node.page)
+  }
+  return sections.filter(section => section.pages.length > 0)
+}
+
+export const makeLlmsIndex = (
   config: ResolvedFoldocsConfig,
   pages: ReadonlyArray<DiscoveredPage>,
+  navigation: ReadonlyArray<NavigationNode>,
   locale = config.i18n.defaultLocale,
 ): string => {
   const fullPath = config.i18n.enabled
@@ -737,19 +799,53 @@ const makeLlmsIndex = (
         ? fullPath
         : absoluteUrl(config.site.baseUrl, fullPath)
     }.`,
-    '## Documentation',
   ].filter((line): line is string => line !== undefined)
-  const links = pages.map(({ metadata }) => {
-    const href =
-      config.site.baseUrl === undefined
-        ? metadata.url
-        : absoluteUrl(config.site.baseUrl, metadata.url)
-    const description = metadata.frontmatter.description
-    return `- [${metadata.frontmatter.title}](${href})${
-      description === undefined ? '' : `: ${description}`
-    }`
-  })
-  return `${[...header, ...links].join('\n\n')}\n`
+  const knownUrls = new Set(pages.map(({ metadata }) => metadata.url))
+  const sections = llmsSections(navigation, 'Documentation').map(section => ({
+    title: section.title,
+    pages: section.pages.filter(page => knownUrls.has(page.url)),
+  }))
+  const orderedUrls = new Set(
+    sections.flatMap(section => section.pages.map(page => page.url)),
+  )
+  const remaining = pages
+    .map(({ metadata }) => metadata)
+    .filter(page => !orderedUrls.has(page.url))
+  const allSections =
+    remaining.length === 0
+      ? sections
+      : sections.some(section => section.title === 'Documentation')
+        ? sections.map(section =>
+            section.title === 'Documentation'
+              ? {
+                  title: section.title,
+                  pages: [...section.pages, ...remaining],
+                }
+              : section,
+          )
+        : [...sections, { title: 'Documentation', pages: remaining }]
+  const required = allSections
+    .map(section => ({
+      title: section.title,
+      pages: section.pages.filter(page => page.frontmatter.llms !== 'optional'),
+    }))
+    .filter(section => section.pages.length > 0)
+  const optional = allSections
+    .flatMap(section => section.pages)
+    .filter(page => page.frontmatter.llms === 'optional')
+  const body = [
+    ...required.flatMap(section => [
+      `## ${section.title}`,
+      section.pages.map(page => llmsPageLink(config, page)).join('\n\n'),
+    ]),
+    ...(optional.length === 0
+      ? []
+      : [
+          '## Optional',
+          optional.map(page => llmsPageLink(config, page)).join('\n\n'),
+        ]),
+  ]
+  return `${[...header, ...body].join('\n\n')}\n`
 }
 
 const makeLlmsFull = (
@@ -1684,11 +1780,12 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           const localizedPages = pages.filter(
             ({ metadata }) => metadata.locale === locale,
           )
+          const navigation = navigations[locale] ?? []
           const directory = config.i18n.enabled ? `${locale}/` : ''
           this.emitFile({
             type: 'asset',
             fileName: `${directory}llms.txt`,
-            source: makeLlmsIndex(config, localizedPages, locale),
+            source: makeLlmsIndex(config, localizedPages, navigation, locale),
           })
           this.emitFile({
             type: 'asset',
@@ -1700,12 +1797,14 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           const defaultPages = pages.filter(
             ({ metadata }) => metadata.locale === config.i18n.defaultLocale,
           )
+          const defaultNavigation = navigations[config.i18n.defaultLocale] ?? []
           this.emitFile({
             type: 'asset',
             fileName: 'llms.txt',
             source: makeLlmsIndex(
               config,
               defaultPages,
+              defaultNavigation,
               config.i18n.defaultLocale,
             ),
           })
