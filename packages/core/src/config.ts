@@ -751,7 +751,9 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
         ? (config.llms.enabled ?? true)
         : (config.llms ?? true),
     llmsFrontmatter:
-      typeof config.llms === 'object' ? (config.llms.frontmatter ?? true) : true,
+      typeof config.llms === 'object'
+        ? (config.llms.frontmatter ?? true)
+        : true,
     ...(typeof config.llms === 'object' && config.llms.version !== undefined
       ? { llmsVersion: config.llms.version }
       : {}),

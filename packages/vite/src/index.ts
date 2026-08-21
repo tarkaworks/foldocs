@@ -1471,10 +1471,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
       if (resolvedLlmsVersion === undefined) {
         try {
           const packageJson = JSON.parse(
-            readFileSyncFs(
-              path.resolve(resolved.root, 'package.json'),
-              'utf8',
-            ),
+            readFileSyncFs(path.resolve(resolved.root, 'package.json'), 'utf8'),
           ) as { readonly version?: string }
           resolvedLlmsVersion = packageJson.version
         } catch {
