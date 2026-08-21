@@ -250,9 +250,18 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@foldocs/search':
+        specifier: workspace:*
+        version: link:../search
+      '@foldocs/search-orama':
+        specifier: workspace:*
+        version: link:../search-orama
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.30.0(zod@3.25.76)
+      effect:
+        specifier: 4.0.0-beta.102
+        version: 4.0.0-beta.102
       zod:
         specifier: ^3.23.0
         version: 3.25.76
