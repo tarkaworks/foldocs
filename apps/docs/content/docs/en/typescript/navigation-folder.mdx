@@ -1,0 +1,32 @@
+---
+title: 'NavigationFolder'
+description: 'Interface NavigationFolder.'
+order: 36
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# NavigationFolder
+
+Interface NavigationFolder.
+
+**Interface** · `navigation`
+
+```ts twoslash
+export interface NavigationFolder {
+  readonly _tag: 'Folder'
+  readonly label: string
+  readonly segment: string
+  readonly directory: string
+  readonly defaultOpen: boolean
+  readonly collapsible: boolean
+  /** Root folders act as mutually exclusive documentation sections/tabs. */
+  readonly root: boolean
+  readonly description?: string
+  readonly icon?: string
+  /** Optional page linked from the folder row instead of listed as a child. */
+  readonly index?: NavigationPage | NavigationLink
+  readonly children: ReadonlyArray<NavigationNode>
+}
+```

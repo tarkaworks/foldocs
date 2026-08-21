@@ -1,0 +1,28 @@
+---
+title: 'NavigationMeta'
+description: "Fumadocs-compatible navigation metadata loaded from a directory's meta.json."
+order: 40
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# NavigationMeta
+
+Fumadocs-compatible navigation metadata loaded from a directory's meta.json.
+
+**Interface** · `navigation`
+
+```ts twoslash
+/** Fumadocs-compatible navigation metadata loaded from a directory's meta.json. */
+export interface NavigationMeta {
+  readonly title?: string
+  readonly description?: string
+  readonly icon?: string
+  readonly pages?: ReadonlyArray<string>
+  readonly defaultOpen?: boolean
+  readonly collapsible?: boolean
+  readonly root?: boolean
+  readonly pagesIndex?: string
+}
+```

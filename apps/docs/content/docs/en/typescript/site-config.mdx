@@ -1,0 +1,37 @@
+---
+title: 'SiteConfig'
+description: 'Variable SiteConfig.'
+order: 71
+tags:
+  - TypeScript
+  - 'Variable'
+---
+
+# SiteConfig
+
+Variable SiteConfig.
+
+**Variable** · `config`
+
+```ts twoslash
+export declare const SiteConfig: S.Struct<{
+  readonly title: S.String
+  readonly description: S.optionalKey<S.String>
+  readonly baseUrl: S.optionalKey<S.String>
+  readonly logoText: S.optionalKey<S.String>
+  readonly badge: S.optionalKey<S.String>
+  readonly tagline: S.optionalKey<S.String>
+  readonly githubUrl: S.optionalKey<S.String>
+  /** Repository-relative directory that contains documentation source files. */
+  readonly githubContentPath: S.optionalKey<S.String>
+  readonly discordUrl: S.optionalKey<S.String>
+  readonly xUrl: S.optionalKey<S.String>
+  readonly npmUrl: S.optionalKey<S.String>
+  readonly keywords: S.optionalKey<S.$Array<S.String>>
+  readonly socialImage: S.optionalKey<S.String>
+  readonly favicon: S.optionalKey<S.String>
+  readonly locale: S.optionalKey<S.String>
+  /** Custom SVG markup keyed by the icon names used in page frontmatter/meta.json. */
+  readonly icons: S.optionalKey<S.$Record<S.String, S.String>>
+}>
+```

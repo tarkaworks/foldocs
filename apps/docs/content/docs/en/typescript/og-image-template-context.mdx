@@ -1,0 +1,29 @@
+---
+title: 'OgImageTemplateContext'
+description: 'Interface OgImageTemplateContext.'
+order: 50
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# OgImageTemplateContext
+
+Interface OgImageTemplateContext.
+
+**Interface** · `config`
+
+```ts twoslash
+export interface OgImageTemplateContext {
+  readonly kind: OgImageKind
+  readonly site: SiteConfig
+  readonly title: string
+  readonly description?: string
+  readonly locale: string
+  readonly slug: string
+  readonly width: number
+  readonly height: number
+  /** SVG markup used by the default template and available to custom templates. */
+  readonly logoSvg: string
+}
+```

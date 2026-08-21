@@ -1,0 +1,53 @@
+---
+title: 'ResolvedFoldocsConfig'
+description: '`FoldocsConfig` after defaults are applied; consumed by `@foldocs/vite` and `foldocs`.'
+order: 55
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# ResolvedFoldocsConfig
+
+`FoldocsConfig` after defaults are applied; consumed by `@foldocs/vite` and `foldocs`.
+
+**Interface** · `config`
+
+```ts twoslash
+/** `FoldocsConfig` after defaults are applied; consumed by `@foldocs/vite` and `foldocs`. */
+export interface ResolvedFoldocsConfig {
+  readonly site: SiteConfig
+  readonly seo: ResolvedSeoConfig
+  readonly i18n: ResolvedI18nConfig
+  readonly content: {
+    readonly dir: string
+    readonly sources: ReadonlyArray<ContentAdapter>
+    readonly lastModified: 'git' | 'filesystem' | false
+  }
+  readonly basePath: string
+  readonly layout: {
+    readonly preset: LayoutPreset
+  }
+  readonly landing: ResolvedLandingConfig
+  readonly banner?: BannerConfig
+  readonly feedback?: FeedbackConfig
+  readonly llms: boolean
+  readonly markdown: boolean
+  readonly sitemap: boolean
+  readonly rss: {
+    readonly enabled: boolean
+    readonly path: string
+    readonly title: string
+    readonly description?: string
+  }
+  readonly og: ResolvedOgImageConfig
+  readonly prerender: boolean
+  readonly search: {
+    readonly staticIndex: boolean
+  }
+  readonly ai: {
+    readonly enabled: boolean
+    readonly endpoint: string
+  }
+}
+```

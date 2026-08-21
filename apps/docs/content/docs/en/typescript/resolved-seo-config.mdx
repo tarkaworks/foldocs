@@ -1,0 +1,29 @@
+---
+title: 'ResolvedSeoConfig'
+description: 'Interface ResolvedSeoConfig.'
+order: 60
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# ResolvedSeoConfig
+
+Interface ResolvedSeoConfig.
+
+**Interface** · `config`
+
+```ts twoslash
+export interface ResolvedSeoConfig {
+  readonly titleTemplate: string
+  readonly author: SeoEntityConfig
+  readonly publisher: SeoEntityConfig
+  readonly twitterSite?: string
+  readonly twitterCreator?: string
+  readonly robots: {
+    readonly index: boolean
+    readonly follow: boolean
+  }
+  readonly jsonLd: boolean
+}
+```

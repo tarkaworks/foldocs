@@ -52,3 +52,12 @@ landing defaults, and the active layout preset.
 Configuration decoding reports the field path and expected value before the
 application starts. Invalid locale, URL, layout, or content settings cannot
 silently reach production.
+
+## Full reference
+
+This page covers the settings authors reach for most often. For the complete,
+generated shape of every field, its type, and its default, read the
+[`FoldocsConfig`](/en/docs/typescript/foldocs-config) and
+[`ResolvedFoldocsConfig`](/en/docs/typescript/resolved-foldocs-config)
+reference pages, generated directly from `packages/core/src/config.ts` on
+every build.

@@ -1,0 +1,25 @@
+---
+title: 'ResolvedI18nConfig'
+description: 'Interface ResolvedI18nConfig.'
+order: 56
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# ResolvedI18nConfig
+
+Interface ResolvedI18nConfig.
+
+**Interface** · `config`
+
+```ts twoslash
+export interface ResolvedI18nConfig {
+  readonly enabled: boolean
+  readonly defaultLocale: string
+  readonly fallbackLocale: string
+  readonly parser: 'dir' | 'dot'
+  readonly hideLocale: 'never' | 'default-locale' | 'always'
+  readonly locales: ReadonlyArray<ResolvedLocaleConfig>
+}
+```

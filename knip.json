@@ -6,9 +6,9 @@
       "project": ["e2e/**/*.ts", "scripts/**/*.{ts,mts}"]
     },
     "apps/docs": {
-      "entry": ["foldocs.config.ts", "reference.ts"],
+      "entry": ["foldocs.config.ts"],
       "ignore": ["public/**"],
-      "ignoreDependencies": ["@foldocs/tailwind"]
+      "ignoreDependencies": ["@foldocs/tailwind", "foldocs-core"]
     },
     "packages/*": {
       "entry": ["src/index.ts"]

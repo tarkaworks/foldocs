@@ -1,0 +1,56 @@
+---
+title: 'FoldocsConfig'
+description: 'The author-facing site configuration accepted by `defineConfig`.'
+order: 15
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# FoldocsConfig
+
+The author-facing site configuration accepted by `defineConfig`.
+
+**Interface** · `config`
+
+```ts twoslash
+/** The author-facing site configuration accepted by `defineConfig`. */
+export interface FoldocsConfig {
+  readonly site: SiteConfig
+  readonly seo?: SeoConfig
+  readonly i18n?: I18nConfig
+  readonly content?: {
+    readonly dir?: string
+    readonly sources?: ReadonlyArray<ContentAdapter>
+    readonly lastModified?: 'git' | 'filesystem' | false
+  }
+  readonly basePath?: string
+  readonly layout?: {
+    readonly preset?: LayoutPreset
+  }
+  readonly landing?: LandingConfig
+  readonly banner?: BannerConfig
+  readonly feedback?: FeedbackConfig
+  readonly llms?: boolean
+  readonly markdown?: boolean
+  readonly sitemap?: boolean
+  readonly rss?:
+    | boolean
+    | {
+        readonly path?: string
+        readonly title?: string
+        readonly description?: string
+      }
+  readonly og?: boolean | OgImageConfig
+  readonly prerender?: boolean
+  readonly search?: {
+    readonly staticIndex?: boolean
+  }
+  /** Optional embedded assistant backed by a server-side endpoint. */
+  readonly ai?:
+    | false
+    | {
+        readonly endpoint?: string
+      }
+}
+```

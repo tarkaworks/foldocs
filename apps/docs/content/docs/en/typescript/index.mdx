@@ -1,0 +1,308 @@
+---
+title: 'TypeScript API'
+description: 'Generated TypeScript API reference.'
+order: 1
+---
+
+# TypeScript API
+
+Generated TypeScript API reference.
+
+## [BannerConfig](/en/docs/typescript/banner-config)
+
+Variable · Variable BannerConfig.
+
+## [BannerConfig](/en/docs/typescript/banner-config-config)
+
+Type alias · Type alias BannerConfig.
+
+## [buildNavigation](/en/docs/typescript/build-navigation)
+
+Variable · Variable buildNavigation.
+
+## [buildSeoJsonLd](/en/docs/typescript/build-seo-json-ld)
+
+Variable · Builds the Schema.org graph embedded into every prerendered Foldocs route.
+
+## [createDocsProgram](/en/docs/typescript/create-docs-program)
+
+Variable · Creates the complete Foldkit program used by generated Foldocs sites.
+The returned schemas can be passed directly to `Runtime.makeApplication`.
+
+## [defaultLandingSections](/en/docs/typescript/default-landing-sections)
+
+Variable · Variable defaultLandingSections.
+
+## [defaultUiTranslations](/en/docs/typescript/default-ui-translations)
+
+Variable · Variable defaultUiTranslations.
+
+## [defineConfig](/en/docs/typescript/define-config)
+
+Variable · Identity helper that gives `foldocs.config.ts` authors type-checking and autocomplete.
+
+## [defineOgTemplate](/en/docs/typescript/define-og-template)
+
+Variable · Variable defineOgTemplate.
+
+## [DocsProgramOptions](/en/docs/typescript/docs-program-options)
+
+Interface · Options accepted by `createDocsProgram`, built from the resolved config and `virtual:foldocs`.
+
+## [FeedbackConfig](/en/docs/typescript/feedback-config)
+
+Variable · Variable FeedbackConfig.
+
+## [FeedbackConfig](/en/docs/typescript/feedback-config-config)
+
+Type alias · Type alias FeedbackConfig.
+
+## [flattenNavigation](/en/docs/typescript/flatten-navigation)
+
+Variable · Variable flattenNavigation.
+
+## [FoldocsConfig](/en/docs/typescript/foldocs-config)
+
+Interface · The author-facing site configuration accepted by `defineConfig`.
+
+## [formatSeoTitle](/en/docs/typescript/format-seo-title)
+
+Variable · Variable formatSeoTitle.
+
+## [I18nConfig](/en/docs/typescript/i18n-config)
+
+Variable · Variable I18nConfig.
+
+## [I18nConfig](/en/docs/typescript/i18n-config-config)
+
+Type alias · Type alias I18nConfig.
+
+## [interpolateTranslation](/en/docs/typescript/interpolate-translation)
+
+Variable · Variable interpolateTranslation.
+
+## [LandingConfig](/en/docs/typescript/landing-config)
+
+Variable · Variable LandingConfig.
+
+## [LandingConfig](/en/docs/typescript/landing-config-config)
+
+Type alias · Type alias LandingConfig.
+
+## [LandingFooterConfig](/en/docs/typescript/landing-footer-config)
+
+Variable · Variable LandingFooterConfig.
+
+## [LandingFooterConfig](/en/docs/typescript/landing-footer-config-config)
+
+Type alias · Type alias LandingFooterConfig.
+
+## [LandingSection](/en/docs/typescript/landing-section)
+
+Variable · Variable LandingSection.
+
+## [LandingSection](/en/docs/typescript/landing-section-config)
+
+Type alias · Type alias LandingSection.
+
+## [LayoutPreset](/en/docs/typescript/layout-preset)
+
+Variable · Variable LayoutPreset.
+
+## [LayoutPreset](/en/docs/typescript/layout-preset-config)
+
+Type alias · Type alias LayoutPreset.
+
+## [LocaleConfig](/en/docs/typescript/locale-config)
+
+Variable · Variable LocaleConfig.
+
+## [LocaleConfig](/en/docs/typescript/locale-config-config)
+
+Type alias · Type alias LocaleConfig.
+
+## [localeDefinition](/en/docs/typescript/locale-definition)
+
+Variable · Variable localeDefinition.
+
+## [localeFromPathname](/en/docs/typescript/locale-from-pathname)
+
+Variable · Variable localeFromPathname.
+
+## [localeHomePath](/en/docs/typescript/locale-home-path)
+
+Variable · Variable localeHomePath.
+
+## [localizedPathname](/en/docs/typescript/localized-pathname)
+
+Variable · Variable localizedPathname.
+
+## [navigationContainsUrl](/en/docs/typescript/navigation-contains-url)
+
+Variable · Returns whether a page or folder contains the canonical URL.
+
+## [navigationContextForUrl](/en/docs/typescript/navigation-context-for-url)
+
+Variable · Returns the ancestor folder labels for a page URL in display order.
+
+## [NavigationFolder](/en/docs/typescript/navigation-folder)
+
+Interface · Interface NavigationFolder.
+
+## [navigationFolderKeysForUrl](/en/docs/typescript/navigation-folder-keys-for-url)
+
+Variable · Returns the sidebar ancestor-folder keys for the canonical URL.
+
+## [navigationForUrl](/en/docs/typescript/navigation-for-url)
+
+Variable · Returns the sidebar tree visible for a URL, respecting configured roots.
+
+## [NavigationLink](/en/docs/typescript/navigation-link)
+
+Interface · Interface NavigationLink.
+
+## [NavigationMeta](/en/docs/typescript/navigation-meta)
+
+Interface · Fumadocs-compatible navigation metadata loaded from a directory's meta.json.
+
+## [NavigationMetaMap](/en/docs/typescript/navigation-meta-map)
+
+Type alias · Type alias NavigationMetaMap.
+
+## [NavigationNode](/en/docs/typescript/navigation-node)
+
+Type alias · Type alias NavigationNode.
+
+## [NavigationPage](/en/docs/typescript/navigation-page)
+
+Interface · Interface NavigationPage.
+
+## [NavigationSeparator](/en/docs/typescript/navigation-separator)
+
+Interface · A static sidebar section heading declared as `---Section---` in meta.json.
+
+## [NavigationTab](/en/docs/typescript/navigation-tab)
+
+Interface · Interface NavigationTab.
+
+## [navigationTabsForUrl](/en/docs/typescript/navigation-tabs-for-url)
+
+Variable · Returns layout tabs when the URL is inside a root folder.
+
+## [OgImageConfig](/en/docs/typescript/og-image-config)
+
+Interface · Interface OgImageConfig.
+
+## [OgImageKind](/en/docs/typescript/og-image-kind)
+
+Type alias · Type alias OgImageKind.
+
+## [OgImageTemplate](/en/docs/typescript/og-image-template)
+
+Type alias · HTML rendered to a PNG by Takumi during the production build.
+
+## [OgImageTemplateContext](/en/docs/typescript/og-image-template-context)
+
+Interface · Interface OgImageTemplateContext.
+
+## [openGraphLocale](/en/docs/typescript/open-graph-locale)
+
+Variable · Variable openGraphLocale.
+
+## [preloadDocsPage](/en/docs/typescript/preload-docs-page)
+
+Variable · Loads only the current route chunk before Foldkit takes ownership of the
+prerendered root. The static document remains visible while the chunk is in
+flight, and `init` can then produce the same page VNode on its first render.
+
+## [PreloadedDocsPage](/en/docs/typescript/preloaded-docs-page)
+
+Interface · Interface PreloadedDocsPage.
+
+## [resolveConfig](/en/docs/typescript/resolve-config)
+
+Variable · Validates a `FoldocsConfig` and fills in every default, producing the config the build consumes.
+
+## [ResolvedFoldocsConfig](/en/docs/typescript/resolved-foldocs-config)
+
+Interface · `FoldocsConfig` after defaults are applied; consumed by `@foldocs/vite` and `foldocs`.
+
+## [ResolvedI18nConfig](/en/docs/typescript/resolved-i18n-config)
+
+Interface · Interface ResolvedI18nConfig.
+
+## [ResolvedLandingConfig](/en/docs/typescript/resolved-landing-config)
+
+Interface · Interface ResolvedLandingConfig.
+
+## [ResolvedLocaleConfig](/en/docs/typescript/resolved-locale-config)
+
+Interface · Interface ResolvedLocaleConfig.
+
+## [ResolvedOgImageConfig](/en/docs/typescript/resolved-og-image-config)
+
+Interface · Interface ResolvedOgImageConfig.
+
+## [ResolvedSeoConfig](/en/docs/typescript/resolved-seo-config)
+
+Interface · Interface ResolvedSeoConfig.
+
+## [ResolvedUiTranslations](/en/docs/typescript/resolved-ui-translations)
+
+Interface · Interface ResolvedUiTranslations.
+
+## [resolveSeoConfig](/en/docs/typescript/resolve-seo-config)
+
+Variable · Variable resolveSeoConfig.
+
+## [robotsContent](/en/docs/typescript/robots-content)
+
+Variable · Variable robotsContent.
+
+## [SeoBreadcrumb](/en/docs/typescript/seo-breadcrumb)
+
+Interface · Interface SeoBreadcrumb.
+
+## [SeoConfig](/en/docs/typescript/seo-config)
+
+Variable · Variable SeoConfig.
+
+## [SeoConfig](/en/docs/typescript/seo-config-config)
+
+Type alias · Type alias SeoConfig.
+
+## [SeoEntityConfig](/en/docs/typescript/seo-entity-config)
+
+Variable · Variable SeoEntityConfig.
+
+## [SeoEntityConfig](/en/docs/typescript/seo-entity-config-config)
+
+Type alias · Type alias SeoEntityConfig.
+
+## [SeoJsonLdInput](/en/docs/typescript/seo-json-ld-input)
+
+Interface · Interface SeoJsonLdInput.
+
+## [serializeJsonLd](/en/docs/typescript/serialize-json-ld)
+
+Variable · Serializes JSON-LD without allowing metadata to terminate the script node.
+
+## [SiteConfig](/en/docs/typescript/site-config)
+
+Variable · Variable SiteConfig.
+
+## [SiteConfig](/en/docs/typescript/site-config-config)
+
+Type alias · Type alias SiteConfig.
+
+## [stripLocalePrefix](/en/docs/typescript/strip-locale-prefix)
+
+Variable · Variable stripLocalePrefix.
+
+## [UiTranslations](/en/docs/typescript/ui-translations)
+
+Variable · Variable UiTranslations.
+
+## [UiTranslations](/en/docs/typescript/ui-translations-config)
+
+Type alias · Type alias UiTranslations.
