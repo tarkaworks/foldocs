@@ -147,6 +147,12 @@ importers:
 
   packages/ai:
     dependencies:
+      '@foldocs/search':
+        specifier: workspace:*
+        version: link:../search
+      '@foldocs/search-orama':
+        specifier: workspace:*
+        version: link:../search-orama
       effect:
         specifier: 4.0.0-beta.102
         version: 4.0.0-beta.102
