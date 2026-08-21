@@ -91,8 +91,8 @@ export interface DocsProgramOptions {
   >
   readonly layoutPreset?: LayoutPreset
   readonly landing?: ResolvedLandingConfig
-  readonly banner?: BannerConfig
-  readonly feedback?: FeedbackConfig
+  readonly banner?: BannerConfig | undefined
+  readonly feedback?: FeedbackConfig | undefined
   readonly i18n?: ResolvedI18nConfig
   readonly basePath?: string
   readonly search?: SearchClient
