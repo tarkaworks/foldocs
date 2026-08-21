@@ -2087,6 +2087,18 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           description: config.site.description,
           url: baseUrl,
           api: config.ai?.enabled === true ? config.ai.endpoint : undefined,
+          artifacts: config.search.staticIndex
+            ? {
+                searchIndex: Object.fromEntries(
+                  Object.entries(searchIndexUrls).map(([locale, url]) => [
+                    locale,
+                    config.site.baseUrl === undefined
+                      ? url
+                      : absoluteUrl(config.site.baseUrl, url),
+                  ]),
+                ),
+              }
+            : undefined,
           docs: pages.map(page => ({
             title: page.metadata.frontmatter.title,
             description: page.metadata.frontmatter.description,
