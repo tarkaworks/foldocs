@@ -1859,7 +1859,11 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           this.emitFile({
             type: 'asset',
             fileName: 'robots.txt',
-            source: `User-agent: *\nAllow: /\n\nSitemap: ${absoluteUrl(config.site.baseUrl, '/sitemap.xml')}\n`,
+            source: `User-agent: *\nAllow: /\n${
+              config.llms
+                ? `\n# Markdown corpus for LLM clients: ${absoluteUrl(config.site.baseUrl, '/llms.txt')}\n`
+                : ''
+            }\nSitemap: ${absoluteUrl(config.site.baseUrl, '/sitemap.xml')}\n`,
           })
         }
       }

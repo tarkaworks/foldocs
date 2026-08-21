@@ -1442,6 +1442,28 @@ export const createDocsProgram = (options: DocsProgramOptions) => {
             document.head.append(link)
           }
         }
+        for (const element of document.head.querySelectorAll(
+          'link[data-foldocs-markdown]',
+        ))
+          element.remove()
+        if (options.markdown ?? true) {
+          const markdownPath =
+            canonicalPath === '/'
+              ? '/index.md'
+              : `${canonicalPath.replace(/\/+$/u, '')}.md`
+          const link = document.createElement('link')
+          link.rel = 'alternate'
+          link.type = 'text/markdown'
+          link.href =
+            options.site.baseUrl === undefined
+              ? markdownPath
+              : new URL(
+                  markdownPath.replace(/^\//u, ''),
+                  `${options.site.baseUrl.replace(/\/+$/u, '')}/`,
+                ).toString()
+          link.dataset.foldocsMarkdown = 'true'
+          document.head.append(link)
+        }
         return CompletedApplyLocaleMetadata()
       }),
   })
