@@ -12,6 +12,55 @@ export interface MarkdownPage {
   readonly compiled: CompiledPage
 }
 
+export interface PageMarkdownOptions {
+  /** Emits a provenance frontmatter block (url, locale, breadcrumbs, version, ...). Default: `false`. */
+  readonly frontmatter?: boolean
+  /** Ancestor navigation labels, in display order, for the frontmatter block. */
+  readonly breadcrumbs?: ReadonlyArray<string>
+  /** Product version stamped into the frontmatter block. */
+  readonly version?: string
+}
+
+const yamlScalar = (value: string): string => JSON.stringify(value)
+
+const yamlSequence = (values: ReadonlyArray<string>): string =>
+  `[${values.map(yamlScalar).join(', ')}]`
+
+/** Provenance frontmatter for a generated `.md` asset: see issue #5. */
+const pageMarkdownFrontmatter = (
+  site: SiteConfig,
+  metadata: PageMetadata,
+  options: PageMarkdownOptions,
+): string => {
+  const url =
+    site.baseUrl === undefined
+      ? metadata.url
+      : new URL(
+          metadata.url.replace(/^\//u, ''),
+          `${site.baseUrl.replace(/\/+$/u, '')}/`,
+        ).toString()
+  const lines = [
+    `url: ${yamlScalar(url)}`,
+    `title: ${yamlScalar(metadata.frontmatter.title)}`,
+    ...(metadata.frontmatter.description === undefined
+      ? []
+      : [`description: ${yamlScalar(metadata.frontmatter.description)}`]),
+    ...(metadata.locale === undefined
+      ? []
+      : [`locale: ${yamlScalar(metadata.locale)}`]),
+    ...(options.breadcrumbs === undefined || options.breadcrumbs.length === 0
+      ? []
+      : [`breadcrumbs: ${yamlSequence(options.breadcrumbs)}`]),
+    ...(metadata.lastModified === undefined
+      ? []
+      : [`lastModified: ${yamlScalar(metadata.lastModified)}`]),
+    ...(options.version === undefined
+      ? []
+      : [`version: ${yamlScalar(options.version)}`]),
+  ]
+  return `---\n${lines.join('\n')}\n---\n`
+}
+
 const trimPath = (pathname: string): string => {
   if (pathname === '/') return pathname
   return pathname.replace(/\/+$/u, '')
@@ -68,17 +117,21 @@ const withoutLeadingTitle = (page: CompiledPage): Document => ({
 export const makePageMarkdown = (
   site: SiteConfig,
   { metadata, compiled }: MarkdownPage,
+  options: PageMarkdownOptions = {},
 ): string => {
   const body = documentToMarkdown(withoutLeadingTitle(compiled), {
     ...(site.baseUrl === undefined ? {} : { baseUrl: site.baseUrl }),
   }).trim()
-  return `${[
+  const page = `${[
     `# ${metadata.frontmatter.title}`,
     metadata.frontmatter.description,
     body.length === 0 ? undefined : body,
   ]
     .filter((value): value is string => value !== undefined)
     .join('\n\n')}\n`
+  return options.frontmatter === true
+    ? `${pageMarkdownFrontmatter(site, metadata, options)}\n${page}`
+    : page
 }
 
 /** Markdown representation of Foldocs' built-in `/` landing page. */
