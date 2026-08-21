@@ -1,0 +1,21 @@
+---
+title: 'OgImageTemplate'
+description: 'HTML rendered to a PNG by Takumi during the production build.'
+order: 49
+tags:
+  - TypeScript
+  - 'Type alias'
+---
+
+# OgImageTemplate
+
+HTML rendered to a PNG by Takumi during the production build.
+
+**Type alias** · `config`
+
+```ts twoslash
+/** HTML rendered to a PNG by Takumi during the production build. */
+export type OgImageTemplate = (
+  context: OgImageTemplateContext,
+) => string | Promise<string>
+```

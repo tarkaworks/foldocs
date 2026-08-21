@@ -135,6 +135,9 @@ importers:
       '@types/node':
         specifier: 26.1.1
         version: 26.1.1
+      foldocs-core:
+        specifier: workspace:*
+        version: link:../../packages/core
       typescript:
         specifier: 6.0.3
         version: 6.0.3

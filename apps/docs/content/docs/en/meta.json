@@ -1,4 +1,4 @@
 {
   "title": "Documentation",
-  "pages": ["(get-started)", "ui", "core", "mdx", "cli"]
+  "pages": ["(get-started)", "ui", "core", "mdx", "cli", "typescript"]
 }

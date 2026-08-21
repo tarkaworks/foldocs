@@ -1,0 +1,24 @@
+---
+title: 'ResolvedLandingConfig'
+description: 'Interface ResolvedLandingConfig.'
+order: 57
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# ResolvedLandingConfig
+
+Interface ResolvedLandingConfig.
+
+**Interface** · `config`
+
+```ts twoslash
+export interface ResolvedLandingConfig {
+  readonly sections: ReadonlyArray<LandingSection>
+  readonly headline?: string
+  readonly description?: string
+  readonly command: string
+  readonly footer?: LandingFooterConfig
+}
+```

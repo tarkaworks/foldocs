@@ -1,0 +1,29 @@
+---
+title: 'preloadDocsPage'
+description: "Loads only the current route chunk before Foldkit takes ownership of the\nprerendered root. The static document remains visible while the chunk is in\nflight, and `init` can then produce the same page VNode on its first render."
+order: 52
+tags:
+  - TypeScript
+  - 'Variable'
+---
+
+# preloadDocsPage
+
+Loads only the current route chunk before Foldkit takes ownership of the
+prerendered root. The static document remains visible while the chunk is in
+flight, and `init` can then produce the same page VNode on its first render.
+
+**Variable** · `index`
+
+```ts twoslash
+/**
+ * Loads only the current route chunk before Foldkit takes ownership of the
+ * prerendered root. The static document remains visible while the chunk is in
+ * flight, and `init` can then produce the same page VNode on its first render.
+ */
+export declare const preloadDocsPage: (
+  manifest: PageManifest<CompiledPageType>,
+  i18n: ResolvedI18nConfig,
+  pathname: string,
+) => Promise<PreloadedDocsPage | undefined>
+```

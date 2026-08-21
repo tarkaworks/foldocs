@@ -1,0 +1,23 @@
+---
+title: 'navigationContextForUrl'
+description: 'Returns the ancestor folder labels for a page URL in display order.'
+order: 35
+tags:
+  - TypeScript
+  - 'Variable'
+---
+
+# navigationContextForUrl
+
+Returns the ancestor folder labels for a page URL in display order.
+
+**Variable** · `navigation`
+
+```ts twoslash
+/** Returns the ancestor folder labels for a page URL in display order. */
+export declare const navigationContextForUrl: (
+  nodes: ReadonlyArray<NavigationNode>,
+  currentUrl: string,
+  ancestors?: ReadonlyArray<string>,
+) => ReadonlyArray<string> | undefined
+```

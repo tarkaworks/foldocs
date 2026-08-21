@@ -79,6 +79,7 @@ const LanguageMenu = Menu.create<string>()
 const LayoutTabsMenu = Menu.create<string>()
 const PageOpenMenu = Menu.create<string>()
 
+/** Options accepted by `createDocsProgram`, built from the resolved config and `virtual:foldocs`. */
 export interface DocsProgramOptions {
   readonly manifest: PageManifest<CompiledPageType>
   readonly navigation?: ReadonlyArray<NavigationNode>

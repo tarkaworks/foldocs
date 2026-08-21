@@ -1,0 +1,55 @@
+---
+title: 'DocsProgramOptions'
+description: 'Options accepted by `createDocsProgram`, built from the resolved config and `virtual:foldocs`.'
+order: 11
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# DocsProgramOptions
+
+Options accepted by `createDocsProgram`, built from the resolved config and `virtual:foldocs`.
+
+**Interface** · `index`
+
+```ts twoslash
+/** Options accepted by `createDocsProgram`, built from the resolved config and `virtual:foldocs`. */
+export interface DocsProgramOptions {
+  readonly manifest: PageManifest<CompiledPageType>
+  readonly navigation?: ReadonlyArray<NavigationNode>
+  readonly navigations?: Readonly<Record<string, ReadonlyArray<NavigationNode>>>
+  readonly site: SiteConfig
+  readonly seo?: ResolvedSeoConfig
+  readonly og?: Pick<
+    ResolvedOgImageConfig,
+    'enabled' | 'directory' | 'width' | 'height'
+  >
+  readonly layoutPreset?: LayoutPreset
+  readonly landing?: ResolvedLandingConfig
+  readonly banner?: BannerConfig
+  readonly feedback?: FeedbackConfig
+  readonly i18n?: ResolvedI18nConfig
+  readonly basePath?: string
+  readonly search?: SearchClient
+  /** Optional server-backed assistant. Provider credentials stay behind its endpoint. */
+  readonly ai?: Readonly<{
+    readonly client: AiClient
+  }>
+  readonly markdown?: boolean
+  /** Typed `.md` directive views produced by @foldkit/markdown `islandsFor`. */
+  readonly islands?: MarkdownIslands
+  /** Presentational Foldkit renderers for deterministic MDX component nodes. */
+  readonly components?: MdxComponents
+  /** Per-locale JSON indexes emitted by the Foldocs Vite plugin. */
+  readonly searchIndexUrls?: Readonly<Record<string, string>>
+  /** Per-locale landing social images emitted by the Foldocs Vite plugin. */
+  readonly landingSocialImages?: Readonly<Record<string, string>>
+  /**
+   * Page module loaded before the Foldkit runtime starts. Production entry
+   * points use this to adopt prerendered HTML without briefly rendering the
+   * asynchronous loading state first.
+   */
+  readonly preloadedPage?: PreloadedDocsPage
+}
+```

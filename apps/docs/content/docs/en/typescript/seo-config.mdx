@@ -1,0 +1,50 @@
+---
+title: 'SeoConfig'
+description: 'Variable SeoConfig.'
+order: 65
+tags:
+  - TypeScript
+  - 'Variable'
+---
+
+# SeoConfig
+
+Variable SeoConfig.
+
+**Variable** · `config`
+
+```ts twoslash
+export declare const SeoConfig: S.Struct<{
+  /** Page title format. `%s` is replaced with the page title. */
+  readonly titleTemplate: S.optionalKey<S.String>
+  readonly author: S.optionalKey<
+    S.Struct<{
+      readonly type: S.optionalKey<
+        S.Literals<readonly ['Organization', 'Person']>
+      >
+      readonly name: S.String
+      readonly url: S.optionalKey<S.String>
+      readonly logo: S.optionalKey<S.String>
+    }>
+  >
+  readonly publisher: S.optionalKey<
+    S.Struct<{
+      readonly type: S.optionalKey<
+        S.Literals<readonly ['Organization', 'Person']>
+      >
+      readonly name: S.String
+      readonly url: S.optionalKey<S.String>
+      readonly logo: S.optionalKey<S.String>
+    }>
+  >
+  readonly twitterSite: S.optionalKey<S.String>
+  readonly twitterCreator: S.optionalKey<S.String>
+  readonly robots: S.optionalKey<
+    S.Struct<{
+      readonly index: S.optionalKey<S.Boolean>
+      readonly follow: S.optionalKey<S.Boolean>
+    }>
+  >
+  readonly jsonLd: S.optionalKey<S.Boolean>
+}>
+```

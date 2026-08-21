@@ -1,0 +1,37 @@
+---
+title: 'LandingConfig'
+description: 'Variable LandingConfig.'
+order: 20
+tags:
+  - TypeScript
+  - 'Variable'
+---
+
+# LandingConfig
+
+Variable LandingConfig.
+
+**Variable** · `config`
+
+```ts twoslash
+export declare const LandingConfig: S.Struct<{
+  readonly sections: S.optionalKey<
+    S.$Array<
+      S.Literals<
+        readonly ['hero', 'overview', 'stack', 'features', 'ai', 'proof', 'cta']
+      >
+    >
+  >
+  readonly headline: S.optionalKey<S.String>
+  readonly description: S.optionalKey<S.String>
+  readonly command: S.optionalKey<S.String>
+  readonly footer: S.optionalKey<
+    S.Struct<{
+      readonly author: S.optionalKey<S.String>
+      readonly authorUrl: S.optionalKey<S.String>
+      readonly copyright: S.optionalKey<S.String>
+      readonly twitterUrl: S.optionalKey<S.String>
+    }>
+  >
+}>
+```

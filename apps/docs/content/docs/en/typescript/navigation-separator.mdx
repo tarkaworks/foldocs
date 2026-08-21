@@ -1,0 +1,23 @@
+---
+title: 'NavigationSeparator'
+description: 'A static sidebar section heading declared as `---Section---` in meta.json.'
+order: 44
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# NavigationSeparator
+
+A static sidebar section heading declared as `---Section---` in meta.json.
+
+**Interface** · `navigation`
+
+```ts twoslash
+/** A static sidebar section heading declared as `---Section---` in meta.json. */
+export interface NavigationSeparator {
+  readonly _tag: 'Separator'
+  readonly label: string
+  readonly icon?: string
+}
+```

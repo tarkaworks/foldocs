@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && pnpm generate:typescript && vite build",
     "typecheck": "tsc --noEmit",
     "check": "foldocs check --locales en,es --fallback-locale en",
     "generate:api": "foldocs-openapi openapi.yaml content/docs/en/api /en/docs/api",
     "generate:events": "foldocs-asyncapi asyncapi.yaml content/docs/en/events /en/docs/events",
-    "generate:typescript": "foldocs-typescript reference.ts content/docs/en/typescript /en/docs/typescript",
+    "generate:typescript": "foldocs-typescript ../../packages/core/src/seo.ts,../../packages/core/src/navigation.ts,../../packages/foldocs/src/index.ts content/docs/en/typescript /en/docs/typescript && prettier --write content/docs/en/typescript",
     "generate:python": "foldocs-python reference.py content/docs/en/python /en/docs/python",
     "export:epub": "foldocs-epub content/docs/en dist/foldocs.epub Foldocs urn:foldocs:documentation",
     "test": "vitest run --passWithNoTests"
@@ -38,6 +38,7 @@
     "@foldocs/typescript": "workspace:*",
     "@foldocs/vite": "workspace:*",
     "@types/node": "26.1.1",
+    "foldocs-core": "workspace:*",
     "typescript": "6.0.3",
     "vite": "^8.0.16",
     "vitest": "^4.1.9"

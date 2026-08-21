@@ -1,0 +1,24 @@
+---
+title: 'NavigationPage'
+description: 'Interface NavigationPage.'
+order: 43
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# NavigationPage
+
+Interface NavigationPage.
+
+**Interface** · `navigation`
+
+```ts twoslash
+export interface NavigationPage {
+  readonly _tag: 'Page'
+  readonly label: string
+  readonly icon?: string
+  readonly url: string
+  readonly page: PageMetadata
+}
+```

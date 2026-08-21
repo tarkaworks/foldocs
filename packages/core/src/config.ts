@@ -429,6 +429,7 @@ export const defineOgTemplate = <Template extends OgImageTemplate>(
   template: Template,
 ): Template => template
 
+/** The author-facing site configuration accepted by `defineConfig`. */
 export interface FoldocsConfig {
   readonly site: SiteConfig
   readonly seo?: SeoConfig
@@ -464,6 +465,7 @@ export interface FoldocsConfig {
   readonly ai?: false | { readonly endpoint?: string }
 }
 
+/** `FoldocsConfig` after defaults are applied; consumed by `@foldocs/vite` and `foldocs`. */
 export interface ResolvedFoldocsConfig {
   readonly site: SiteConfig
   readonly seo: ResolvedSeoConfig
@@ -630,6 +632,7 @@ export const localeHomePath = (
   locale: string,
 ): string => localizedPathname(i18n, locale, '/')
 
+/** Identity helper that gives `foldocs.config.ts` authors type-checking and autocomplete. */
 export const defineConfig = <const Config extends FoldocsConfig>(
   config: Config,
 ): Config => config
@@ -687,6 +690,7 @@ const ogDimension = (
   return resolved
 }
 
+/** Validates a `FoldocsConfig` and fills in every default, producing the config the build consumes. */
 export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
   const site = S.decodeUnknownSync(SiteConfig)(config.site)
   const i18n = resolveI18n(config.i18n, site.locale)

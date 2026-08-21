@@ -1,0 +1,31 @@
+---
+title: 'SeoJsonLdInput'
+description: 'Interface SeoJsonLdInput.'
+order: 69
+tags:
+  - TypeScript
+  - 'Interface'
+---
+
+# SeoJsonLdInput
+
+Interface SeoJsonLdInput.
+
+**Interface** · `seo`
+
+```ts twoslash
+export interface SeoJsonLdInput {
+  readonly kind: 'landing' | 'page'
+  readonly site: SiteConfig
+  readonly seo: ResolvedSeoConfig
+  readonly title: string
+  readonly description?: string
+  readonly url?: string
+  readonly image?: string
+  readonly locale: string
+  readonly locales?: ReadonlyArray<string>
+  readonly lastModified?: string
+  readonly keywords?: ReadonlyArray<string>
+  readonly breadcrumbs?: ReadonlyArray<SeoBreadcrumb>
+}
+```
