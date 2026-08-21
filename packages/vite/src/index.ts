@@ -25,6 +25,7 @@ import {
 } from 'foldocs-mdx'
 import type { MarkdownIslands, MdxComponents } from 'foldocs-ui'
 import { execFile as execFileCallback } from 'node:child_process'
+import { readFileSync as readFileSyncFs } from 'node:fs'
 import { promises as fs } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import path from 'node:path'
@@ -39,6 +40,7 @@ import {
 import { generateTypeTable, transpileTypeScript } from '@foldocs/typescript'
 
 import {
+  type PageMarkdownOptions,
   isMarkdownPreferred,
   makeLandingMarkdown,
   makePageMarkdown,
@@ -53,6 +55,7 @@ import {
 } from './prerender.js'
 
 export {
+  type PageMarkdownOptions,
   isMarkdownPreferred,
   makeLandingMarkdown,
   makePageMarkdown,
@@ -719,9 +722,39 @@ const prepareIndexHtml = (
   return `${result.slice(0, insertAt)}\n    ${cleaned.join('\n    ')}${result.slice(insertAt)}`
 }
 
-const makeLlmsIndex = (
+/** Resolves the provenance options (see issue #5) for one page's `.md` export. */
+const markdownOptionsFor = (
+  config: ResolvedFoldocsConfig,
+  navigation: ReadonlyArray<NavigationNode>,
+  metadata: PageMetadata,
+  version: string | undefined,
+): PageMarkdownOptions => {
+  const breadcrumbs = navigationContextForUrl(navigation, metadata.url)
+  return {
+    frontmatter: config.llmsFrontmatter,
+    ...(breadcrumbs === undefined ? {} : { breadcrumbs }),
+    ...(version === undefined ? {} : { version }),
+  }
+}
+
+const llmsFrontmatterStamp = (
+  config: ResolvedFoldocsConfig,
+  version: string | undefined,
+): string | undefined => {
+  if (!config.llmsFrontmatter) return undefined
+  const generated = new Date().toISOString().slice(0, 10)
+  return [
+    `Generated ${generated}.`,
+    version === undefined ? undefined : `Version ${version}.`,
+  ]
+    .filter((value): value is string => value !== undefined)
+    .join(' ')
+}
+
+export const makeLlmsIndex = (
   config: ResolvedFoldocsConfig,
   pages: ReadonlyArray<DiscoveredPage>,
+  version: string | undefined,
   locale = config.i18n.defaultLocale,
 ): string => {
   const fullPath = config.i18n.enabled
@@ -732,6 +765,7 @@ const makeLlmsIndex = (
     config.site.description === undefined
       ? undefined
       : `> ${config.site.description}`,
+    llmsFrontmatterStamp(config, version),
     `Every documentation page is available as Markdown by appending \`.md\` to its URL. A single-file concatenation is available at ${
       config.site.baseUrl === undefined
         ? fullPath
@@ -752,21 +786,28 @@ const makeLlmsIndex = (
   return `${[...header, ...links].join('\n\n')}\n`
 }
 
-const makeLlmsFull = (
+export const makeLlmsFull = (
   config: ResolvedFoldocsConfig,
   pages: ReadonlyArray<DiscoveredPage>,
+  navigation: ReadonlyArray<NavigationNode>,
+  version: string | undefined,
 ): string =>
   `${[
     `# ${config.site.title}`,
     config.site.description === undefined
       ? undefined
       : `> ${config.site.description}`,
+    llmsFrontmatterStamp(config, version),
     ...pages.map(page => {
       const source =
         config.site.baseUrl === undefined
           ? page.metadata.url
           : absoluteUrl(config.site.baseUrl, page.metadata.url)
-      return `Source: ${source}\n\n${makePageMarkdown(config.site, page).trim()}`
+      return `Source: ${source}\n\n${makePageMarkdown(
+        config.site,
+        page,
+        markdownOptionsFor(config, navigation, page.metadata, version),
+      ).trim()}`
     }),
   ]
     .filter((value): value is string => value !== undefined)
@@ -795,6 +836,7 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
   )
   let viteConfig: ResolvedConfig
   let contentRoot = ''
+  let resolvedLlmsVersion = config.llmsVersion
   const compiledCache = new Map<string, Promise<CompiledPage>>()
   const lastModifiedCache = new Map<string, Promise<string | undefined>>()
   const remoteModuleCache = new Map<
@@ -1240,7 +1282,18 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
             )
           : page === undefined
             ? undefined
-            : makePageMarkdown(config.site, page)
+            : makePageMarkdown(
+                config.site,
+                page,
+                markdownOptionsFor(
+                  config,
+                  (await discoverNavigationData(pages)).navigations[
+                    page.metadata.locale ?? ''
+                  ] ?? [],
+                  page.metadata,
+                  resolvedLlmsVersion,
+                ),
+              )
       if (markdown === undefined) {
         next()
         return
@@ -1415,6 +1468,19 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
     configResolved(resolved) {
       viteConfig = resolved
       contentRoot = path.resolve(resolved.root, config.content.dir)
+      if (resolvedLlmsVersion === undefined) {
+        try {
+          const packageJson = JSON.parse(
+            readFileSyncFs(
+              path.resolve(resolved.root, 'package.json'),
+              'utf8',
+            ),
+          ) as { readonly version?: string }
+          resolvedLlmsVersion = packageJson.version
+        } catch {
+          resolvedLlmsVersion = undefined
+        }
+      }
     },
     configureServer(server) {
       server.watcher.add(contentRoot)
@@ -1638,7 +1704,16 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           this.emitFile({
             type: 'asset',
             fileName: markdownAssetPath(page.metadata.url),
-            source: makePageMarkdown(config.site, page),
+            source: makePageMarkdown(
+              config.site,
+              page,
+              markdownOptionsFor(
+                config,
+                navigations[page.metadata.locale ?? ''] ?? [],
+                page.metadata,
+                resolvedLlmsVersion,
+              ),
+            ),
           })
         }
         const landingLocales = config.i18n.enabled
@@ -1684,35 +1759,53 @@ export const foldocs = (options: FoldocsPluginOptions): Plugin => {
           const localizedPages = pages.filter(
             ({ metadata }) => metadata.locale === locale,
           )
+          const navigation = navigations[locale] ?? []
           const directory = config.i18n.enabled ? `${locale}/` : ''
           this.emitFile({
             type: 'asset',
             fileName: `${directory}llms.txt`,
-            source: makeLlmsIndex(config, localizedPages, locale),
+            source: makeLlmsIndex(
+              config,
+              localizedPages,
+              resolvedLlmsVersion,
+              locale,
+            ),
           })
           this.emitFile({
             type: 'asset',
             fileName: `${directory}llms-full.txt`,
-            source: makeLlmsFull(config, localizedPages),
+            source: makeLlmsFull(
+              config,
+              localizedPages,
+              navigation,
+              resolvedLlmsVersion,
+            ),
           })
         }
         if (config.i18n.enabled) {
           const defaultPages = pages.filter(
             ({ metadata }) => metadata.locale === config.i18n.defaultLocale,
           )
+          const defaultNavigation = navigations[config.i18n.defaultLocale] ?? []
           this.emitFile({
             type: 'asset',
             fileName: 'llms.txt',
             source: makeLlmsIndex(
               config,
               defaultPages,
+              resolvedLlmsVersion,
               config.i18n.defaultLocale,
             ),
           })
           this.emitFile({
             type: 'asset',
             fileName: 'llms-full.txt',
-            source: makeLlmsFull(config, defaultPages),
+            source: makeLlmsFull(
+              config,
+              defaultPages,
+              defaultNavigation,
+              resolvedLlmsVersion,
+            ),
           })
         }
       }

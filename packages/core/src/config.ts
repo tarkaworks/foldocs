@@ -445,7 +445,15 @@ export interface FoldocsConfig {
   readonly landing?: LandingConfig
   readonly banner?: BannerConfig
   readonly feedback?: FeedbackConfig
-  readonly llms?: boolean
+  readonly llms?:
+    | boolean
+    | {
+        readonly enabled?: boolean
+        /** Emit provenance frontmatter in `.md` output and version/date corpus headers. Default: `true`. */
+        readonly frontmatter?: boolean
+        /** Version stamped into `.md` frontmatter and `llms.txt`/`llms-full.txt` headers. Default: the site's `package.json` version. */
+        readonly version?: string
+      }
   readonly markdown?: boolean
   readonly sitemap?: boolean
   readonly rss?:
@@ -481,6 +489,8 @@ export interface ResolvedFoldocsConfig {
   readonly banner?: BannerConfig
   readonly feedback?: FeedbackConfig
   readonly llms: boolean
+  readonly llmsFrontmatter: boolean
+  readonly llmsVersion?: string
   readonly markdown: boolean
   readonly sitemap: boolean
   readonly rss: {
@@ -736,7 +746,15 @@ export const resolveConfig = (config: FoldocsConfig): ResolvedFoldocsConfig => {
     },
     ...(banner === undefined ? {} : { banner }),
     ...(feedback === undefined ? {} : { feedback }),
-    llms: config.llms ?? true,
+    llms:
+      typeof config.llms === 'object'
+        ? (config.llms.enabled ?? true)
+        : (config.llms ?? true),
+    llmsFrontmatter:
+      typeof config.llms === 'object' ? (config.llms.frontmatter ?? true) : true,
+    ...(typeof config.llms === 'object' && config.llms.version !== undefined
+      ? { llmsVersion: config.llms.version }
+      : {}),
     markdown: config.markdown ?? true,
     sitemap: config.sitemap ?? true,
     rss: {
