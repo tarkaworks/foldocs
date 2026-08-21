@@ -65,7 +65,7 @@ const renderInline = (
         inline.attributes.label ??
         inline.attributes.title ??
         inline.attributes.value ??
-        ''
+        `<!-- ${inline.name}: no static content available for Markdown export -->`
       )
     }
   }
@@ -113,9 +113,17 @@ const renderComponent = (
     return body.length === 0 ? heading : `${heading}\n\n${body}`
   }
 
-  if (title !== undefined && body.length > 0) return `**${title}**\n\n${body}`
+  if (component.name === 'MdxModule') return ''
+
+  if (body.length > 0)
+    return title === undefined ? body : `**${title}**\n\n${body}`
   if (title !== undefined) return `**${title}**`
-  return body
+  const fallback =
+    component.attributes.label ??
+    component.attributes.value ??
+    component.attributes.caption
+  if (fallback !== undefined) return fallback
+  return `<!-- ${component.name}: no static content available for Markdown export -->`
 }
 
 const renderBlock = (

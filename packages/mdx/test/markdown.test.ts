@@ -52,4 +52,30 @@ foldocs foldkit effect
 \`\`\`
 `)
   })
+
+  it('does not silently drop a self-closing island with no static content', async () => {
+    const page = await compile(
+      `# Title
+
+<WithChildren>CHILD_TEXT_OF_ISLAND</WithChildren>
+
+<SelfClosing />
+`,
+    )
+
+    const markdown = documentToMarkdown(page.document)
+    expect(markdown).toContain('CHILD_TEXT_OF_ISLAND')
+    expect(markdown).toContain('SelfClosing')
+  })
+
+  it('falls back to label/value/caption attributes for a childless component', async () => {
+    const page = await compile(
+      `# Title
+
+<Metric label="Uptime" value="99.9%" />
+`,
+    )
+
+    expect(documentToMarkdown(page.document)).toContain('Uptime')
+  })
 })
